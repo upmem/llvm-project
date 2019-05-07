@@ -146,6 +146,14 @@ StringRef llvm::object::getELFRelocationTypeName(uint32_t Machine,
       break;
     }
     break;
+  // UPMEM
+  case ELF::EM_DPU:
+    switch (Type) {
+#include "llvm/BinaryFormat/ELFRelocs/DPU.def"
+    default:
+      break;
+    }
+    break;
   default:
     break;
   }

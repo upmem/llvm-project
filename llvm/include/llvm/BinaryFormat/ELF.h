@@ -311,6 +311,7 @@ enum {
   EM_AMDGPU = 224,        // AMD GPU architecture
   EM_RISCV = 243,         // RISC-V
   EM_LANAI = 244,         // Lanai 32-bit processor
+  EM_DPU = 245,           // DPU architecture
   EM_BPF = 247,           // Linux kernel bpf virtual machine
 };
 
@@ -761,6 +762,12 @@ enum : unsigned {
 // ELF Relocation types for MSP430
 enum {
 #include "ELFRelocs/MSP430.def"
+};
+
+// UPMEM
+// ELF Relocation types for DPU
+enum {
+#include "ELFRelocs/DPU.def"
 };
 
 #undef ELF_RELOC
