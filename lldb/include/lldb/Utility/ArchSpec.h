@@ -186,6 +186,9 @@ public:
     eCore_uknownMach32,
     eCore_uknownMach64,
 
+    // UPMEM: Adding dpu core enumeration member
+    eCore_dpu,
+
     eCore_kalimba3,
     eCore_kalimba4,
     eCore_kalimba5,

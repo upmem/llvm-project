@@ -216,6 +216,10 @@ static const CoreDefinition g_core_definitions[] = {
     {eByteOrderLittle, 8, 4, 4, llvm::Triple::UnknownArch,
      ArchSpec::eCore_uknownMach64, "unknown-mach-64"},
 
+    // UPMEM: Adding dpu core definition
+    {eByteOrderLittle, 4, 8, 8, llvm::Triple::dpu, ArchSpec::eCore_dpu,
+                "dpu"},
+
     {eByteOrderBig, 4, 1, 1, llvm::Triple::kalimba, ArchSpec::eCore_kalimba3,
      "kalimba3"},
     {eByteOrderLittle, 4, 1, 1, llvm::Triple::kalimba, ArchSpec::eCore_kalimba4,
@@ -453,6 +457,9 @@ static const ArchDefinitionEntry g_elf_arch_entries[] = {
      ArchSpec::eMIPSSubType_mips64r6el, 0xFFFFFFFFu, 0xFFFFFFFFu}, // mips64r6el
     {ArchSpec::eCore_hexagon_generic, llvm::ELF::EM_HEXAGON,
      LLDB_INVALID_CPUTYPE, 0xFFFFFFFFu, 0xFFFFFFFFu}, // HEXAGON
+    // UPMEM: Adding dpu architecture as ELF architecture
+    {ArchSpec::eCore_dpu, llvm::ELF::EM_DPU, LLDB_INVALID_CPUTYPE,
+     0xFFFFFFFFu, 0xFFFFFFFFu}, // DPU
     {ArchSpec::eCore_kalimba3, llvm::ELF::EM_CSR_KALIMBA,
      llvm::Triple::KalimbaSubArch_v3, 0xFFFFFFFFu, 0xFFFFFFFFu}, // KALIMBA
     {ArchSpec::eCore_kalimba4, llvm::ELF::EM_CSR_KALIMBA,
