@@ -189,5 +189,9 @@ uint64_t TargetInfo::getImageBase() const {
   return config->isPic ? 0 : defaultImageBase;
 }
 
+uint64_t TargetInfo::fixupTargetVA(uint64_t TargetVA) const {
+  return TargetVA;
+}
+
 } // namespace elf
 } // namespace lld
