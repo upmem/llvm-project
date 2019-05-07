@@ -222,6 +222,9 @@ static const CoreDefinition g_core_definitions[] = {
 
     {eByteOrderLittle, 4, 1, 4, llvm::Triple::wasm32, ArchSpec::eCore_wasm32,
      "wasm32"},
+
+    {eByteOrderLittle, 4, 8, 8, llvm::Triple::dpu, ArchSpec::eCore_dpu,
+                "dpu"},
 };
 
 // Ensure that we have an entry in the g_core_definitions for each core. If you
@@ -452,6 +455,8 @@ static const ArchDefinitionEntry g_elf_arch_entries[] = {
      0xFFFFFFFFu, 0xFFFFFFFFu}, // ARC
     {ArchSpec::eCore_avr, llvm::ELF::EM_AVR, LLDB_INVALID_CPUTYPE,
      0xFFFFFFFFu, 0xFFFFFFFFu}, // AVR
+    {ArchSpec::eCore_dpu, llvm::ELF::EM_DPU, LLDB_INVALID_CPUTYPE,
+     0xFFFFFFFFu, 0xFFFFFFFFu}, // DPU
 };
 
 static const ArchDefinition g_elf_arch_def = {

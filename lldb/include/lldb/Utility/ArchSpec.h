@@ -193,6 +193,8 @@ public:
 
     eCore_wasm32,
 
+    eCore_dpu,
+
     kNumCores,
 
     kCore_invalid,
