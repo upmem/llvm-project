@@ -92,6 +92,24 @@
   11 // The register that would contain pointer size or less argument 7 (if any)
 #define LLDB_REGNUM_GENERIC_ARG8                                               \
   12 // The register that would contain pointer size or less argument 8 (if any)
+
+// UPMEM: adding arg9-arg16
+#define LLDB_REGNUM_GENERIC_ARG9                                               \
+  13 // The register that would contain pointer size or less argument 9 (if any)
+#define LLDB_REGNUM_GENERIC_ARG10                                              \
+  14 // The register that would contain pointer size or less argument 10 (if any)
+#define LLDB_REGNUM_GENERIC_ARG11                                              \
+  15 // The register that would contain pointer size or less argument 11 (if any)
+#define LLDB_REGNUM_GENERIC_ARG12                                              \
+  16 // The register that would contain pointer size or less argument 12 (if any)
+#define LLDB_REGNUM_GENERIC_ARG13                                              \
+  17 // The register that would contain pointer size or less argument 13 (if any)
+#define LLDB_REGNUM_GENERIC_ARG14                                              \
+  18 // The register that would contain pointer size or less argument 14 (if any)
+#define LLDB_REGNUM_GENERIC_ARG15                                              \
+  19 // The register that would contain pointer size or less argument 15 (if any)
+#define LLDB_REGNUM_GENERIC_ARG16                                              \
+  20 // The register that would contain pointer size or less argument 16 (if any)
 //---------------------------------------------------------------------
 /// Invalid value definitions
 //----------------------------------------------------------------------

@@ -480,6 +480,15 @@ uint32_t Args::StringToGenericRegister(llvm::StringRef s) {
                         .Case("arg6", LLDB_REGNUM_GENERIC_ARG6)
                         .Case("arg7", LLDB_REGNUM_GENERIC_ARG7)
                         .Case("arg8", LLDB_REGNUM_GENERIC_ARG8)
+                        // UPMEM: adding arg9-arg16
+                        .Case("arg9", LLDB_REGNUM_GENERIC_ARG9)
+                        .Case("arg10", LLDB_REGNUM_GENERIC_ARG10)
+                        .Case("arg11", LLDB_REGNUM_GENERIC_ARG11)
+                        .Case("arg12", LLDB_REGNUM_GENERIC_ARG12)
+                        .Case("arg13", LLDB_REGNUM_GENERIC_ARG13)
+                        .Case("arg14", LLDB_REGNUM_GENERIC_ARG14)
+                        .Case("arg15", LLDB_REGNUM_GENERIC_ARG15)
+                        .Case("arg16", LLDB_REGNUM_GENERIC_ARG16)
                         .Default(LLDB_INVALID_REGNUM);
   return result;
 }
