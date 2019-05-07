@@ -926,7 +926,7 @@ void InputSectionBase::relocateAlloc(uint8_t *Buf, uint8_t *BufEnd) {
       Target->relocateOne(BufLoc, Type, TargetVA);
       break;
     default:
-      Target->relocateOne(BufLoc, Type, TargetVA);
+      Target->relocateOne(BufLoc, Type, Target->fixupTargetVA(TargetVA));
       break;
     }
   }

@@ -185,3 +185,7 @@ uint64_t TargetInfo::getImageBase() {
     return *Config->ImageBase;
   return Config->Pic ? 0 : DefaultImageBase;
 }
+
+uint64_t TargetInfo::fixupTargetVA(uint64_t TargetVA) const {
+  return TargetVA;
+}

@@ -79,6 +79,11 @@ public:
 
   virtual void relocateOne(uint8_t *Loc, RelType Type, uint64_t Val) const = 0;
 
+  // UPMEM
+  // Allows to fix target virtual addresses on the fly depending on the properties
+  // of the source section
+  virtual uint64_t fixupTargetVA(uint64_t TargetVA) const;
+
   virtual ~TargetInfo();
 
   unsigned TlsGdRelaxSkip = 1;
