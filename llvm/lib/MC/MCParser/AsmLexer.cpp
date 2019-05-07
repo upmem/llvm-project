@@ -593,7 +593,8 @@ AsmToken AsmLexer::LexToken() {
   switch (CurChar) {
   default:
     // Handle identifier: [a-zA-Z_.][a-zA-Z0-9_$.@]*
-    if (isalpha(CurChar) || CurChar == '_' || CurChar == '.')
+    // uPmem: adding '?' as a valid identifier character
+    if (isalpha(CurChar) || CurChar == '_' || CurChar == '.' || CurChar == '?')
       return LexIdentifier();
 
     // Unknown character, emit an error.
