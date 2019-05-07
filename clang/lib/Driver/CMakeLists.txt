@@ -41,6 +41,7 @@ add_clang_library(clangDriver
   ToolChains/CrossWindows.cpp
   ToolChains/Cuda.cpp
   ToolChains/Darwin.cpp
+  ToolChains/DPURTE.cpp
   ToolChains/DragonFly.cpp
   ToolChains/FreeBSD.cpp
   ToolChains/Fuchsia.cpp
