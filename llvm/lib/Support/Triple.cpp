@@ -70,6 +70,7 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
   case wasm64:         return "wasm64";
   case renderscript32: return "renderscript32";
   case renderscript64: return "renderscript64";
+  case dpu:            return "dpu";
   }
 
   llvm_unreachable("Invalid ArchType!");
@@ -167,6 +168,7 @@ StringRef Triple::getVendorTypeName(VendorType Kind) {
   case Mesa: return "mesa";
   case SUSE: return "suse";
   case OpenEmbedded: return "oe";
+  case UPMEM: return "upmem";
   }
 
   llvm_unreachable("Invalid VendorType!");
@@ -211,6 +213,7 @@ StringRef Triple::getOSTypeName(OSType Kind) {
   case Hurd: return "hurd";
   case WASI: return "wasi";
   case Emscripten: return "emscripten";
+  case DPURTe: return "dpurte";
   }
 
   llvm_unreachable("Invalid OSType");
@@ -315,6 +318,7 @@ Triple::ArchType Triple::getArchTypeForLLVMName(StringRef Name) {
     .Case("wasm64", wasm64)
     .Case("renderscript32", renderscript32)
     .Case("renderscript64", renderscript64)
+    .Case("dpu", dpu)
     .Default(UnknownArch);
 }
 
@@ -443,6 +447,7 @@ static Triple::ArchType parseArch(StringRef ArchName) {
     .Case("wasm64", Triple::wasm64)
     .Case("renderscript32", Triple::renderscript32)
     .Case("renderscript64", Triple::renderscript64)
+    .Case("dpu", Triple::dpu)
     .Default(Triple::UnknownArch);
 
   // Some architectures require special parsing logic just to compute the
@@ -476,6 +481,7 @@ static Triple::VendorType parseVendor(StringRef VendorName) {
     .Case("mesa", Triple::Mesa)
     .Case("suse", Triple::SUSE)
     .Case("oe", Triple::OpenEmbedded)
+    .Case("upmem", Triple::UPMEM)
     .Default(Triple::UnknownVendor);
 }
 
@@ -517,6 +523,7 @@ static Triple::OSType parseOS(StringRef OSName) {
     .StartsWith("hurd", Triple::Hurd)
     .StartsWith("wasi", Triple::WASI)
     .StartsWith("emscripten", Triple::Emscripten)
+    .StartsWith("dpurte", Triple::DPURTe)
     .Default(Triple::UnknownOS);
 }
 
@@ -701,6 +708,7 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
   case Triple::tcele:
   case Triple::thumbeb:
   case Triple::xcore:
+  case Triple::dpu:
     return Triple::ELF;
 
   case Triple::ppc:
@@ -1262,6 +1270,7 @@ static unsigned getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
   case llvm::Triple::shave:
   case llvm::Triple::wasm32:
   case llvm::Triple::renderscript32:
+  case llvm::Triple::dpu:
     return 32;
 
   case llvm::Triple::aarch64:
@@ -1343,6 +1352,7 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::shave:
   case Triple::wasm32:
   case Triple::renderscript32:
+  case Triple::dpu:
     // Already 32-bit.
     break;
 
@@ -1381,6 +1391,7 @@ Triple Triple::get64BitArchVariant() const {
   case Triple::xcore:
   case Triple::sparcel:
   case Triple::shave:
+  case Triple::dpu:
     T.setArch(UnknownArch);
     break;
 
@@ -1462,6 +1473,7 @@ Triple Triple::getBigEndianArchVariant() const {
   case Triple::xcore:
   case Triple::renderscript32:
   case Triple::renderscript64:
+  case Triple::dpu:
 
   // ARM is intentionally unsupported here, changing the architecture would
   // drop any arch suffixes.
@@ -1494,6 +1506,7 @@ Triple Triple::getLittleEndianArchVariant() const {
   case Triple::ppc:
   case Triple::sparcv9:
   case Triple::systemz:
+  case Triple::dpu:
 
   // ARM is intentionally unsupported here, changing the architecture would
   // drop any arch suffixes.
@@ -1553,6 +1566,7 @@ bool Triple::isLittleEndian() const {
   case Triple::tcele:
   case Triple::renderscript32:
   case Triple::renderscript64:
+  case Triple::dpu:
     return true;
   default:
     return false;
