@@ -4539,6 +4539,8 @@ static Value *EmitTargetArchBuiltinExpr(CodeGenFunction *CGF,
     return CGF->EmitWebAssemblyBuiltinExpr(BuiltinID, E);
   case llvm::Triple::hexagon:
     return CGF->EmitHexagonBuiltinExpr(BuiltinID, E);
+  case llvm::Triple::dpu:
+    return CGF->EmitDPUBuiltinExpr(BuiltinID, E);
   default:
     return nullptr;
   }
@@ -16587,6 +16589,19 @@ Value *CodeGenFunction::EmitWebAssemblyBuiltinExpr(unsigned BuiltinID,
     Function *Callee = CGM.getIntrinsic(Intrinsic::wasm_shuffle);
     return Builder.CreateCall(Callee, Ops);
   }
+  default:
+    return nullptr;
+  }
+}
+
+Value *CodeGenFunction::EmitDPUBuiltinExpr(unsigned BuiltinID, const CallExpr *E) {
+  switch (BuiltinID) {
+  case DPU::BI__builtin_dpu_tid: {
+    llvm::Type *ResultType = ConvertType(E->getType());
+    llvm::Function *Callee = CGM.getIntrinsic(Intrinsic::dpu_tid, ResultType);
+    return Builder.CreateCall(Callee);
+  }
+
   default:
     return nullptr;
   }
