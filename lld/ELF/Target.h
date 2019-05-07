@@ -84,6 +84,11 @@ public:
 
   virtual void relocateOne(uint8_t *loc, RelType type, uint64_t val) const = 0;
 
+  // UPMEM
+  // Allows to fix target virtual addresses on the fly depending on the properties
+  // of the source section
+  virtual uint64_t fixupTargetVA(uint64_t TargetVA) const;
+
   virtual ~TargetInfo();
 
   unsigned defaultCommonPageSize = 4096;
