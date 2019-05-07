@@ -209,6 +209,16 @@ namespace clang {
     };
   }
 
+    /// \brief DPU builtins
+    namespace DPU {
+        enum {
+            LastTIBuiltin = clang::Builtin::FirstTSBuiltin-1,
+#define BUILTIN(ID, TYPE, ATTRS) BI##ID,
+#include "clang/Basic/BuiltinsDPU.def"
+            LastTSBuiltin
+        };
+    }
+
 } // end namespace clang.
 
 #endif
