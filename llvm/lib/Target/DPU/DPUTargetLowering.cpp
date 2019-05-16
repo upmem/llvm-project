@@ -1072,18 +1072,7 @@ EVT DPUTargetLowering::getOptimalMemOpType(uint64_t Size, unsigned DstAlign,
                                            unsigned SrcAlign, bool IsMemset,
                                            bool ZeroMemset, bool MemcpyStrSrc,
                                            MachineFunction &MF) const {
-  unsigned MinAlign = SrcAlign > DstAlign ? DstAlign : SrcAlign;
-  switch (MinAlign) {
-  default:
-  case 1:
-    return MVT::i8;
-  case 2:
-    return MVT::i16;
-  case 4:
-    return MVT::i32;
-  case 8:
-    return MVT::i64;
-  }
+  return MVT::i32;
 }
 
 static bool isArgumentExtended(SDValue Op, MVT::SimpleValueType initialType,
