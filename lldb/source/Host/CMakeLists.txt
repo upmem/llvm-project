@@ -101,7 +101,7 @@ else()
       macosx/cfcpp/CFCString.cpp
       )
     if(IOS)
-      set_property(SOURCE macosx/Host.mm APPEND PROPERTY 
+      set_property(SOURCE macosx/Host.mm APPEND PROPERTY
                COMPILE_DEFINITIONS "NO_XPC_SERVICES=1")
     endif()
 
@@ -176,4 +176,26 @@ add_lldb_library(lldbHost
 
 if (NOT LLDB_DISABLE_LIBEDIT)
   target_include_directories(lldbHost PUBLIC ${libedit_INCLUDE_DIRS})
+endif()
+
+if(HAVE_LIBDPU)
+
+add_lldb_library(lldbHostDpu
+  ${HOST_SOURCES}
+
+  LINK_LIBS
+    lldbCore
+    lldbSymbol
+    lldbTarget
+    lldbUtility
+    ${EXTRA_LIBS}
+    ${LLDBObjCLibs}
+
+  LINK_COMPONENTS
+    Object
+    Support
+  )
+
+target_compile_options(lldbHostDpu PRIVATE -DUSE_DPU)
+
 endif()
