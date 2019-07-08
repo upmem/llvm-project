@@ -40,7 +40,6 @@
 #include "Plugins/ABI/SysV-ppc64/ABISysV_ppc64.h"
 #include "Plugins/ABI/SysV-s390x/ABISysV_s390x.h"
 #include "Plugins/ABI/SysV-x86_64/ABISysV_x86_64.h"
-#include "Plugins/ABI/rte-dpu/ABIrte_dpu.h"
 #include "Plugins/Architecture/Arm/ArchitectureArm.h"
 #include "Plugins/Architecture/Mips/ArchitectureMips.h"
 #include "Plugins/Architecture/PPC64/ArchitecturePPC64.h"
@@ -331,7 +330,6 @@ SystemInitializerFull::Initialize(const InitializerOptions &options) {
   ABISysV_mips::Initialize();
   ABISysV_mips64::Initialize();
   ABISysV_s390x::Initialize();
-  ABIrte_dpu::Initialize();
 
   ArchitectureArm::Initialize();
   ArchitectureMips::Initialize();
@@ -470,7 +468,6 @@ void SystemInitializerFull::Terminate() {
   ABISysV_mips::Terminate();
   ABISysV_mips64::Terminate();
   ABISysV_s390x::Terminate();
-  ABIrte_dpu::Terminate();
   DisassemblerLLVMC::Terminate();
 
   JITLoaderGDB::Terminate();
