@@ -3522,6 +3522,7 @@ Status ProcessGDBRemote::LaunchAndConnectToDebugserver(
     debugserver_launch_info.SetMonitorProcessCallback(
         std::bind(MonitorDebugserverProcess, this_wp, _1, _2, _3, _4), false);
     debugserver_launch_info.SetUserID(process_info.GetUserID());
+    debugserver_launch_info.SetArch(process_info.GetArchitecture());
 
     int communication_fd = -1;
 #ifdef USE_SOCKETPAIR_FOR_LOCAL_CONNECTION
