@@ -19,6 +19,7 @@
 #include "lldb/Target/Thread.h"
 #include "lldb/Target/ThreadPlanStepOut.h"
 #include "lldb/Target/ThreadPlanStepThrough.h"
+#include "lldb/Utility/ArchSpec.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/RegularExpression.h"
 #include "lldb/Utility/Stream.h"
@@ -233,10 +234,12 @@ bool ThreadPlanStepInRange::ShouldStop(Event *event_ptr) {
     ClearNextBranchBreakpoint();
 
     // We may have set the plan up above in the FrameIsOlder section:
-
-    if (!m_sub_plan_sp)
-      m_sub_plan_sp = m_thread.QueueThreadPlanForStepThrough(
-          m_stack_id, false, stop_others, m_status);
+    // DPU do not have a plan up above, do not try to step through
+    ArchSpec dpu_arch("dpu-upmem-dpurte");
+    if (!m_sub_plan_sp &&
+        !(dpu_arch == m_thread.CalculateTarget()->GetArchitecture()))
+      m_sub_plan_sp = m_thread.QueueThreadPlanForStepThrough(m_stack_id, false,
+                                                             stop_others, m_status);
 
     if (log) {
       if (m_sub_plan_sp)
