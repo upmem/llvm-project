@@ -101,6 +101,12 @@ ThreadPlanStepOut::ThreadPlanStepOut(
     // FIXME - can we do this more securely if we know first_insn?
 
     Address return_address(return_frame_sp->GetFrameCodeAddress());
+    ArchSpec dpu_arch("dpu-upmem-dpurte");
+    Target *target = m_thread.CalculateTarget().get();
+    if (target->GetArchitecture() == dpu_arch) {
+      return_address.SetLoadAddress(return_address.GetLoadAddress(target) + 8,
+                                    target);
+    }
     if (continue_to_next_branch) {
       SymbolContext return_address_sc;
       AddressRange range;

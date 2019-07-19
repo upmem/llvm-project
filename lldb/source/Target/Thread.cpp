@@ -1473,8 +1473,19 @@ ThreadPlanSP Thread::QueueThreadPlanForStepThrough(StackID &return_stack_id,
                                                    bool abort_other_plans,
                                                    bool stop_other_threads,
                                                    Status &status) {
-  ThreadPlanSP thread_plan_sp(
-      new ThreadPlanStepThrough(*this, return_stack_id, stop_other_threads));
+  ThreadPlanSP thread_plan_sp;
+  ArchSpec dpu_arch("dpu-upmem-dpurte");
+  Target *target = CalculateTarget().get();
+  if (target->GetArchitecture() == dpu_arch) {
+    thread_plan_sp.reset(new ThreadPlanRunToAddress(
+        *this,
+        GetStackFrameAtIndex(1)->GetFrameCodeAddress().GetLoadAddress(target) +
+            8,
+        stop_other_threads));
+  } else {
+    thread_plan_sp.reset(
+        new ThreadPlanStepThrough(*this, return_stack_id, stop_other_threads));
+  }
   if (!thread_plan_sp || !thread_plan_sp->ValidatePlan(nullptr))
     return ThreadPlanSP();
 
