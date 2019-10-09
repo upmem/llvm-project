@@ -51,6 +51,11 @@ lldb::ProcessSP ProcessElfCore::CreateInstance(lldb::TargetSP target_sp,
                                                lldb::ListenerSP listener_sp,
                                                const FileSpec *crash_file) {
   lldb::ProcessSP process_sp;
+
+  // Do not use ElfCore for DPU core, GDBRemote will be used instead
+  if (target_sp->GetArchitecture().GetTriple().getArch() == llvm::Triple::dpu)
+    return process_sp;
+
   if (crash_file) {
     // Read enough data for a ELF32 header or ELF64 header Note: Here we care
     // about e_type field only, so it is safe to ignore possible presence of
