@@ -2080,7 +2080,7 @@ Unwind *Thread::GetUnwinder() {
       break;
 
     case llvm::Triple::dpu:
-      m_unwinder_ap.reset(new UnwindDPU(*this));
+      m_unwinder_up.reset(new UnwindDPU(*this));
       break;
 
     default:
