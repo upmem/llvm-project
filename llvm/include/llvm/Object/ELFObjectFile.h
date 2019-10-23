@@ -1085,6 +1085,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
       return "ELF32-sparc";
     case ELF::EM_AMDGPU:
       return "ELF32-amdgpu";
+    case ELF::EM_DPU:
+      return "ELF32-dpu";
     default:
       return "ELF32-unknown";
     }
