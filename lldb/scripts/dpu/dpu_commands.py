@@ -194,18 +194,14 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
         if dpu_to_attach is None:
             print("Could not find the dpu to attach to")
             return None
-        dpus_booting = filter(
-            lambda dpu: dpu.GetValue() == dpu_to_attach.GetValue(),
-            dpus_booting)
+        dpus_booting = [dpu for dpu in dpus_booting if dpu.GetValue() == dpu_to_attach.GetValue()]
         while len(dpus_booting) == 0:
             dpus_booting, host_frame =\
                 break_to_next_boot_and_get_dpus(debugger, target)
             if dpus_booting is None or len(dpus_booting) == 0:
                 print("Could not find the dpu booting")
                 return None
-            dpus_booting = filter(
-                lambda dpu: dpu.GetValue() == dpu_to_attach.GetValue(),
-                dpus_booting)
+            dpus_booting = [dpu for dpu in dpus_booting if dpu.GetValue() == dpu_to_attach.GetValue()]
 
     dpu_addr = dpus_booting[0].GetValue()
     print("Setting up dpu '" + str(dpu_addr) + "' for attach on boot...")
