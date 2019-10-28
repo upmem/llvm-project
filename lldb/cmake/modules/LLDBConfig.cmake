@@ -218,23 +218,25 @@ if (NOT LLDB_DISABLE_PYTHON)
       add_definitions( -DLLDB_PYTHON_HOME="${LLDB_PYTHON_HOME}" )
     endif()
   else()
-    find_package(PythonInterp REQUIRED)
-    find_package(PythonLibs REQUIRED)
+    # UPMEM: use this feature of cmake3.12 to get proper python interp/libs for pyenv
+    find_package (Python COMPONENTS Interpreter Development)
+    # find_package(PythonInterp REQUIRED)
+    # find_package(PythonLibs REQUIRED)
   endif()
 
-  if (NOT CMAKE_CROSSCOMPILING)
-    string(REPLACE "." ";" pythonlibs_version_list ${PYTHONLIBS_VERSION_STRING})
-    list(GET pythonlibs_version_list 0 pythonlibs_major)
-    list(GET pythonlibs_version_list 1 pythonlibs_minor)
+  # if (NOT CMAKE_CROSSCOMPILING)
+  #   string(REPLACE "." ";" pythonlibs_version_list ${PYTHONLIBS_VERSION_STRING})
+  #   list(GET pythonlibs_version_list 0 pythonlibs_major)
+  #   list(GET pythonlibs_version_list 1 pythonlibs_minor)
 
-    # Ignore the patch version. Some versions of macOS report a different patch
-    # version for the system provided interpreter and libraries.
-    if (NOT PYTHON_VERSION_MAJOR VERSION_EQUAL pythonlibs_major OR
-        NOT PYTHON_VERSION_MINOR VERSION_EQUAL pythonlibs_minor)
-      message(FATAL_ERROR "Found incompatible Python interpreter (${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})"
-                          " and Python libraries (${pythonlibs_major}.${pythonlibs_minor})")
-    endif()
-  endif()
+  #   # Ignore the patch version. Some versions of macOS report a different patch
+  #   # version for the system provided interpreter and libraries.
+  #   if (NOT PYTHON_VERSION_MAJOR VERSION_EQUAL pythonlibs_major OR
+  #       NOT PYTHON_VERSION_MINOR VERSION_EQUAL pythonlibs_minor)
+  #     message(FATAL_ERROR "Found incompatible Python interpreter (${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})"
+  #                         " and Python libraries (${pythonlibs_major}.${pythonlibs_minor})")
+  #   endif()
+  # endif()
 
   if (PYTHON_INCLUDE_DIR)
     include_directories(${PYTHON_INCLUDE_DIR})
