@@ -308,6 +308,8 @@ StringExtractorGDBRemote::GetServerPacketType() const {
       return eServerPacketType_jTraceStart;
     if (PACKET_STARTS_WITH("jTraceStop:"))
       return eServerPacketType_jTraceStop;
+    if (PACKET_STARTS_WITH("jSaveCore:"))
+      return eServerPacketType_jSaveCore;
     break;
 
   case 'v':
