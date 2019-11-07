@@ -171,6 +171,7 @@ public:
     eServerPacketType_jTraceMetaRead,
     eServerPacketType_jTraceStop,
     eServerPacketType_jTraceConfigRead,
+    eServerPacketType_jSaveCore,
   };
 
   ServerPacketType GetServerPacketType() const;
