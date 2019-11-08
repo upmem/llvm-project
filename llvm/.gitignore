@@ -87,4 +87,4 @@ bindings/go/llvm/workdir
 # UPMEM: work with CLion.
 #==============================================================================#
 .idea
-cmake-build-debug/
+cmake-build-*/
