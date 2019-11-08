@@ -612,15 +612,10 @@ void ClangASTSource::FindExternalLexicalDecls(
   if (!original_decl_context)
     return;
 
-  // Indicates whether we skipped any Decls of the original DeclContext.
-  bool SkippedDecls = false;
   for (TagDecl::decl_iterator iter = original_decl_context->decls_begin();
        iter != original_decl_context->decls_end(); ++iter) {
     Decl *decl = *iter;
 
-    // The predicate function returns true if the passed declaration kind is
-    // the one we are looking for.
-    // See clang::ExternalASTSource::FindExternalLexicalDecls()
     if (predicate(decl->getKind())) {
       if (log) {
         ASTDumper ast_dumper(decl);
@@ -645,34 +640,19 @@ void ClangASTSource::FindExternalLexicalDecls(
 
         m_ast_importer_sp->RequireCompleteType(copied_field_type);
       }
-      auto decl_context_non_const = const_cast<DeclContext *>(decl_context);
 
-      // The decl ended up in the wrong DeclContext. Let's fix that so
-      // the decl we copied will actually be found.
-      // FIXME: This is a horrible hack that shouldn't be necessary. However
-      // it seems our current setup sometimes fails to copy decls to the right
-      // place. See rdar://55129537.
+      DeclContext *decl_context_non_const =
+          const_cast<DeclContext *>(decl_context);
+
       if (copied_decl->getDeclContext() != decl_context) {
-        assert(copied_decl->getDeclContext()->containsDecl(copied_decl));
-        copied_decl->getDeclContext()->removeDecl(copied_decl);
+        if (copied_decl->getDeclContext()->containsDecl(copied_decl))
+          copied_decl->getDeclContext()->removeDecl(copied_decl);
         copied_decl->setDeclContext(decl_context_non_const);
-        assert(!decl_context_non_const->containsDecl(copied_decl));
-        decl_context_non_const->addDeclInternal(copied_decl);
       }
-    } else {
-      SkippedDecls = true;
-    }
-  }
 
-  // CopyDecl may build a lookup table which may set up ExternalLexicalStorage
-  // to false.  However, since we skipped some of the external Decls we must
-  // set it back!
-  if (SkippedDecls) {
-    decl_context->setHasExternalLexicalStorage(true);
-    // This sets HasLazyExternalLexicalLookups to true.  By setting this bit we
-    // ensure that the lookup table is rebuilt, which means the external source
-    // is consulted again when a clang::DeclContext::lookup is called.
-    const_cast<DeclContext *>(decl_context)->setMustBuildLookupTable();
+      if (!decl_context_non_const->containsDecl(copied_decl))
+        decl_context_non_const->addDeclInternal(copied_decl);
+    }
   }
 
   return;
