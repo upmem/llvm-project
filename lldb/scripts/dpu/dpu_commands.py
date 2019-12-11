@@ -13,8 +13,8 @@ def check_target(target):
 
 
 def compute_dpu_pid(region_id, rank_id, slice_id, dpu_id):
-    return dpu_id + (slice_id << 16) + (rank_id << 32) + (region_id << 48) \
-        + 0x80000000
+    return dpu_id + 100 * (slice_id + 100 * (rank_id + 100 *
+                                             (region_id + 100)))
 
 
 def get_value_from_command(debugger, command, base):
@@ -42,9 +42,9 @@ def get_object_from_command(command, debugger, target, name, object_type,
     addr = 0
     try:
         addr = int(command, base)
-    except:
+    except ValueError:
         success, addr = get_value_from_command(debugger, command, base)
-        if not(success) and not(re.match(".*\..*\..*\..*", command) is None):
+        if not(success) and not(re.match(r'.*\..*\..*\..*', command) is None):
             dpus = dpu_list(debugger, None, None, None)
             addr = next((dpu[0] for dpu in dpus
                          if (command ==
