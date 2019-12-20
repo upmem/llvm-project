@@ -98,8 +98,9 @@ bool Dpu::GetPrintfSequenceAddrs() {
 bool Dpu::LoadElf(const FileSpec &elf_file_path) {
   ModuleSP elf_mod(new Module(elf_file_path, k_dpu_arch));
 
+  struct dpu_set_t set = dpu_set_from_dpu(m_dpu);
   dpu_api_status_t status =
-      dpu_load_individual(m_dpu, elf_file_path.GetCString());
+      dpu_load(set, elf_file_path.GetCString(), NULL);
   if (status != DPU_API_SUCCESS)
     return false;
 
