@@ -17,6 +17,8 @@
 #include "llvm/Option/ArgList.h"
 #include "llvm/Support/VirtualFileSystem.h"
 
+#include "DPUCharacteristics.h"
+
 using namespace llvm::opt;
 
 namespace clang {
@@ -68,7 +70,7 @@ char *DPURTE::GetUpmemSdkPath(const char *Path) {
 
 Tool *DPURTE::buildLinker() const {
   return new tools::dpu::Linker(*this, PathToLinkScript, PathToRtLibDirectory,
-                                RtLibName, PathToRtLibBc);
+                                RtLibName, PathToRtLibBc, PathToBootstrap);
 }
 
 void DPURTE::addClangTargetOptions(
@@ -99,51 +101,107 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
                           const llvm::opt::ArgList &TCArgs,
                           const char *LinkingOutput) const {
   std::string Linker = getToolChain().GetProgramPath(getShortName());
+
   // Put additional linker options
-  ArgStringList CmdArgs;
-  CmdArgs.push_back("--discard-locals");
+  ArgStringList LinkerCmdArgs;
+  AddLinkerInputs(getToolChain(), Inputs, TCArgs, LinkerCmdArgs, JA);
 
-  AddLinkerInputs(getToolChain(), Inputs, TCArgs, CmdArgs, JA);
-  CmdArgs.push_back("-o");
-  CmdArgs.push_back(Output.getFilename());
+  LinkerCmdArgs.push_back("--discard-locals");
+  LinkerCmdArgs.push_back("-o");
+  LinkerCmdArgs.push_back(Output.getFilename());
 
-  bool HasArgScript = false;
-  for (unsigned int EachArg = 0; EachArg < CmdArgs.size(); EachArg++) {
-    if (CmdArgs[EachArg][0] == '-' &&
-        (!strncmp("-T", CmdArgs[EachArg], 2) ||
-         !strncmp("--script", CmdArgs[EachArg], 8))) {
-      HasArgScript = true;
-      break;
-    }
-  }
-  if (!HasArgScript) {
-    CmdArgs.push_back("-T");
-    CmdArgs.push_back(LinkScript);
-  }
-
-  CmdArgs.push_back("-gc-sections");
+  LinkerCmdArgs.push_back("-gc-sections");
   // Must force common allocation, so that symbols with SHN_COMMON (aka .common)
   // have space allocated in WRAM. Otherwise, the linker places symbols at
   // the very beginning of memory with no allocation.
-  CmdArgs.push_back("--define-common");
+  LinkerCmdArgs.push_back("--define-common");
   if (!TCArgs.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
     if (TCArgs.hasArg(options::OPT_flto) ||
         TCArgs.hasArg(options::OPT_flto_EQ)) {
       // Need to inject the RTE BC library into the whole chain.
-      CmdArgs.push_back(RtBcLibrary);
+      LinkerCmdArgs.push_back(RtBcLibrary);
     } else {
-      CmdArgs.push_back("-L");
-      CmdArgs.push_back(RtLibraryPath);
-      CmdArgs.push_back("-l");
-      CmdArgs.push_back(RtLibraryName);
+      LinkerCmdArgs.push_back("-L");
+      LinkerCmdArgs.push_back(RtLibraryPath);
+      LinkerCmdArgs.push_back("-l");
+      LinkerCmdArgs.push_back(RtLibraryName);
     }
   }
 
+  bool HasArgScript = false;
+  for (unsigned int EachArg = 0; EachArg < LinkerCmdArgs.size(); EachArg++) {
+    if ((LinkerCmdArgs[EachArg][0] == '-') &&
+        (!strncmp("-T", LinkerCmdArgs[EachArg], 2) ||
+         !strncmp("--script", LinkerCmdArgs[EachArg], 8))) {
+      HasArgScript = true;
+      break;
+    }
+  }
+
+  if (!HasArgScript) {
+    LinkerCmdArgs.push_back("-T");
+    LinkerCmdArgs.push_back(LinkScript);
+  }
+
+#define STR_BUFFER_SIZE 128
+#define NR_TASKLETS_FMT "NR_TASKLETS=%u"
+#define DEFAULT_STACK_SIZE_FMT "STACK_SIZE_DEFAULT=%u"
+#define STACK_SIZE_TASKLET_X_FMT "STACK_SIZE_TASKLET_%u=%u"
+#define DEFSYM_FMT "--defsym="
+  if (!TCArgs.hasArg(options::OPT_nostartfiles)) {
+    uint32_t nr_running_tasklets = 1;
+    uint32_t default_stack_size = 1024;
+    uint32_t stack_size[DPU_NR_THREADS];
+    memset(stack_size, 0xff, DPU_NR_THREADS * sizeof(uint32_t));
+    for (unsigned int EachArg = 0; EachArg < TCArgs.size(); EachArg++) {
+      std::string arg(TCArgs.getArgString(EachArg));
+      if (arg.find("-D") == 0) {
+        const char *symbol_and_value = &(arg.c_str())[2];
+        uint32_t tasklet_id, tasklet_stack_size;
+        if (sscanf(symbol_and_value, NR_TASKLETS_FMT, &nr_running_tasklets) ==
+            1) {
+          continue;
+        } else if (sscanf(symbol_and_value, DEFAULT_STACK_SIZE_FMT,
+                          &default_stack_size) == 1) {
+          continue;
+        } else if (sscanf(symbol_and_value, STACK_SIZE_TASKLET_X_FMT,
+                          &tasklet_id, &tasklet_stack_size) == 2) {
+          stack_size[tasklet_id] = tasklet_stack_size;
+        }
+      }
+    }
+
+    static char str_nr_running_tasklets[STR_BUFFER_SIZE];
+    sprintf(str_nr_running_tasklets, DEFSYM_FMT NR_TASKLETS_FMT,
+            nr_running_tasklets);
+    LinkerCmdArgs.push_back(str_nr_running_tasklets);
+
+    static char str_tasklet_size[DPU_NR_THREADS][STR_BUFFER_SIZE];
+    for (unsigned int each_tasklet = 0; each_tasklet < DPU_NR_THREADS;
+         each_tasklet++) {
+      if (each_tasklet < nr_running_tasklets &&
+          stack_size[each_tasklet] == 0xffffffff) {
+        sprintf(str_tasklet_size[each_tasklet],
+                DEFSYM_FMT STACK_SIZE_TASKLET_X_FMT, each_tasklet,
+                default_stack_size);
+      } else if (stack_size[each_tasklet] == 0xffffffff) {
+        sprintf(str_tasklet_size[each_tasklet],
+                DEFSYM_FMT STACK_SIZE_TASKLET_X_FMT, each_tasklet, 0);
+      } else {
+        sprintf(str_tasklet_size[each_tasklet],
+                DEFSYM_FMT STACK_SIZE_TASKLET_X_FMT, each_tasklet,
+                stack_size[each_tasklet]);
+      }
+      LinkerCmdArgs.push_back(str_tasklet_size[each_tasklet]);
+    }
+    LinkerCmdArgs.push_back(Bootstrap);
+  }
+
   /* Pass -L options to the linker */
-  TCArgs.AddAllArgs(CmdArgs, options::OPT_L);
+  TCArgs.AddAllArgs(LinkerCmdArgs, options::OPT_L);
 
   C.addCommand(llvm::make_unique<Command>(
-      JA, *this, TCArgs.MakeArgString(Linker), CmdArgs, Inputs));
+      JA, *this, TCArgs.MakeArgString(Linker), LinkerCmdArgs, Inputs));
 }
 } // namespace dpu
 } // namespace tools
