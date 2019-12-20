@@ -27,6 +27,13 @@
 
 extern "C" {
 #include <dpu.h>
+#include <dpu_custom.h>
+#include <dpu_debug.h>
+#include <dpu_log.h>
+#include <dpu_management.h>
+#include <dpu_memory.h>
+#include <dpu_program.h>
+#include <dpu_runner.h>
 }
 
 using namespace lldb;
@@ -65,7 +72,7 @@ Dpu::~Dpu() {
 }
 
 bool Dpu::GetPrintfSequenceAddrs() {
-  dpu_runtime_context_t *runtime = dpu_get_runtime_context(m_dpu);
+  dpu_program_t *runtime = dpu_get_program(m_dpu);
   open_print_sequence_addr = runtime->open_print_sequence_addr;
   close_print_sequence_addr = runtime->close_print_sequence_addr;
   printf_buffer_address = runtime->printf_buffer_address;
