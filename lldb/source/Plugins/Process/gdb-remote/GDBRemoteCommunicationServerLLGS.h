@@ -154,6 +154,8 @@ protected:
 
   PacketResult Handle_QSaveRegisterState(StringExtractorGDBRemote &packet);
 
+  PacketResult Handle_qDpuPrintInfo(StringExtractorGDBRemote &packet);
+
   PacketResult Handle_jSaveCore(StringExtractorGDBRemote &packet);
 
   PacketResult Handle_jTraceStart(StringExtractorGDBRemote &packet);
