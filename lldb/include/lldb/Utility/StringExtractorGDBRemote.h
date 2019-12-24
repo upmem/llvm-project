@@ -172,6 +172,9 @@ public:
     eServerPacketType_jTraceStop,
     eServerPacketType_jTraceConfigRead,
     eServerPacketType_jSaveCore,
+
+    // dpu specific packet
+    eServerPacketType_qDpuPrintInfo,
   };
 
   ServerPacketType GetServerPacketType() const;

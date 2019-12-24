@@ -2400,6 +2400,15 @@ public:
   lldb::StructuredDataPluginSP
   GetStructuredDataPlugin(ConstString type_name) const;
 
+  virtual void SetDpuPrintInfo(const uint32_t open_print_sequence_addr,
+                               const uint32_t close_print_sequence_addr,
+                               const uint32_t print_buffer_addr,
+                               const uint32_t print_buffer_size,
+                               const uint32_t print_buffer_var_addr,
+                               Status &error) {
+    error.SetErrorString("Not implemented");
+  }
+
   virtual void SaveCore(const char *save_core_filename,
                         const char *executable_path, Status &error) {
     error.SetErrorString("Not implemented");
