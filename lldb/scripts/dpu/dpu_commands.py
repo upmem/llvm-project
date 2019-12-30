@@ -87,7 +87,7 @@ def get_region_id_and_rank_id(rank, target):
 
 
 def get_dpu_program_path(dpu):
-    program_path = dpu.GetChildMemberWithName("runtime_context") \
+    program_path = dpu.GetChildMemberWithName("program") \
                       .GetChildMemberWithName("program_path")
     if program_path.GetChildAtIndex(0).GetValue() is None:
         return None
