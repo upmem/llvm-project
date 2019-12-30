@@ -5,15 +5,12 @@ int main() {
   struct dpu_set_t rank;
   struct dpu_set_t dpu;
 
-  DPU_ASSERT(dpu_alloc(DPU_ALLOCATE_ALL, "backend=hw,cycleAccurate=true", &set));
+  DPU_ASSERT(
+      dpu_alloc(DPU_ALLOCATE_ALL, "backend=hw,cycleAccurate=true", &set));
 
-  DPU_RANK_FOREACH(set, rank) {
-    break;
-  }
+  DPU_RANK_FOREACH(set, rank) { break; }
 
-  DPU_FOREACH(set, dpu) {
-    break;
-  }
+  DPU_FOREACH(set, dpu) { break; }
 
   DPU_ASSERT(dpu_load(rank, DPU_EXE, NULL));
 
