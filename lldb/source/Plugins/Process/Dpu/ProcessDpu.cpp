@@ -147,15 +147,21 @@ ProcessDpu::Factory::Attach(
 
   char *structure_value_ptr = std::getenv("UPMEM_LLDB_STRUCTURE_VALUE");
   char *slice_target_ptr = std::getenv("UPMEM_LLDB_SLICE_TARGET");
+  char *host_mux_mram_state_ptr = std::getenv("UPMEM_LLDB_HOST_MUX_MRAM_STATE");
   uint64_t structure_value = structure_value_ptr == NULL
                                  ? 0ULL
                                  : ::strtoll(structure_value_ptr, NULL, 10);
   uint64_t slice_target =
       slice_target_ptr == NULL ? 0ULL : ::strtoll(slice_target_ptr, NULL, 10);
-  LLDB_LOG(log, "saving slice context ({0:x}, {1:x})", structure_value,
-           slice_target);
+  uint32_t host_mux_mram_state =
+      host_mux_mram_state_ptr == NULL
+          ? 0U
+          : ::strtoll(host_mux_mram_state_ptr, NULL, 10);
+  LLDB_LOG(log, "saving slice context ({0:x}, {1:x}, {2:x})", structure_value,
+           slice_target, host_mux_mram_state);
 
-  success = dpu->SaveSliceContext(structure_value, slice_target);
+  success =
+      dpu->SaveSliceContext(structure_value, slice_target, host_mux_mram_state);
   if (!success)
     return Status("Cannot save the DPU slice context ").ToError();
 
@@ -312,17 +318,18 @@ Status ProcessDpu::Halt() {
 Status ProcessDpu::Detach() {
   Status error;
   bool success;
-  Dpu *dpu_neighbor = m_rank->GetDpuFromSliceIdAndDpuId(
-      m_dpu->GetSliceID(), m_dpu->GetDpuID() ^ 0x1);
-  if (dpu_neighbor == nullptr)
-    return Status("Cannot find the DPU neighbor in the rank");
 
   success = m_dpu->ResumeThreads(NULL, false);
   if (!success)
     return Status("Cannot resume the DPU");
-  success = dpu_neighbor->ResumeThreads(NULL, false);
-  if (!success)
-    return Status("Cannot resume the DPU neighbor");
+
+  Dpu *dpu_neighbor = m_rank->GetDpuFromSliceIdAndDpuId(
+      m_dpu->GetSliceID(), m_dpu->GetDpuID() ^ 0x1);
+  if (dpu_neighbor != nullptr) {
+    success = dpu_neighbor->ResumeThreads(NULL, false);
+    if (!success)
+      return Status("Cannot resume the DPU neighbor");
+  }
 
   success = m_dpu->RestoreSliceContext();
   if (!success)

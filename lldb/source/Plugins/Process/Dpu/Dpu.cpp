@@ -265,40 +265,47 @@ bool Dpu::PrepareStepOverPrintfBkp(
         return false;
 
       size_t mram_buffer_size;
-      if (printf_buffer_current_idx <= printf_buffer_last_idx) {
-        mram_buffer_size = printf_buffer_size;
-      } else {
-        mram_buffer_size = printf_buffer_current_idx - printf_buffer_last_idx;
-      }
-      uint8_t *mram_buffer = (uint8_t *)malloc(mram_buffer_size);
+      uint8_t *mram_buffer = (uint8_t *)calloc(1, printf_buffer_size);
       if (mram_buffer == NULL)
         return false;
-      if (mram_buffer_size == printf_buffer_size) {
+      if (printf_buffer_current_idx <= printf_buffer_last_idx) {
+        mram_buffer_size = printf_buffer_size -
+                           (printf_buffer_last_idx - printf_buffer_current_idx);
         if (!ReadMRAM(printf_buffer_last_idx, mram_buffer,
-                      printf_buffer_size - printf_buffer_last_idx))
-          return false;
+                      printf_buffer_size - printf_buffer_last_idx)) {
+          goto PrepareStepOverPrintfBkp_err;
+        }
         if (!ReadMRAM(printf_buffer_address,
-                      &mram_buffer[printf_buffer_last_idx],
-                      printf_buffer_current_idx))
-          return false;
-
+                      &mram_buffer[printf_buffer_size - printf_buffer_last_idx],
+                      printf_buffer_current_idx)) {
+          goto PrepareStepOverPrintfBkp_err;
+        }
       } else {
+        mram_buffer_size = printf_buffer_current_idx - printf_buffer_last_idx;
         if (!ReadMRAM(printf_buffer_last_idx + printf_buffer_address,
-                      mram_buffer, mram_buffer_size))
-          return false;
+                      mram_buffer, mram_buffer_size)) {
+          goto PrepareStepOverPrintfBkp_err;
+        }
       }
 
       if (stdout_file != NULL) {
         if (dpulog_read_and_display_contents_of(mram_buffer, mram_buffer_size,
-                                                stdout_file) != DPU_API_SUCCESS)
-          return false;
+                                                stdout_file) !=
+            DPU_API_SUCCESS) {
+          goto PrepareStepOverPrintfBkp_err;
+        }
 
         fflush(stdout_file);
       }
 
       free(mram_buffer);
+      return true;
+    PrepareStepOverPrintfBkp_err:
+      free(mram_buffer);
+      return false;
     }
   }
+
   return true;
 }
 
@@ -661,12 +668,14 @@ unsigned int Dpu::GetSliceID() { return dpu_get_slice_id(m_dpu); }
 
 unsigned int Dpu::GetDpuID() { return dpu_get_member_id(m_dpu); }
 
-bool Dpu::SaveSliceContext(uint64_t structure_value, uint64_t slice_target) {
+bool Dpu::SaveSliceContext(uint64_t structure_value, uint64_t slice_target,
+                           dpu_bitfield_t host_mux_mram_state) {
   bool success = dpu_save_slice_context_for_dpu(m_dpu) == DPU_API_SUCCESS;
   if (!success)
     return false;
 
-  m_rank->SetSliceInfo(dpu_get_slice_id(m_dpu), structure_value, slice_target);
+  m_rank->SetSliceInfo(dpu_get_slice_id(m_dpu), structure_value, slice_target,
+                       host_mux_mram_state);
   return true;
 }
 
