@@ -8,10 +8,8 @@ int main() {
     DPU_ASSERT(dpu_alloc(1, "backend=simulator", &set));
   }
 
-  DPU_FOREACH(set, dpu) {
-    DPU_ASSERT(dpu_load(dpu, DPU_EXE, NULL));
-    DPU_ASSERT(dpu_launch(dpu, DPU_SYNCHRONOUS));
-  }
+  DPU_ASSERT(dpu_load(dpu, DPU_EXE, NULL));
+  DPU_ASSERT(dpu_launch(dpu, DPU_SYNCHRONOUS));
 
   DPU_ASSERT(dpu_free(set));
 
