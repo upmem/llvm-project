@@ -17,6 +17,7 @@
 #include "Arch/X86.h"
 #include "AMDGPU.h"
 #include "CommonArgs.h"
+#include "DPURTE.h"
 #include "Hexagon.h"
 #include "MSP430.h"
 #include "InputInfo.h"
@@ -363,6 +364,9 @@ static void getTargetFeatures(const ToolChain &TC, const llvm::Triple &Triple,
   case llvm::Triple::r600:
   case llvm::Triple::amdgcn:
     amdgpu::getAMDGPUTargetFeatures(D, Args, Features);
+    break;
+  case llvm::Triple::dpu:
+    clang::driver::toolchains::dpu::addDPUTargetOptions(Args, CmdArgs);
     break;
   case llvm::Triple::msp430:
     msp430::getMSP430TargetFeatures(D, Args, Features);
