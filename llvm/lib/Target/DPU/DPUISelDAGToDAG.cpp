@@ -352,28 +352,28 @@ bool DPUDAGToDAGISel::IsAStoreToAddrSpace(SDNode *Node,
 }
 
 bool DPUDAGToDAGISel::IsGlobalAddrInImmediateSection(SDNode *Node) const {
-    if (Node->getOpcode() != DPUISD::Wrapper) {
-        return false;
-    }
+  if (Node->getOpcode() != DPUISD::Wrapper) {
+    return false;
+  }
 
-    SDValue Value = Node->getOperand(0);
+  SDValue Value = Node->getOperand(0);
 
-    GlobalAddressSDNode *AddrNode = cast<GlobalAddressSDNode>(Value);
+  GlobalAddressSDNode *AddrNode = cast<GlobalAddressSDNode>(Value);
 
-    if (!AddrNode) {
-        return false;
-    }
+  if (!AddrNode) {
+    return false;
+  }
 
-    const auto GO = AddrNode->getGlobal()->getBaseObject();
-    const auto *GVA = dyn_cast<GlobalVariable>(GO);
+  const auto GO = AddrNode->getGlobal()->getBaseObject();
+  const auto *GVA = dyn_cast<GlobalVariable>(GO);
 
-    if (!GVA->hasSection()) {
-        return false;
-    }
+  if (!GVA->hasSection()) {
+    return false;
+  }
 
-    StringRef Section = GVA->getSection();
+  StringRef Section = GVA->getSection();
 
-    return Section.startswith(".data.immediate_memory");
+  return Section.startswith(".data.immediate_memory");
 }
 
 void DPUDAGToDAGISel::Select(SDNode *Node) {
