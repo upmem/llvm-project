@@ -1733,7 +1733,8 @@ SDValue DPUTargetLowering::LowerIntrinsic(SDValue Op, SelectionDAG &DAG,
 
 static MachineBasicBlock *
 EmitMul16WithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB,
-                            unsigned MulLL, unsigned MulHL, unsigned MulHH) {
+                            unsigned MulLL, unsigned MulHL, unsigned MulHL2,
+                            unsigned MulHH) {
   const TargetInstrInfo &TII = *BB->getParent()->getSubtarget().getInstrInfo();
   DebugLoc dl = MI.getDebugLoc();
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
@@ -1776,7 +1777,7 @@ EmitMul16WithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB,
       .addReg(RegAcc)
       .addImm(8);
 
-  BuildMI(slowMBB, dl, TII.get(MulHL), RegAcc).addReg(Op2).addReg(Op1);
+  BuildMI(slowMBB, dl, TII.get(MulHL2), RegAcc).addReg(Op2).addReg(Op1);
 
   BuildMI(slowMBB, dl, TII.get(DPU::LSL_ADDrrri), RegDest)
       .addReg(RegDest)
@@ -2270,7 +2271,7 @@ EmitLsl64ImmediateWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
   } else if (ShiftImm > 32) {
     if (ShiftImm >= 64) {
       // ShiftImm >= 64 (should not be generated, undef behavior) ==> Result = 0
-      BuildMI(*BB, MI, dl, TII.get(DPU::MOVE64ri), Dest).addImm(0);
+      BuildMI(*BB, MI, dl, TII.get(DPU::MOVE_Uri), Dest).addImm(0);
     } else {
       // 32 < ShiftImm < 64
       /*
@@ -2492,7 +2493,7 @@ static MachineBasicBlock *EmitShiftRight64ImmediateWithCustomInserter(
   } else if (ShiftImm > 32) {
     if (ShiftImm >= 64) {
       // ShiftImm >= 64 (should not be generated, undef behavior) ==> Result = 0
-      BuildMI(*BB, MI, dl, TII.get(DPU::MOVE64ri), Dest).addImm(0);
+      BuildMI(*BB, MI, dl, TII.get(DPU::MOVE_Uri), Dest).addImm(0);
     } else {
       // 32 < ShiftImm < 64
       /*
@@ -2852,13 +2853,16 @@ DPUTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
     llvm_unreachable("Unexpected instr type to insert");
   case DPU::Mul16UUrr:
     return EmitMul16WithCustomInserter(MI, BB, DPU::MUL_UL_ULrrrci,
-                                       DPU::MUL_UH_ULrrr, DPU::MUL_UH_UHrrr);
+                                       DPU::MUL_UH_ULrrr, DPU::MUL_UH_ULrrr,
+                                       DPU::MUL_UH_UHrrr);
   case DPU::Mul16SUrr:
     return EmitMul16WithCustomInserter(MI, BB, DPU::MUL_UL_ULrrrci,
-                                       DPU::MUL_SH_ULrrr, DPU::MUL_SH_UHrrr);
+                                       DPU::MUL_SH_ULrrr, DPU::MUL_UH_ULrrr,
+                                       DPU::MUL_SH_UHrrr);
   case DPU::Mul16SSrr:
     return EmitMul16WithCustomInserter(MI, BB, DPU::MUL_UL_ULrrrci,
-                                       DPU::MUL_SH_ULrrr, DPU::MUL_SH_SHrrr);
+                                       DPU::MUL_SH_ULrrr, DPU::MUL_SH_ULrrr,
+                                       DPU::MUL_SH_SHrrr);
   case DPU::SELECTrr:
     return EmitSelectWithCustomInserter(MI, BB);
   case DPU::SELECT64rr:
