@@ -2,8 +2,7 @@
 #include <stdint.h>
 
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
 #ifdef SIGNED_ENUM_CLASS_TYPE
     typedef SIGNED_ENUM_CLASS_TYPE enum_integer_t;
     enum class DayType : enum_integer_t {

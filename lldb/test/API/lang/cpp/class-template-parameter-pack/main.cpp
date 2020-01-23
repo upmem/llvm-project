@@ -31,8 +31,8 @@ template<int Size> struct array {
   array() {}
 };
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     C<int,16,32> myC;
     C<int,16> myLesserC;
     myC.member = 64;
