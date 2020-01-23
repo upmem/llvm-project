@@ -14,8 +14,8 @@ sum (int a, int b)
 }
 
 int
-main(int argc, char const *argv[])
-{
+main() { int argc = 0; char **argv = (char **)0;
+
 
     int array[3];
 

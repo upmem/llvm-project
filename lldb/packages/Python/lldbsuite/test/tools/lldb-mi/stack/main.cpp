@@ -128,8 +128,8 @@ void catch_unnamed_test()
 }
 
 int
-main(int argc, char const *argv[])
-{
+main() { int argc = 0; char **argv = (char **)0;
+
     local_int_test();
     local_struct_test();
     local_array_test();

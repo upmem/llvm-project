@@ -5,8 +5,8 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     typedef unsigned int uint32_t;
     unsigned char the_unsigned_char = 'c';
     unsigned short the_unsigned_short = 'c';

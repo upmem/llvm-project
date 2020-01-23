@@ -39,8 +39,8 @@ stringCompare(const char *str)
         return false;
 }
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     std::string str = "Hello world";
     std::cout << str << std::endl;
     std::cout << str.c_str() << std::endl;

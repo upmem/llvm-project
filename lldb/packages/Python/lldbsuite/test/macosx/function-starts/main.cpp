@@ -19,8 +19,8 @@ static void *a_function()
     return 0;
 }
 
-int main(int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     a_function();
     return 0;
 }

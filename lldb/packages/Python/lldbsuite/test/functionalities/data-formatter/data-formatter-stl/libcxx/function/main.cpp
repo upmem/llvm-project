@@ -19,8 +19,8 @@ struct Bar {
    int add_num(int i) const { return i + 3 ; }
 } ;
 
-int main (int argc, char *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
   int acc = 42;
   std::function<int (int,int)> f1 = foo;
   std::function<int (int)> f2 = [acc,f1] (int x) -> int {

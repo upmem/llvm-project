@@ -14,8 +14,8 @@ struct referent {
     const char *p;
 };
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     const char *my_ptr = strdup("hello");
     struct referent *r = malloc(sizeof(struct referent));
     r->p = my_ptr;

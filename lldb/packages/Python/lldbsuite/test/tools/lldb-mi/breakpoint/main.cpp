@@ -15,7 +15,7 @@ namespace ns
 }
 
 int x;
-int main(int argc, char const *argv[]) { // BP_main_decl
+int main() { int argc = 0; char **argv = (char **)0;  // BP_main_decl
     printf("Print a formatted string so that GCC does not optimize this printf call: %s\n", argv[0]);
   // This is a long comment with no code inside
   // This is a long comment with no code inside

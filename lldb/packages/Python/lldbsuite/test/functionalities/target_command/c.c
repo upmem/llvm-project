@@ -7,8 +7,8 @@
 //===----------------------------------------------------------------------===//
 #include <stdio.h>
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     enum days {
         Monday = 10,
         Tuesday,

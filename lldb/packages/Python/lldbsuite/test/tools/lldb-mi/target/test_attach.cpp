@@ -9,8 +9,8 @@
 #include <cstdio>
 
 int
-main(int argc, char const *argv[]) 
-{
+main() { int argc = 0; char **argv = (char **)0; 
+
     int i = 0;
     for (;;)
     {

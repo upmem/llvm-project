@@ -16,8 +16,8 @@ float a(float val)
     return val; // Breakpoint Location 2
 }
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     int A1 = a(1);
     float A2 = a(2.0f);
     float A3 = a(3.0f);

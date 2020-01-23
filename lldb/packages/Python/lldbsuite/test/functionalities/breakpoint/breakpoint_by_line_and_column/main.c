@@ -11,8 +11,8 @@ int square(int x)
   return x * x;
 }
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
   int did_call = 0;
 
   // Line 20.                                    v Column 50.

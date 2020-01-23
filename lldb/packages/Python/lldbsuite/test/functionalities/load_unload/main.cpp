@@ -14,8 +14,8 @@
 #include <stdlib.h>
 
 int
-main (int argc, char const *argv[])
-{
+main() { int argc = 0; char **argv = (char **)0;
+
 #if defined (__APPLE__)
     const char *a_name = "@executable_path/libloadunload_a.dylib";
     const char *c_name = "@executable_path/libloadunload_c.dylib";

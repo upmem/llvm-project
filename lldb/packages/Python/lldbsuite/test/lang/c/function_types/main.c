@@ -13,8 +13,8 @@ int string_not_empty (const char *s)
     return 0;
 }
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     int (*callback)(const char *) = string_not_empty;
 
     return callback(0); // Set break point at this line.

@@ -11,7 +11,7 @@ namespace abc {
 	int g_file_global_int = 42;
 }
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     return abc::g_file_global_int; // Set break point at this line.
 }

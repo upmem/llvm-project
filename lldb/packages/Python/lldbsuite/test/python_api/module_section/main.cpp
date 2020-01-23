@@ -77,8 +77,8 @@ thread_func (void *arg)
 }
 
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     int err;
     void *thread_result = NULL;
     uint32_t thread_index_1 = 1;

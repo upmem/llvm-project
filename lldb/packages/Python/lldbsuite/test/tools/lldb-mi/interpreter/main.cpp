@@ -9,8 +9,8 @@
 #include <cstdio>
 
 int
-main(int argc, char const *argv[])
-{
+main() { int argc = 0; char **argv = (char **)0;
+
     printf("argc=%d\n", argc);  // BP_printf
     for (int i = 0; i < argc; ++i)
         printf("argv[%d]=%s\n", i, argv[i]);

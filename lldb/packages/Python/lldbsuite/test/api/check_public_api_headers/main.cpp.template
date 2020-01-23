@@ -11,8 +11,8 @@
 
 using namespace lldb;
 int
-main(int argc, char const *argv[])
-{
+main() { int argc = 0; char **argv = (char **)0;
+
     SBDebugger::Initialize();
     SBDebugger dbg = SBDebugger::Create();
 
