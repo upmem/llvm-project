@@ -16,8 +16,8 @@ int foo (int value)
   return 0;
 }
 
-int main (int argc, char **argv)
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
   foo (argc);
   printf ("Hello there: %d.\n", argc);
   return 0;

@@ -14,7 +14,7 @@ namespace a {
     return 14 + i; // break 14
   }
 }
-int main(int argc, char const *argv[]) {
+int main() { int argc = 0; char **argv = (char **)0; 
   for (int i=0; i<10; ++i) {
     int x = twelve(i) + thirteen(i) + a::fourteen(i); // break loop
   }

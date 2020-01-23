@@ -6,7 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-int main(int argc, char **argv) {
+int
+main() { int argc = 0; char **argv = (char **)0; 
   // Perform a null pointer access.
   int *const null_int_ptr = nullptr;
   *null_int_ptr = 0xDEAD;

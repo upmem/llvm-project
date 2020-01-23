@@ -20,8 +20,8 @@ int foo()
     return 2;
 }
 
-int main (int argc, char const *argv[], char const *envp[])
-{          
+int main() { int argc = 0; char **argv = (char **)0;
+          
     foo();
     return 0; //% self.expect("expression -- foo()", substrs = ['2'])
 }

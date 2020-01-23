@@ -19,8 +19,8 @@ struct Point {
 Point g_point(3,4);
 Point* g_point_pointer = new Point(7,5);
 
-int main (int argc, const char * argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     return 0; // Set break point at this line.
 }
 

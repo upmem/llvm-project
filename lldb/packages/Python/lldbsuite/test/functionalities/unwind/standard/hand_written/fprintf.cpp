@@ -9,7 +9,7 @@
 #include <cstdio>
 
 int
-main(int argc, char const *argv[])
-{
+main() { int argc = 0; char **argv = (char **)0;
+
     fprintf(stderr, "%d %p %s\n", argc, argv, argv[0]);
 }

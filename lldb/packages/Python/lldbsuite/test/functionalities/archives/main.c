@@ -9,8 +9,8 @@
 
 extern int a(int);
 extern int b(int);
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     printf ("a(1) returns %d\n", a(1));
     printf ("b(2) returns %d\n", b(2));
 }

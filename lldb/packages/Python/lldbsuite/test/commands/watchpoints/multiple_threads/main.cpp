@@ -20,7 +20,7 @@ void thread_func() {
     g_val = i;
 }
 
-int main(int argc, char const *argv[]) {
+int main() { int argc = 0; char **argv = (char **)0; 
   printf("Before running the thread\n");
   pseudo_barrier_init(g_barrier, 2);
   std::thread thread(thread_func);

@@ -8,7 +8,7 @@
 
 class Empty {};
 
-int main (int argc, char const *argv[]) {
+int main() { int argc = 0; char **argv = (char **)0; 
   Empty e;
   Empty* ep = new Empty;
   return 0; // Break at this line

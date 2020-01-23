@@ -7,8 +7,8 @@
 //===----------------------------------------------------------------------===//
 #include <stdio.h>
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
   void* my_ptr[] = {
     reinterpret_cast<void*>(0xDEADBEEF),
     reinterpret_cast<void*>(main),

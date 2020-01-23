@@ -10,7 +10,7 @@
 int g_global_var = 123;
 static int g_static_var = 123;
 
-int main (int argc, char const *argv[])
+int __main(int argc, char **argv)
 {
     static int static_var = 123;
     g_static_var = 123; // clang bug. Need to touch this variable, otherwise it disappears.
@@ -25,4 +25,8 @@ int main (int argc, char const *argv[])
         }
     }
     return 0;
+}
+
+int main() {
+    return __main(0, (char **)0);
 }
