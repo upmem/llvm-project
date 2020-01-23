@@ -12,7 +12,7 @@ uint64_t pad0 = 0;
 uint8_t byteArray[4] = {0};
 uint64_t pad1 = 0;
 
-int main(int argc, char** argv) {
+int main() { int argc = 0; char **argv = (char **)0; 
 
     int i;
 

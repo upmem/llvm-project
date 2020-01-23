@@ -9,8 +9,8 @@
 #include <stdio.h>
 
 int
-main(int argc, char const *argv[])
-{
+main() { int argc = 0; char **argv = (char **)0;
+
     int my_int = argc + 3;
     printf("Hello UUID Mismatch: %d\n", my_int); // Set breakpoint here.
     %ADD_EXTRA_CODE%

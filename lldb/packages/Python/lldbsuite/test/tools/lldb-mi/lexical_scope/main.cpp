@@ -25,8 +25,8 @@ void test_sibling_scope (void)
 }
 
 int
-main (int argc, char **argv)
-{
+main() { int argc = 0; char **argv = (char **)0;
+
   test_sibling_scope();
   return 0;
 }

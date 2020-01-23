@@ -51,8 +51,8 @@ hello_world()
 }
 
 int
-main(int argc, char const *argv[])
-{ // FUNC_main
+main() { int argc = 0; char **argv = (char **)0;
+ // FUNC_main
     local_array_test();
     hello_world();
     local_2d_array_test();

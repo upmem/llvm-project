@@ -13,8 +13,8 @@ int do_loop;
 int do_segfault;
 
 int
-main(int argc, char const *argv[])
-{
+main() { int argc = 0; char **argv = (char **)0;
+
     if (do_loop)
     {
         do

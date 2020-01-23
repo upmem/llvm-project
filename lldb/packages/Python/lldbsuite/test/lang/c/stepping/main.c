@@ -44,8 +44,8 @@ int complex (int first, int second, int third)
     return first + second + third;  // Step in targeting complex should stop here
 }
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     int A1 = a(1); // frame select 2, thread step-out while stopped at "c(1)"
     printf("a(1) returns %d\n", A1);
     

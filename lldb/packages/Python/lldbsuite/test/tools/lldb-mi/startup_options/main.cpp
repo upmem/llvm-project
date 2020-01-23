@@ -7,8 +7,8 @@
 //===----------------------------------------------------------------------===//
 
 int
-main(int argc, char const *argv[])
-{
+main() { int argc = 0; char **argv = (char **)0;
+
     int a = 10;
     return 0; //BP_return
 }

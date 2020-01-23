@@ -9,8 +9,8 @@
 #include <cstdio>
 
 int
-main(int argc, char const *argv[]) 
-{
+main() { int argc = 0; char **argv = (char **)0; 
+
     printf("'\n` - it's \\n\x12\"\\\"");
     return 0;
 }

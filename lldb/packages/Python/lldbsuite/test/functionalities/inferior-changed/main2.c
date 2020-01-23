@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main(int argc, const char* argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     int *int_ptr = (int *)malloc(sizeof(int));
     *int_ptr = 7;
     printf("Hello, world!\n");
