@@ -8,8 +8,8 @@
 #include <stdio.h>
 
 int
-main (int argc, char const *argv[])
-{
+main() { int argc = 0; char **argv = (char **)0;
+
     printf("Break here to do the load using paths.");
     return 0;
 }

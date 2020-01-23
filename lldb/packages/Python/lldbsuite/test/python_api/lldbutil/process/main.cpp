@@ -14,7 +14,7 @@ static int bar(int x) {
   return foo(x + 1, x * 2);
 }
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     return bar(argc + 2);
 }

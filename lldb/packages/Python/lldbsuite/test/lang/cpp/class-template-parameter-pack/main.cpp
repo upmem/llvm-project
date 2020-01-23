@@ -34,8 +34,8 @@ template <> struct D<int, int, bool> : D<int, int> {
   bool isIntBool() { return true; }
 };
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     C<int,16,32> myC;
     C<int,16> myLesserC;
     myC.member = 64;

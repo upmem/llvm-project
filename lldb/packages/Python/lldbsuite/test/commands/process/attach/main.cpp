@@ -3,7 +3,7 @@
 #include <chrono>
 #include <thread>
 
-int main(int argc, char const *argv[]) {
+int main() { int argc = 0; char **argv = (char **)0; 
     int temp;
     lldb_enable_attach();
 

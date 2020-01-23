@@ -10,8 +10,8 @@
 
 const char *hello_world = "Hello, assertion!";
 
-int main(int argc, const char* argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     int *null_ptr = 0;
     printf("%s\n", hello_world);
     assert(null_ptr); // Assert here.

@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     // Add a body to the function, so we can set more than one
     // breakpoint in it.
     static volatile int var = 0;

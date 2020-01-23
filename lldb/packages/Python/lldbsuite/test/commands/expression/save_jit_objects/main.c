@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-int main (int argc, char const *argv[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
 	const char* foo = "Hello world"; // break here
     return 0;
 }

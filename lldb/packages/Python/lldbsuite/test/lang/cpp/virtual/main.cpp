@@ -76,8 +76,8 @@ protected:
     char m_pad;
 };
 
-int main (int argc, char const *argv[], char const *envp[])
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     A *a_as_A = new A();
     B *b_as_B = new B();
     A *b_as_A = b_as_B;

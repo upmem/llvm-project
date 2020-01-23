@@ -15,8 +15,8 @@ double multiply(my_untagged_struct *s, int x)
     return multiply(s) * x;
 }
 
-int main(int argc, char **argv)
-{
+int main() { int argc = 0; char **argv = (char **)0;
+
     my_untagged_struct s = {
         .f = (float)argc,
         .i = argc,
