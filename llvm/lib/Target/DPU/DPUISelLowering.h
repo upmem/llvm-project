@@ -75,6 +75,8 @@ enum {
   Lsr1,
   Lsr1x,
 
+  LslAdd,
+
   AddJcc,
   AddNullJcc,
   AddcJcc,
@@ -151,6 +153,9 @@ enum {
   LslSubNullJcc,
 
   ADD_VASTART,
+
+  LDMA,
+  SDMA,
 
   TEST_NODE
 };

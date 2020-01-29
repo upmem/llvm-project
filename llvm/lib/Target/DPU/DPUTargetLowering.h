@@ -111,6 +111,8 @@ private:
 
   SDValue LowerStore(SDValue Op, SelectionDAG &DAG) const;
 
+  SDValue LowerDMA(SDValue Op, SelectionDAG &DAG, int DPUISD) const;
+
   SDValue LowerIntrinsic(SDValue Op, SelectionDAG &DAG,
                          int IntrinsicType) const;
 
