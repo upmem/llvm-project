@@ -161,6 +161,7 @@ SystemInitializerFull::~SystemInitializerFull() {}
 #define LLDB_PROCESS_AMDGPU(op)
 #define LLDB_PROCESS_AVR(op)
 #define LLDB_PROCESS_BPF(op)
+#define LLDB_PROCESS_DPU(op)
 #define LLDB_PROCESS_Lanai(op)
 #define LLDB_PROCESS_MSP430(op)
 #define LLDB_PROCESS_NVPTX(op)
