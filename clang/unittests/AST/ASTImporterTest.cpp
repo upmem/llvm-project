@@ -5900,8 +5900,5 @@ INSTANTIATE_TEST_CASE_P(ParameterizedTests, ImportImplicitMethods,
 INSTANTIATE_TEST_CASE_P(ParameterizedTests, ImportVariables,
                         DefaultTestValuesForRunOptions, );
 
-INSTANTIATE_TEST_CASE_P(ParameterizedTests, LLDBLookupTest,
-                        DefaultTestValuesForRunOptions, );
-
 } // end namespace ast_matchers
 } // end namespace clang
