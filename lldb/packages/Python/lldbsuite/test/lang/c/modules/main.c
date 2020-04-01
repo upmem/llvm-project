@@ -5,11 +5,11 @@ int printf(const char * __restrict format, ...);
 typedef struct {
     int a;
     int b;
-} MYFILE;
+} FILE;
 
 int main()
 {
-    MYFILE *myFile = malloc(sizeof(MYFILE));
+    FILE *myFile = malloc(sizeof(FILE));
 
     myFile->a = 5;
     myFile->b = 9;
