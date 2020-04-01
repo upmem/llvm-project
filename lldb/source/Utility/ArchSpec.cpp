@@ -216,7 +216,7 @@ static const CoreDefinition g_core_definitions[] = {
      ArchSpec::eCore_uknownMach32, "unknown-mach-32"},
     {eByteOrderLittle, 8, 4, 4, llvm::Triple::UnknownArch,
      ArchSpec::eCore_uknownMach64, "unknown-mach-64"},
-    {eByteOrderLittle, 4, 2, 4, llvm::Triple::arc, ArchSpec::eCore_arc, "arc"}
+    {eByteOrderLittle, 4, 2, 4, llvm::Triple::arc, ArchSpec::eCore_arc, "arc"},
 
     {eByteOrderLittle, 4, 8, 8, llvm::Triple::dpu, ArchSpec::eCore_dpu,
                 "dpu"},
