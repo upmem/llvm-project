@@ -64,6 +64,8 @@ public:
   getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
                                StringRef Constraint, MVT VT) const override;
 
+  bool isLegalAddImmediate(int64_t) const override;
+
   bool isLegalICmpImmediate(int64_t) const override;
 
   bool isLegalAddressingMode(const DataLayout &DL, const AddrMode &AM, Type *Ty,

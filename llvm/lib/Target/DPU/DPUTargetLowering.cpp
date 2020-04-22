@@ -1157,15 +1157,13 @@ DPUTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
   return TargetLowering::getRegForInlineAsmConstraint(TRI, Constraint, VT);
 }
 
-static bool canEncodeImmediateOnNBitsSigned(int64_t value, uint32_t bits) {
-  int64_t threshold = (1L << (bits - 1)) - 1;
-
-  return (value <= threshold) && (value >= ~threshold);
+bool DPUTargetLowering::isLegalAddImmediate(int64_t Value) const {
+  return isInt<32>(Value);
 }
 
-bool DPUTargetLowering::isLegalICmpImmediate(int64_t value) const {
+bool DPUTargetLowering::isLegalICmpImmediate(int64_t Value) const {
   // Jcc handles 11-bit signed immediates
-  return canEncodeImmediateOnNBitsSigned(value, 11);
+  return isInt<11>(Value);
 }
 
 bool DPUTargetLowering::isLegalAddressingMode(const DataLayout &DL,

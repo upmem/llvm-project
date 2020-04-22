@@ -41,6 +41,13 @@ public:
         TLI(ST->getTargetLowering()) {}
 
   bool hasDivRemOp(Type *DataType, bool IsSigned) const { return true; }
+
+  TargetTransformInfo::PopcntSupportKind
+  getPopcntSupport(unsigned IntTyWidthInBit) const {
+    return (IntTyWidthInBit == 32) ? TTI::PSK_FastHardware : TTI::PSK_Software;
+  }
+
+  bool canMacroFuseCmp() { return true; }
 };
 } // namespace llvm
 
