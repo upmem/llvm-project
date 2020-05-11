@@ -284,9 +284,9 @@ def dpu_attach(debugger, command, result, internal_dict):
         return None
 
     lldb_server_dpu_env = os.environ.copy()
-    lldb_server_dpu_env["UPMEM_LLDB_STRUCTURE_VALUE"] = structures_value_env
-    lldb_server_dpu_env["UPMEM_LLDB_SLICE_TARGET"] = slices_target_env
-    lldb_server_dpu_env["UPMEM_LLDB_HOST_MUX_MRAM_STATE"] = \
+    lldb_server_dpu_env["UPMEM_LLDB_STRUCTURES_VALUE"] = structures_value_env
+    lldb_server_dpu_env["UPMEM_LLDB_SLICES_TARGET"] = slices_target_env
+    lldb_server_dpu_env["UPMEM_LLDB_HOST_MUXS_MRAM_STATE"] = \
         host_muxs_mram_state_env
 
     if not(program_path is None):
