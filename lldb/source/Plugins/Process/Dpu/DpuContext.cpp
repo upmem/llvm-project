@@ -39,7 +39,7 @@ using namespace lldb_private::dpu;
 // DPU context handling
 // -----------------------------------------------------------------------------
 
-DpuContext::DpuContext(dpu_t *dpu, struct _dpu_context_t *context,
+DpuContext::DpuContext(dpu_t *dpu, struct dpu_context_t *context,
                        uint32_t _nr_threads)
     : m_dpu(dpu), m_context(context), nr_threads(_nr_threads) {
   running_threads = new uint8_t[nr_threads];
@@ -58,11 +58,11 @@ DpuContext::~DpuContext() {
   delete last_resume_threads;
 }
 
-struct _dpu_context_t *DpuContext::Get() {
+struct dpu_context_t *DpuContext::Get() {
   return m_context;
 }
 
-void DpuContext::UpdateContext(struct _dpu_context_t *new_context) {
+void DpuContext::UpdateContext(struct dpu_context_t *new_context) {
   dpu_free_dpu_context(m_context);
   m_context = new_context;
 }

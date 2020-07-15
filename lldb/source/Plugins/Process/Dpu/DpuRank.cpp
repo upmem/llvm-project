@@ -103,7 +103,7 @@ void DpuRank::SetSliceInfo(uint32_t slice_id, uint64_t structure_value,
                            host_mux_mram_state);
 }
 
-struct _dpu_context_t *DpuRank::AllocContext() {
+struct dpu_context_t *DpuRank::AllocContext() {
   return dpu_alloc_dpu_context(m_rank);
 }
 
