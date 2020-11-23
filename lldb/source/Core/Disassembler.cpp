@@ -564,10 +564,13 @@ bool Disassembler::Disassemble(Debugger &debugger, const ArchSpec &arch,
       range.SetByteSize(DEFAULT_DISASM_BYTE_SIZE);
   }
 
-  return Disassemble(
-      debugger, arch, plugin_name, flavor, exe_ctx, range.GetBaseAddress(),
-      {Limit::Instructions, num_instructions}, mixed_source_and_assembly,
-      num_mixed_context_lines, options, strm);
+  Limit limit = (num_instructions == 0)
+                    ? Limit{Limit::Bytes, range.GetByteSize()}
+                    : Limit{Limit::Instructions, num_instructions};
+
+  return Disassemble(debugger, arch, plugin_name, flavor, exe_ctx,
+                     range.GetBaseAddress(), limit, mixed_source_and_assembly,
+                     num_mixed_context_lines, options, strm);
 }
 
 Instruction::Instruction(const Address &address, AddressClass addr_class)
