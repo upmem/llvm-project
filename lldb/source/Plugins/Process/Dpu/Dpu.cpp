@@ -79,11 +79,14 @@ bool Dpu::SetPrintfSequenceAddrs(const uint32_t _open_print_sequence_addr,
                                  const uint32_t _printf_buffer_address,
                                  const uint32_t _printf_buffer_size,
                                  const uint32_t _printf_buffer_var_addr) {
+  // The _open_print_sequence function starts with some instructions to acquire
+  // a lock Currently the sequence is 4 instruction long
+  // TODO: ideally the sequence should be 2 instruction long, and we will need
+  // to change the following code. It may be more maintainable to fetch the
+  // function size and use the last instruction (ie. the return instruction)
+  // instead of what we are currently doing.
   open_print_sequence_addr =
-      _open_print_sequence_addr +
-      sizeof(dpuinstruction_t); // we add sizeof(dpuinstruction_t) to avoid to
-                                // be on the 'acquire' which could makes us loop
-                                // forever
+      _open_print_sequence_addr + 4 * sizeof(dpuinstruction_t);
   close_print_sequence_addr = _close_print_sequence_addr;
   printf_buffer_address = _printf_buffer_address;
   printf_buffer_size = _printf_buffer_size;

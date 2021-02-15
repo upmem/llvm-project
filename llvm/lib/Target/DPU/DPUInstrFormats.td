@@ -1631,7 +1631,7 @@ def ANDNrri: DPUInstruction {
 	let Inst{22} = imm{22};
 	let Inst{23} = 0b0;
 	let Inst{24} = imm{7};
-	let Inst{27-25} = 0b001;
+	let Inst{27-25} = 0b000;
 	let Inst{30-28} = imm{6-4};
 	let Inst{31} = imm{23};
 	let Inst{33-32} = 0b11;
@@ -1756,7 +1756,7 @@ def ANDNzri: DPUInstruction {
 	let Inst{22} = imm{22};
 	let Inst{23} = 0b0;
 	let Inst{24} = imm{7};
-	let Inst{27-25} = 0b001;
+	let Inst{27-25} = 0b000;
 	let Inst{30-28} = imm{6-4};
 	let Inst{31} = imm{23};
 	let Inst{33-32} = 0b11;
@@ -1833,7 +1833,7 @@ def ANDN_Srri: DPUInstruction {
 	let Inst{22} = imm{22};
 	let Inst{23} = 0b0;
 	let Inst{24} = imm{7};
-	let Inst{27-25} = 0b001;
+	let Inst{27-25} = 0b000;
 	let Inst{30-28} = imm{6-4};
 	let Inst{31} = imm{23};
 	let Inst{33-32} = 0b11;
@@ -1964,7 +1964,7 @@ def ANDN_Urri: DPUInstruction {
 	let Inst{22} = imm{22};
 	let Inst{23} = 0b0;
 	let Inst{24} = imm{7};
-	let Inst{27-25} = 0b001;
+	let Inst{27-25} = 0b000;
 	let Inst{30-28} = imm{6-4};
 	let Inst{31} = imm{23};
 	let Inst{33-32} = 0b11;
@@ -9977,9 +9977,9 @@ def MOVErrci: DPUInstruction {
 
 def MOVE_Sri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s32_i64_imm:$imm);
+	let InOperandList    = (ins u32_imm:$imm);
 	let AsmString        = "move.s $dc, $imm";
-	let Pattern          = [(set DoubleReg:$dc, s32_i64_imm:$imm)];
+	let Pattern          = [(set DoubleReg:$dc, (sext u32_imm:$imm))];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> dc;
 	let Inst{13-0} = imm{21-8};
@@ -10053,9 +10053,9 @@ def MOVE_Srrci: DPUInstruction {
 
 def MOVE_Uri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins u32_i64_imm:$imm);
+	let InOperandList    = (ins u32_imm:$imm);
 	let AsmString        = "move.u $dc, $imm";
-	let Pattern          = [(set DoubleReg:$dc, u32_i64_imm:$imm)];
+	let Pattern          = [(set DoubleReg:$dc, (zext u32_imm:$imm))];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> dc;
 	let Inst{13-0} = imm{21-8};
@@ -12011,7 +12011,7 @@ def NORrri: DPUInstruction {
 	let Inst{22} = imm{22};
 	let Inst{23} = 0b1;
 	let Inst{24} = imm{7};
-	let Inst{27-25} = 0b001;
+	let Inst{27-25} = 0b000;
 	let Inst{30-28} = imm{6-4};
 	let Inst{31} = imm{23};
 	let Inst{33-32} = 0b11;
@@ -12136,7 +12136,7 @@ def NORzri: DPUInstruction {
 	let Inst{22} = imm{22};
 	let Inst{23} = 0b1;
 	let Inst{24} = imm{7};
-	let Inst{27-25} = 0b001;
+	let Inst{27-25} = 0b000;
 	let Inst{30-28} = imm{6-4};
 	let Inst{31} = imm{23};
 	let Inst{33-32} = 0b11;
@@ -12213,7 +12213,7 @@ def NOR_Srri: DPUInstruction {
 	let Inst{22} = imm{22};
 	let Inst{23} = 0b1;
 	let Inst{24} = imm{7};
-	let Inst{27-25} = 0b001;
+	let Inst{27-25} = 0b000;
 	let Inst{30-28} = imm{6-4};
 	let Inst{31} = imm{23};
 	let Inst{33-32} = 0b11;
@@ -12344,7 +12344,7 @@ def NOR_Urri: DPUInstruction {
 	let Inst{22} = imm{22};
 	let Inst{23} = 0b1;
 	let Inst{24} = imm{7};
-	let Inst{27-25} = 0b001;
+	let Inst{27-25} = 0b000;
 	let Inst{30-28} = imm{6-4};
 	let Inst{31} = imm{23};
 	let Inst{33-32} = 0b11;

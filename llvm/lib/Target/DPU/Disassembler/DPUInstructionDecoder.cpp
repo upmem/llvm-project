@@ -100,7 +100,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::ADD_Srric);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -133,7 +133,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::ADD_Srrif);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -153,7 +153,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::ADD_Urric);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -186,7 +186,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::ADD_Urrif);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -205,7 +205,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         }
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::ADDrric);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -238,7 +238,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::ADDrrif);
             DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -256,7 +256,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           return MCDisassembler::Fail;
         }
         if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             MI.setOpcode(DPU::ADDzrici);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -271,7 +271,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
             return MCDisassembler::Success;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::ADDzrif);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -293,7 +293,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::ADDC_Srric);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -326,7 +326,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::ADDC_Srrif);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -346,7 +346,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::ADDC_Urric);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -379,7 +379,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::ADDC_Urrif);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -398,7 +398,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         }
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::ADDCrric);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -431,7 +431,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::ADDCrrif);
             DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -449,7 +449,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           return MCDisassembler::Fail;
         }
         if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             MI.setOpcode(DPU::ADDCzrici);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -464,7 +464,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
             return MCDisassembler::Success;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::ADDCzrif);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -482,324 +482,1502 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         }
         return MCDisassembler::Fail;
       }
-      if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x2L)) {
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::AND_Srric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
+      if (((((Insn >> 22) & 0x3fL)) & (0x30L)) == (0x0L)) {
+        if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+          if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x2L)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::AND_Srric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::AND_Srrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
             }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::AND_Srrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::AND_Urric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::AND_Urrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::ANDrric);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::ANDrrici);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                MI.setOpcode(DPU::ANDzrici);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 39) & 7) << 8) |
+                                    ((((Insn) >> 31) & 1) << 11),
+                                12);
+                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                               ((((Insn) >> 18) & 15) << 0));
+                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x8L)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::ANDN_Srric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::ANDN_Srrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::ANDN_Urric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::ANDN_Urrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::ANDNrric);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::ANDNrrici);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                MI.setOpcode(DPU::ANDNzrici);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 39) & 7) << 8) |
+                                    ((((Insn) >> 31) & 1) << 11),
+                                12);
+                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                               ((((Insn) >> 18) & 15) << 0));
+                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0xbL)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::NAND_Srric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::NAND_Srrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::NAND_Urric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::NAND_Urrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::NANDrric);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::NANDrrici);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                MI.setOpcode(DPU::NANDzrici);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 39) & 7) << 8) |
+                                    ((((Insn) >> 31) & 1) << 11),
+                                12);
+                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                               ((((Insn) >> 18) & 15) << 0));
+                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0xaL)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::NOR_Srric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::NOR_Srrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::NOR_Urric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::NOR_Urrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::NORrric);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::NORrrici);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                MI.setOpcode(DPU::NORzrici);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 39) & 7) << 8) |
+                                    ((((Insn) >> 31) & 1) << 11),
+                                12);
+                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                               ((((Insn) >> 18) & 15) << 0));
+                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x1L)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::NXOR_Srric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::NXOR_Srrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::NXOR_Urric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::NXOR_Urrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::NXORrric);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::NXORrrici);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                MI.setOpcode(DPU::NXORzrici);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 39) & 7) << 8) |
+                                    ((((Insn) >> 31) & 1) << 11),
+                                12);
+                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                               ((((Insn) >> 18) & 15) << 0));
+                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x3L)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::OR_Srric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
+                                    (0xf003c000L)) == (0x0L))) {
+                    MI.setOpcode(DPU::MOVE_Srrci);
+                    DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                           ((((Insn) >> 44) & 3) << 3));
+                    DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                    DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                   ((((Insn) >> 18) & 15) << 0));
+                    DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                    return MCDisassembler::Success;
+                  }
+                  if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
+                                    (0x7c00000000L)) == (0x6000000000L))) {
+                    MI.setOpcode(DPU::MOVE_Srici);
+                    DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                           ((((Insn) >> 44) & 3) << 3));
+                    DAsm.Decode_imm(MI,
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                        ((((Insn) >> 28) & 15) << 4),
+                                    8);
+                    DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                   ((((Insn) >> 18) & 15) << 0));
+                    DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                    return MCDisassembler::Success;
+                  }
+                  MI.setOpcode(DPU::OR_Srrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::OR_Urric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
+                                    (0x7c00000000L)) == (0x6000000000L))) {
+                    MI.setOpcode(DPU::MOVE_Urici);
+                    DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                           ((((Insn) >> 44) & 3) << 3));
+                    DAsm.Decode_imm(MI,
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                        ((((Insn) >> 28) & 15) << 4),
+                                    8);
+                    DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                   ((((Insn) >> 18) & 15) << 0));
+                    DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                    return MCDisassembler::Success;
+                  }
+                  if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
+                                    (0xf003c000L)) == (0x0L))) {
+                    MI.setOpcode(DPU::MOVE_Urrci);
+                    DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                           ((((Insn) >> 44) & 3) << 3));
+                    DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                    DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                   ((((Insn) >> 18) & 15) << 0));
+                    DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                    return MCDisassembler::Success;
+                  }
+                  MI.setOpcode(DPU::OR_Urrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::ORrric);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
+                                    (0xf003c000L)) == (0x0L))) {
+                    MI.setOpcode(DPU::MOVErrci);
+                    DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                           ((((Insn) >> 44) & 3) << 3));
+                    DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                    DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                   ((((Insn) >> 18) & 15) << 0));
+                    DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                    return MCDisassembler::Success;
+                  }
+                  if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
+                                    (0x7c00000000L)) == (0x6000000000L))) {
+                    MI.setOpcode(DPU::MOVErici);
+                    DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                           ((((Insn) >> 44) & 3) << 3));
+                    DAsm.Decode_imm(MI,
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                        ((((Insn) >> 28) & 15) << 4),
+                                    8);
+                    DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                   ((((Insn) >> 18) & 15) << 0));
+                    DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                    return MCDisassembler::Success;
+                  }
+                  MI.setOpcode(DPU::ORrrici);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                MI.setOpcode(DPU::ORzrici);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 39) & 7) << 8) |
+                                    ((((Insn) >> 31) & 1) << 11),
+                                12);
+                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                               ((((Insn) >> 18) & 15) << 0));
+                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x9L)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::ORN_Srric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::ORN_Srrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::ORN_Urric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::ORN_Urrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::ORNrric);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::ORNrrici);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                MI.setOpcode(DPU::ORNzrici);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 39) & 7) << 8) |
+                                    ((((Insn) >> 31) & 1) << 11),
+                                12);
+                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                               ((((Insn) >> 18) & 15) << 0));
+                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x0L)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::XOR_Srric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::XOR_Srrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::XOR_Urric);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  MI.setOpcode(DPU::XOR_Urrici);
+                  DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
+                  MI.setOpcode(DPU::XORrric);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_off(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 7) << 4) |
+                                      ((((Insn) >> 13) & 1) << 7) |
+                                      ((((Insn) >> 0) & 8191) << 8) |
+                                      ((((Insn) >> 31) & 1) << 21),
+                                  22);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  return MCDisassembler::Success;
+                }
+                if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
+                  if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
+                                    (0xf003c000L)) == (0xf003c000L))) {
+                    MI.setOpcode(DPU::NOTrrci);
+                    DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                           ((((Insn) >> 44) & 3) << 3));
+                    DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                    DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                   ((((Insn) >> 18) & 15) << 0));
+                    DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                    return MCDisassembler::Success;
+                  }
+                  MI.setOpcode(DPU::XORrrici);
+                  DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                         ((((Insn) >> 44) & 3) << 3));
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_imm(MI,
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                      ((((Insn) >> 28) & 15) << 4),
+                                  8);
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                return MCDisassembler::Fail;
+              }
+              return MCDisassembler::Fail;
+            }
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
+                if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
+                                  (0x380f103c000L)) == (0x380f103c000L))) {
+                  MI.setOpcode(DPU::NOTzrci);
+                  DAsm.Decode_zero(MI, 24);
+                  DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                  DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                                 ((((Insn) >> 18) & 15) << 0));
+                  DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                  return MCDisassembler::Success;
+                }
+                MI.setOpcode(DPU::XORzrici);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 39) & 7) << 8) |
+                                    ((((Insn) >> 31) & 1) << 11),
+                                12);
+                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
+                               ((((Insn) >> 18) & 15) << 0));
+                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
             }
             return MCDisassembler::Fail;
           }
           return MCDisassembler::Fail;
         }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::AND_Urric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
+        if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+          if (((((Insn >> 22) & 0x3fL)) & (0x3aL)) == (0x0L)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::ANDN_Srri);
+                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
             }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::AND_Urrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::ANDN_Urri);
+                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
             }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::ANDrric);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::ANDNrri);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
             }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::ANDrrici);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            MI.setOpcode(DPU::ANDzrici);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) | ((((Insn) >> 39) & 7) << 8) |
-                    ((((Insn) >> 31) & 1) << 11),
-                12);
-            DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                           ((((Insn) >> 18) & 15) << 0));
-            DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-            return MCDisassembler::Success;
-          }
-          return MCDisassembler::Fail;
-        }
-        return MCDisassembler::Fail;
-      }
-      if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x8L)) {
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::ANDN_Srri);
-            DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::ANDN_Srric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::ANDN_Srrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::ANDNzri);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
             }
             return MCDisassembler::Fail;
           }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::ANDN_Urri);
-            DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::ANDN_Urric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
+          if (((((Insn >> 22) & 0x3fL)) & (0x3aL)) == (0xaL)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::NAND_Srri);
+                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
             }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::ANDN_Urrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::NAND_Urri);
+                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
             }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::ANDNrri);
-            DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::ANDNrric);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::NANDrri);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
             }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::ANDNrrici);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::NANDzri);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
             }
             return MCDisassembler::Fail;
           }
-          return MCDisassembler::Fail;
-        }
-        if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::ANDNzri);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
+          if (((((Insn >> 22) & 0x3fL)) & (0x3aL)) == (0x2L)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::NOR_Srri);
+                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::NOR_Urri);
+                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::NORrri);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::NORzri);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            MI.setOpcode(DPU::ANDNzrici);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) | ((((Insn) >> 39) & 7) << 8) |
-                    ((((Insn) >> 31) & 1) << 11),
-                12);
-            DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                           ((((Insn) >> 18) & 15) << 0));
-            DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-            return MCDisassembler::Success;
+          if (((((Insn >> 22) & 0x3fL)) & (0x3aL)) == (0x8L)) {
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::ORN_Srri);
+                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
+                 ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::ORN_Urri);
+                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
+                ((((Insn >> 46) & 0x1L)) == (0x0L))) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::ORNrri);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
+                                       ((((Insn) >> 44) & 3) << 3));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
+              if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
+                MI.setOpcode(DPU::ORNzri);
+                DAsm.Decode_zero(MI, 24);
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_imm(MI,
+                                ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 28) & 7) << 4) |
+                                    ((((Insn) >> 24) & 1) << 7) |
+                                    ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 22) & 1) << 22) |
+                                    ((((Insn) >> 31) & 1) << 23),
+                                24);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
           }
           return MCDisassembler::Fail;
         }
@@ -3546,921 +4724,11 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         }
         return MCDisassembler::Fail;
       }
-      if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0xbL)) {
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::NAND_Srri);
-            DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::NAND_Srric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::NAND_Srrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::NAND_Urri);
-            DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::NAND_Urric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::NAND_Urrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::NANDrri);
-            DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::NANDrric);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::NANDrrici);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::NANDzri);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            MI.setOpcode(DPU::NANDzrici);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) | ((((Insn) >> 39) & 7) << 8) |
-                    ((((Insn) >> 31) & 1) << 11),
-                12);
-            DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                           ((((Insn) >> 18) & 15) << 0));
-            DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-            return MCDisassembler::Success;
-          }
-          return MCDisassembler::Fail;
-        }
-        return MCDisassembler::Fail;
-      }
-      if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0xaL)) {
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::NOR_Srri);
-            DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::NOR_Srric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::NOR_Srrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::NOR_Urri);
-            DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::NOR_Urric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::NOR_Urrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::NORrri);
-            DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::NORrric);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::NORrrici);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::NORzri);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            MI.setOpcode(DPU::NORzrici);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) | ((((Insn) >> 39) & 7) << 8) |
-                    ((((Insn) >> 31) & 1) << 11),
-                12);
-            DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                           ((((Insn) >> 18) & 15) << 0));
-            DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-            return MCDisassembler::Success;
-          }
-          return MCDisassembler::Fail;
-        }
-        return MCDisassembler::Fail;
-      }
-      if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x1L)) {
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::NXOR_Srric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::NXOR_Srrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::NXOR_Urric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::NXOR_Urrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::NXORrric);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::NXORrrici);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            MI.setOpcode(DPU::NXORzrici);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) | ((((Insn) >> 39) & 7) << 8) |
-                    ((((Insn) >> 31) & 1) << 11),
-                12);
-            DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                           ((((Insn) >> 18) & 15) << 0));
-            DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-            return MCDisassembler::Success;
-          }
-          return MCDisassembler::Fail;
-        }
-        return MCDisassembler::Fail;
-      }
-      if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x3L)) {
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::OR_Srric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
-                                (0xf003c000L)) == (0x0L))) {
-                MI.setOpcode(DPU::MOVE_Srrci);
-                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                       ((((Insn) >> 44) & 3) << 3));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                               ((((Insn) >> 18) & 15) << 0));
-                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-                return MCDisassembler::Success;
-              }
-              if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
-                                (0x7c00000000L)) == (0x6000000000L))) {
-                MI.setOpcode(DPU::MOVE_Srici);
-                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                       ((((Insn) >> 44) & 3) << 3));
-                DAsm.Decode_imm(MI,
-                                ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 28) & 15) << 4),
-                                8);
-                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                               ((((Insn) >> 18) & 15) << 0));
-                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-                return MCDisassembler::Success;
-              }
-              MI.setOpcode(DPU::OR_Srrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::OR_Urric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
-                                (0x7c00000000L)) == (0x6000000000L))) {
-                MI.setOpcode(DPU::MOVE_Urici);
-                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                       ((((Insn) >> 44) & 3) << 3));
-                DAsm.Decode_imm(MI,
-                                ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 28) & 15) << 4),
-                                8);
-                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                               ((((Insn) >> 18) & 15) << 0));
-                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-                return MCDisassembler::Success;
-              }
-              if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
-                                (0xf003c000L)) == (0x0L))) {
-                MI.setOpcode(DPU::MOVE_Urrci);
-                DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                       ((((Insn) >> 44) & 3) << 3));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                               ((((Insn) >> 18) & 15) << 0));
-                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-                return MCDisassembler::Success;
-              }
-              MI.setOpcode(DPU::OR_Urrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::ORrric);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
-                                (0xf003c000L)) == (0x0L))) {
-                MI.setOpcode(DPU::MOVErrci);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                       ((((Insn) >> 44) & 3) << 3));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                               ((((Insn) >> 18) & 15) << 0));
-                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-                return MCDisassembler::Success;
-              }
-              if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
-                                (0x7c00000000L)) == (0x6000000000L))) {
-                MI.setOpcode(DPU::MOVErici);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                       ((((Insn) >> 44) & 3) << 3));
-                DAsm.Decode_imm(MI,
-                                ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 28) & 15) << 4),
-                                8);
-                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                               ((((Insn) >> 18) & 15) << 0));
-                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-                return MCDisassembler::Success;
-              }
-              MI.setOpcode(DPU::ORrrici);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            MI.setOpcode(DPU::ORzrici);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) | ((((Insn) >> 39) & 7) << 8) |
-                    ((((Insn) >> 31) & 1) << 11),
-                12);
-            DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                           ((((Insn) >> 18) & 15) << 0));
-            DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-            return MCDisassembler::Success;
-          }
-          return MCDisassembler::Fail;
-        }
-        return MCDisassembler::Fail;
-      }
-      if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x9L)) {
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::ORN_Srri);
-            DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::ORN_Srric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::ORN_Srrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::ORN_Urri);
-            DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::ORN_Urric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::ORN_Urrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::ORNrri);
-            DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                   ((((Insn) >> 44) & 3) << 3));
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::ORNrric);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::ORNrrici);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
-            MI.setOpcode(DPU::ORNzri);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) |
-                    ((((Insn) >> 0) & 16383) << 8) |
-                    ((((Insn) >> 22) & 1) << 22) | ((((Insn) >> 31) & 1) << 23),
-                24);
-            return MCDisassembler::Success;
-          }
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            MI.setOpcode(DPU::ORNzrici);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) | ((((Insn) >> 39) & 7) << 8) |
-                    ((((Insn) >> 31) & 1) << 11),
-                12);
-            DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                           ((((Insn) >> 18) & 15) << 0));
-            DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-            return MCDisassembler::Success;
-          }
-          return MCDisassembler::Fail;
-        }
-        return MCDisassembler::Fail;
-      }
       if (((((Insn >> 22) & 0x3fL)) & (0x3aL)) == (0x28L)) {
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUB_Srirc);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -4493,7 +4761,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUB_Srirf);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -4513,7 +4781,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUB_Urirc);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -4546,7 +4814,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUB_Urirf);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -4565,7 +4833,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         }
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUBrirc);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -4609,7 +4877,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBrirf);
             DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -4627,7 +4895,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           return MCDisassembler::Fail;
         }
         if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             MI.setOpcode(DPU::SUBzirci);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_imm(
@@ -4642,7 +4910,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
             return MCDisassembler::Success;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBzirf);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_imm(
@@ -4664,7 +4932,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUB_Srric);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -4697,7 +4965,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUB_Srrif);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -4717,7 +4985,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUB_Urric);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -4750,7 +5018,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUB_Urrif);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -4769,7 +5037,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         }
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUBrric);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -4802,7 +5070,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBrrif);
             DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -4820,7 +5088,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           return MCDisassembler::Fail;
         }
         if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
                               (0x380f17fc000L)) == (0x80000L))) {
               MI.setOpcode(DPU::JZri);
@@ -4989,7 +5257,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
             return MCDisassembler::Success;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBzrif);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -5011,7 +5279,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUBC_Srirc);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -5044,7 +5312,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBC_Srirf);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -5064,7 +5332,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUBC_Urirc);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -5097,7 +5365,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBC_Urirf);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -5116,7 +5384,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         }
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUBCrirc);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -5149,7 +5417,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBCrirf);
             DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -5167,7 +5435,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           return MCDisassembler::Fail;
         }
         if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             MI.setOpcode(DPU::SUBCzirci);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_imm(
@@ -5182,7 +5450,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
             return MCDisassembler::Success;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBCzirf);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_imm(
@@ -5204,7 +5472,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUBC_Srric);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -5237,7 +5505,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBC_Srrif);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -5257,7 +5525,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
              ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUBC_Urric);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -5290,7 +5558,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBC_Urrif);
             DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -5309,7 +5577,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         }
         if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
             ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
               MI.setOpcode(DPU::SUBCrric);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -5342,7 +5610,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             }
             return MCDisassembler::Fail;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBCrrif);
             DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                    ((((Insn) >> 44) & 3) << 3));
@@ -5360,7 +5628,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           return MCDisassembler::Fail;
         }
         if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
             MI.setOpcode(DPU::SUBCzrici);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -5375,7 +5643,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
             return MCDisassembler::Success;
           }
-          if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+          if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
             MI.setOpcode(DPU::SUBCzrif);
             DAsm.Decode_zero(MI, 24);
             DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -5393,161 +5661,6 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         }
         return MCDisassembler::Fail;
       }
-      if (((((Insn >> 22) & 0x3fL)) & (0x3bL)) == (0x0L)) {
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::XOR_Srric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::XOR_Srrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
-             ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::XOR_Urric);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::XOR_Urrici);
-              DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
-            ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
-              MI.setOpcode(DPU::XORrric);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 7) << 4) |
-                                  ((((Insn) >> 13) & 1) << 7) |
-                                  ((((Insn) >> 0) & 8191) << 8) |
-                                  ((((Insn) >> 31) & 1) << 21),
-                              22);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              return MCDisassembler::Success;
-            }
-            if ((((Insn >> 24) & 0x1L)) == (0x0L)) {
-              if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
-                                (0xf003c000L)) == (0xf003c000L))) {
-                MI.setOpcode(DPU::NOTrrci);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                       ((((Insn) >> 44) & 3) << 3));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                               ((((Insn) >> 18) & 15) << 0));
-                DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-                return MCDisassembler::Success;
-              }
-              MI.setOpcode(DPU::XORrrici);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
-                                     ((((Insn) >> 44) & 3) << 3));
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_imm(MI,
-                              ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 28) & 15) << 4),
-                              8);
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
-            if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
-                              (0x380f103c000L)) == (0x380f103c000L))) {
-              MI.setOpcode(DPU::NOTzrci);
-              DAsm.Decode_zero(MI, 24);
-              DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-              DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                             ((((Insn) >> 18) & 15) << 0));
-              DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-              return MCDisassembler::Success;
-            }
-            MI.setOpcode(DPU::XORzrici);
-            DAsm.Decode_zero(MI, 24);
-            DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-            DAsm.Decode_imm(
-                MI,
-                ((((Insn) >> 14) & 15) << 0) | ((((Insn) >> 28) & 7) << 4) |
-                    ((((Insn) >> 24) & 1) << 7) | ((((Insn) >> 39) & 7) << 8) |
-                    ((((Insn) >> 31) & 1) << 11),
-                12);
-            DAsm.Decode_cc(MI, ConditionClass::Log_nzCC,
-                           ((((Insn) >> 18) & 15) << 0));
-            DAsm.Decode_pc(MI, ((((Insn) >> 0) & 16383) << 0));
-            return MCDisassembler::Success;
-          }
-          return MCDisassembler::Fail;
-        }
-        return MCDisassembler::Fail;
-      }
       return MCDisassembler::Fail;
     }
     if ((((Insn >> 32) & 0x3L)) != (0x3L)) {
@@ -5556,7 +5669,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::ADD_Srrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -5564,7 +5677,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::ADD_Srrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -5593,7 +5706,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::ADD_Urrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -5601,7 +5714,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::ADD_Urrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -5629,7 +5742,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           }
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::ADDrrr);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -5637,7 +5750,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::ADDrrrc);
                 DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -5664,14 +5777,14 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             return MCDisassembler::Fail;
           }
           if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::ADDzrr);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               MI.setOpcode(DPU::ADDzrrci);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -5689,7 +5802,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::ADDC_Srrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -5697,7 +5810,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::ADDC_Srrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -5726,7 +5839,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::ADDC_Urrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -5734,7 +5847,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::ADDC_Urrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -5762,7 +5875,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           }
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::ADDCrrr);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -5770,7 +5883,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::ADDCrrrc);
                 DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -5797,14 +5910,14 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             return MCDisassembler::Fail;
           }
           if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::ADDCzrr);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               MI.setOpcode(DPU::ADDCzrrci);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -9720,7 +9833,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::RSUB_Srrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -9728,7 +9841,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::RSUB_Srrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -9757,7 +9870,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::RSUB_Urrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -9765,7 +9878,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::RSUB_Urrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -9793,7 +9906,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           }
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::RSUBrrr);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -9801,7 +9914,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::RSUBrrrc);
                 DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -9828,14 +9941,14 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             return MCDisassembler::Fail;
           }
           if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::RSUBzrr);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               MI.setOpcode(DPU::RSUBzrrci);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -9853,7 +9966,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::RSUBC_Srrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -9861,7 +9974,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::RSUBC_Srrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -9890,7 +10003,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::RSUBC_Urrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -9898,7 +10011,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::RSUBC_Urrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -9926,7 +10039,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           }
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::RSUBCrrr);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -9934,7 +10047,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::RSUBCrrrc);
                 DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -9961,14 +10074,14 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             return MCDisassembler::Fail;
           }
           if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::RSUBCzrr);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               MI.setOpcode(DPU::RSUBCzrrci);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -9986,7 +10099,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::SUB_Srrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -9994,7 +10107,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::SUB_Srrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -10023,7 +10136,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::SUB_Urrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -10031,7 +10144,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::SUB_Urrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -10059,7 +10172,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           }
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::SUBrrr);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -10067,7 +10180,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::SUBrrrc);
                 DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -10094,14 +10207,14 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             return MCDisassembler::Fail;
           }
           if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::SUBzrr);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if (useSugar && (((((Insn >> 0) & 0xffffffffffffL)) &
                                 (0x7c0000L)) == (0x80000L))) {
                 MI.setOpcode(DPU::JEQrri);
@@ -10199,7 +10312,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x1L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::SUBC_Srrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -10207,7 +10320,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::SUBC_Srrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -10236,7 +10349,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               (((((Insn >> 46) & 0x1L)) == (0x1L)) &&
                ((((Insn >> 39) & 0x1L)) == (0x0L)))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::SUBC_Urrr);
               DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -10244,7 +10357,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::SUBC_Urrrc);
                 DAsm.Decode_dc(MI, ((((Insn) >> 40) & 3) << 1) |
@@ -10272,7 +10385,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           }
           if (((((Insn >> 44) & 0x3L)) != (0x3L)) &&
               ((((Insn >> 46) & 0x1L)) == (0x0L))) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::SUBCrrr);
               DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
                                      ((((Insn) >> 44) & 3) << 3));
@@ -10280,7 +10393,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               if ((((Insn >> 24) & 0x1L)) == (0x1L)) {
                 MI.setOpcode(DPU::SUBCrrrc);
                 DAsm.Decode_rc(MI, ((((Insn) >> 39) & 7) << 0) |
@@ -10307,14 +10420,14 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
             return MCDisassembler::Fail;
           }
           if ((((Insn >> 44) & 0x3L)) == (0x3L)) {
-            if ((((Insn >> 18) & 0x1fL)) == (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) == (0x0L)) {
               MI.setOpcode(DPU::SUBCzrr);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
               DAsm.Decode_rb(MI, ((((Insn) >> 29) & 31) << 0));
               return MCDisassembler::Success;
             }
-            if ((((Insn >> 18) & 0x1fL)) != (0x0L)) {
+            if ((((Insn >> 18) & 0xfL)) != (0x0L)) {
               MI.setOpcode(DPU::SUBCzrrci);
               DAsm.Decode_zero(MI, 24);
               DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
@@ -11293,267 +11406,6 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
     }
     if ((((Insn >> 32) & 0x3L)) != (0x3L)) {
       if ((((Insn >> 42) & 0x3L)) != (0x3L)) {
-        if ((((Insn >> 37) & 0x3L)) == (0x3L)) {
-          if ((((Insn >> 29) & 0x1fL)) != (0x0L)) {
-            if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x22L)) {
-              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-                MI.setOpcode(DPU::LBU_DECrki);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_off(MI,
-                                ((((Insn) >> 0) & 16383) << 8) |
-                                    ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 18) & 15) << 4),
-                                22);
-                return MCDisassembler::Success;
-              }
-              return MCDisassembler::Fail;
-            }
-            if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x20L)) {
-              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-                MI.setOpcode(DPU::LBU_INCrki);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_off(MI,
-                                ((((Insn) >> 0) & 16383) << 8) |
-                                    ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 18) & 15) << 4),
-                                22);
-                return MCDisassembler::Success;
-              }
-              return MCDisassembler::Fail;
-            }
-            if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x32L)) {
-              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-                MI.setOpcode(DPU::LBU_SETSrki);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_off(MI,
-                                ((((Insn) >> 0) & 16383) << 8) |
-                                    ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 18) & 15) << 4),
-                                22);
-                return MCDisassembler::Success;
-              }
-              return MCDisassembler::Fail;
-            }
-            if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x26L)) {
-              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-                MI.setOpcode(DPU::LHU_DECrki);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_off(MI,
-                                ((((Insn) >> 0) & 16383) << 8) |
-                                    ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 18) & 15) << 4),
-                                22);
-                return MCDisassembler::Success;
-              }
-              return MCDisassembler::Fail;
-            }
-            if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x24L)) {
-              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-                MI.setOpcode(DPU::LHU_INCrki);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_off(MI,
-                                ((((Insn) >> 0) & 16383) << 8) |
-                                    ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 18) & 15) << 4),
-                                22);
-                return MCDisassembler::Success;
-              }
-              return MCDisassembler::Fail;
-            }
-            if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x36L)) {
-              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-                MI.setOpcode(DPU::LHU_SETSrki);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_off(MI,
-                                ((((Insn) >> 0) & 16383) << 8) |
-                                    ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 18) & 15) << 4),
-                                22);
-                return MCDisassembler::Success;
-              }
-              return MCDisassembler::Fail;
-            }
-            if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x2aL)) {
-              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-                MI.setOpcode(DPU::LW_DECrki);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_off(MI,
-                                ((((Insn) >> 0) & 16383) << 8) |
-                                    ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 18) & 15) << 4),
-                                22);
-                return MCDisassembler::Success;
-              }
-              return MCDisassembler::Fail;
-            }
-            if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x28L)) {
-              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-                MI.setOpcode(DPU::LW_INCrki);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_off(MI,
-                                ((((Insn) >> 0) & 16383) << 8) |
-                                    ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 18) & 15) << 4),
-                                22);
-                return MCDisassembler::Success;
-              }
-              return MCDisassembler::Fail;
-            }
-            if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x3aL)) {
-              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-                MI.setOpcode(DPU::LW_SETSrki);
-                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
-                DAsm.Decode_off(MI,
-                                ((((Insn) >> 0) & 16383) << 8) |
-                                    ((((Insn) >> 14) & 15) << 0) |
-                                    ((((Insn) >> 18) & 15) << 4),
-                                22);
-                return MCDisassembler::Success;
-              }
-              return MCDisassembler::Fail;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
-        if ((((Insn >> 37) & 0x3L)) != (0x3L)) {
-          if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x22L)) {
-            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::LBU_DECrri);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 0) & 16383) << 8) |
-                                  ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 18) & 15) << 4),
-                              22);
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x20L)) {
-            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::LBU_INCrri);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 0) & 16383) << 8) |
-                                  ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 18) & 15) << 4),
-                              22);
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x32L)) {
-            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::LBU_SETSrri);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 0) & 16383) << 8) |
-                                  ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 18) & 15) << 4),
-                              22);
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x26L)) {
-            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::LHU_DECrri);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 0) & 16383) << 8) |
-                                  ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 18) & 15) << 4),
-                              22);
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x24L)) {
-            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::LHU_INCrri);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 0) & 16383) << 8) |
-                                  ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 18) & 15) << 4),
-                              22);
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x36L)) {
-            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::LHU_SETSrri);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 0) & 16383) << 8) |
-                                  ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 18) & 15) << 4),
-                              22);
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x2aL)) {
-            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::LW_DECrri);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 0) & 16383) << 8) |
-                                  ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 18) & 15) << 4),
-                              22);
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x28L)) {
-            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::LW_INCrri);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 0) & 16383) << 8) |
-                                  ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 18) & 15) << 4),
-                              22);
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x3aL)) {
-            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
-              MI.setOpcode(DPU::LW_SETSrri);
-              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
-              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
-              DAsm.Decode_off(MI,
-                              ((((Insn) >> 0) & 16383) << 8) |
-                                  ((((Insn) >> 14) & 15) << 0) |
-                                  ((((Insn) >> 18) & 15) << 4),
-                              22);
-              return MCDisassembler::Success;
-            }
-            return MCDisassembler::Fail;
-          }
-          return MCDisassembler::Fail;
-        }
         if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x30L)) {
           if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
             MI.setOpcode(DPU::LBU_ADDrrri);
@@ -11584,6 +11436,74 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           }
           return MCDisassembler::Fail;
         }
+        if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x22L)) {
+          if ((((Insn >> 37) & 0x3L)) == (0x3L)) {
+            if ((((Insn >> 29) & 0x1fL)) == (0x0L)) {
+              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+                MI.setOpcode(DPU::LBU_DECrki);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_off(MI,
+                                ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 18) & 15) << 4),
+                                22);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if ((((Insn >> 37) & 0x3L)) != (0x3L)) {
+            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+              MI.setOpcode(DPU::LBU_DECrri);
+              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
+              DAsm.Decode_off(MI,
+                              ((((Insn) >> 0) & 16383) << 8) |
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                  ((((Insn) >> 18) & 15) << 4),
+                              22);
+              return MCDisassembler::Success;
+            }
+            return MCDisassembler::Fail;
+          }
+          return MCDisassembler::Fail;
+        }
+        if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x20L)) {
+          if ((((Insn >> 37) & 0x3L)) == (0x3L)) {
+            if ((((Insn >> 29) & 0x1fL)) == (0x0L)) {
+              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+                MI.setOpcode(DPU::LBU_INCrki);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_off(MI,
+                                ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 18) & 15) << 4),
+                                22);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if ((((Insn >> 37) & 0x3L)) != (0x3L)) {
+            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+              MI.setOpcode(DPU::LBU_INCrri);
+              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
+              DAsm.Decode_off(MI,
+                              ((((Insn) >> 0) & 16383) << 8) |
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                  ((((Insn) >> 18) & 15) << 4),
+                              22);
+              return MCDisassembler::Success;
+            }
+            return MCDisassembler::Fail;
+          }
+          return MCDisassembler::Fail;
+        }
         if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x2L)) {
           if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
             MI.setOpcode(DPU::LBU_ORrrri);
@@ -11596,6 +11516,40 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
                                 ((((Insn) >> 18) & 15) << 4),
                             22);
             return MCDisassembler::Success;
+          }
+          return MCDisassembler::Fail;
+        }
+        if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x32L)) {
+          if ((((Insn >> 37) & 0x3L)) == (0x3L)) {
+            if ((((Insn >> 29) & 0x1fL)) == (0x0L)) {
+              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+                MI.setOpcode(DPU::LBU_SETSrki);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_off(MI,
+                                ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 18) & 15) << 4),
+                                22);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if ((((Insn >> 37) & 0x3L)) != (0x3L)) {
+            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+              MI.setOpcode(DPU::LBU_SETSrri);
+              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
+              DAsm.Decode_off(MI,
+                              ((((Insn) >> 0) & 16383) << 8) |
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                  ((((Insn) >> 18) & 15) << 4),
+                              22);
+              return MCDisassembler::Success;
+            }
+            return MCDisassembler::Fail;
           }
           return MCDisassembler::Fail;
         }
@@ -11659,6 +11613,74 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           }
           return MCDisassembler::Fail;
         }
+        if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x26L)) {
+          if ((((Insn >> 37) & 0x3L)) == (0x3L)) {
+            if ((((Insn >> 29) & 0x1fL)) == (0x0L)) {
+              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+                MI.setOpcode(DPU::LHU_DECrki);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_off(MI,
+                                ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 18) & 15) << 4),
+                                22);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if ((((Insn >> 37) & 0x3L)) != (0x3L)) {
+            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+              MI.setOpcode(DPU::LHU_DECrri);
+              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
+              DAsm.Decode_off(MI,
+                              ((((Insn) >> 0) & 16383) << 8) |
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                  ((((Insn) >> 18) & 15) << 4),
+                              22);
+              return MCDisassembler::Success;
+            }
+            return MCDisassembler::Fail;
+          }
+          return MCDisassembler::Fail;
+        }
+        if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x24L)) {
+          if ((((Insn >> 37) & 0x3L)) == (0x3L)) {
+            if ((((Insn >> 29) & 0x1fL)) == (0x0L)) {
+              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+                MI.setOpcode(DPU::LHU_INCrki);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_off(MI,
+                                ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 18) & 15) << 4),
+                                22);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if ((((Insn >> 37) & 0x3L)) != (0x3L)) {
+            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+              MI.setOpcode(DPU::LHU_INCrri);
+              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
+              DAsm.Decode_off(MI,
+                              ((((Insn) >> 0) & 16383) << 8) |
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                  ((((Insn) >> 18) & 15) << 4),
+                              22);
+              return MCDisassembler::Success;
+            }
+            return MCDisassembler::Fail;
+          }
+          return MCDisassembler::Fail;
+        }
         if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x6L)) {
           if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
             MI.setOpcode(DPU::LHU_ORrrri);
@@ -11671,6 +11693,40 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
                                 ((((Insn) >> 18) & 15) << 4),
                             22);
             return MCDisassembler::Success;
+          }
+          return MCDisassembler::Fail;
+        }
+        if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x36L)) {
+          if ((((Insn >> 37) & 0x3L)) == (0x3L)) {
+            if ((((Insn >> 29) & 0x1fL)) == (0x0L)) {
+              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+                MI.setOpcode(DPU::LHU_SETSrki);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_off(MI,
+                                ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 18) & 15) << 4),
+                                22);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if ((((Insn >> 37) & 0x3L)) != (0x3L)) {
+            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+              MI.setOpcode(DPU::LHU_SETSrri);
+              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
+              DAsm.Decode_off(MI,
+                              ((((Insn) >> 0) & 16383) << 8) |
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                  ((((Insn) >> 18) & 15) << 4),
+                              22);
+              return MCDisassembler::Success;
+            }
+            return MCDisassembler::Fail;
           }
           return MCDisassembler::Fail;
         }
@@ -11734,6 +11790,74 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           }
           return MCDisassembler::Fail;
         }
+        if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x2aL)) {
+          if ((((Insn >> 37) & 0x3L)) == (0x3L)) {
+            if ((((Insn >> 29) & 0x1fL)) == (0x0L)) {
+              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+                MI.setOpcode(DPU::LW_DECrki);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_off(MI,
+                                ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 18) & 15) << 4),
+                                22);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if ((((Insn >> 37) & 0x3L)) != (0x3L)) {
+            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+              MI.setOpcode(DPU::LW_DECrri);
+              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
+              DAsm.Decode_off(MI,
+                              ((((Insn) >> 0) & 16383) << 8) |
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                  ((((Insn) >> 18) & 15) << 4),
+                              22);
+              return MCDisassembler::Success;
+            }
+            return MCDisassembler::Fail;
+          }
+          return MCDisassembler::Fail;
+        }
+        if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x28L)) {
+          if ((((Insn >> 37) & 0x3L)) == (0x3L)) {
+            if ((((Insn >> 29) & 0x1fL)) == (0x0L)) {
+              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+                MI.setOpcode(DPU::LW_INCrki);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_off(MI,
+                                ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 18) & 15) << 4),
+                                22);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if ((((Insn >> 37) & 0x3L)) != (0x3L)) {
+            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+              MI.setOpcode(DPU::LW_INCrri);
+              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
+              DAsm.Decode_off(MI,
+                              ((((Insn) >> 0) & 16383) << 8) |
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                  ((((Insn) >> 18) & 15) << 4),
+                              22);
+              return MCDisassembler::Success;
+            }
+            return MCDisassembler::Fail;
+          }
+          return MCDisassembler::Fail;
+        }
         if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0xaL)) {
           if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
             MI.setOpcode(DPU::LW_ORrrri);
@@ -11746,6 +11870,40 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
                                 ((((Insn) >> 18) & 15) << 4),
                             22);
             return MCDisassembler::Success;
+          }
+          return MCDisassembler::Fail;
+        }
+        if (((((Insn >> 22) & 0x3fL)) & (0x3eL)) == (0x3aL)) {
+          if ((((Insn >> 37) & 0x3L)) == (0x3L)) {
+            if ((((Insn >> 29) & 0x1fL)) == (0x0L)) {
+              if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+                MI.setOpcode(DPU::LW_SETSrki);
+                DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+                DAsm.Decode_ra(MI, ((((Insn) >> 34) & 31) << 0));
+                DAsm.Decode_off(MI,
+                                ((((Insn) >> 0) & 16383) << 8) |
+                                    ((((Insn) >> 14) & 15) << 0) |
+                                    ((((Insn) >> 18) & 15) << 4),
+                                22);
+                return MCDisassembler::Success;
+              }
+              return MCDisassembler::Fail;
+            }
+            return MCDisassembler::Fail;
+          }
+          if ((((Insn >> 37) & 0x3L)) != (0x3L)) {
+            if ((((Insn >> 28) & 0x1L)) == (0x0L)) {
+              MI.setOpcode(DPU::LW_SETSrri);
+              DAsm.Decode_rc(MI, ((((Insn) >> 39) & 31) << 0));
+              DAsm.Decode_ra(MI, ((((Insn) >> 29) & 31) << 0));
+              DAsm.Decode_off(MI,
+                              ((((Insn) >> 0) & 16383) << 8) |
+                                  ((((Insn) >> 14) & 15) << 0) |
+                                  ((((Insn) >> 18) & 15) << 4),
+                              22);
+              return MCDisassembler::Success;
+            }
+            return MCDisassembler::Fail;
           }
           return MCDisassembler::Fail;
         }
