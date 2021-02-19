@@ -92,8 +92,8 @@ def u5_inv_imm  : UInvImmOperand< 5, i32>;
 
 def s8_i64_imm : SImmOperand<8, i64>;
 def s16_i64_imm : SImmOperand<16, i64>;
-def s32_i64_imm : SUImmOperand<32, i64>;
-def u32_i64_imm : SUImmOperand<32, i64>;
+def s32_i64_imm : SImmOperand<32, i64>;
+def u32_i64_imm : UImmOperand<32, i64>;
 
 def pc14 : PCImmOperand<14, OtherVT> {
 }
