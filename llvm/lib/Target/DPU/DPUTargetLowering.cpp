@@ -110,10 +110,7 @@ DPUTargetLowering::DPUTargetLowering(const TargetMachine &TM, DPUSubtarget &STI)
   setMinStackArgumentAlignment(Align(4));
 
   setTargetDAGCombine(ISD::OR);
-  setTargetDAGCombine(ISD::SRL); // to produce BSWAP16
-  setTargetDAGCombine(ISD::SRA); // to produce BSWAP16
-  setOperationAction(ISD::BSWAP, MVT::i32, Custom);
-  setOperationAction(ISD::BSWAP, MVT::i64, Custom);
+  setOperationAction(ISD::BSWAP, MVT::i64, Expand);
 
   // Global addresses require a special processing, achieved by LowerOperation.
   setOperationAction(ISD::GlobalTLSAddress, MVT::i32, Custom);
@@ -329,9 +326,6 @@ SDValue DPUTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
     return LowerUnsupported(Op, DAG,
                             "Dynamic allocation of stack is not supported");
 
-  case ISD::BSWAP:
-    return LowerBswap(Op, DAG);
-
   case ISD::GlobalAddress:
     return LowerGlobalAddress(Op, DAG);
 
@@ -405,14 +399,6 @@ const char *DPUTargetLowering::getTargetNodeName(unsigned Opcode) const {
     return "DPUISD::SEQREAD_GET";
   case DPUISD::SEQREAD_GET_CST:
     return "DPUISD::SEQREAD_GET_CST";
-  case DPUISD::LHU_BIG:
-    return "DPUISD::LHU_BIG";
-  case DPUISD::LHS_BIG:
-    return "DPUISD::LHS_BIG";
-  case DPUISD::LW_BIG:
-    return "DPUISD::LW_BIG";
-  case DPUISD::LD_BIG:
-    return "DPUISD::LD_BIG";
   case DPUISD::LDMA:
     return "DPUISD::LDMA";
   case DPUISD::SDMA:
@@ -664,27 +650,6 @@ const char *DPUTargetLowering::getTargetNodeName(unsigned Opcode) const {
   }
 }
 
-static SDValue LowerBswapStatic(SDValue Op, SelectionDAG &DAG,
-                                int Opcode = DPUISD::LW_BIG) {
-  SDLoc DL(Op);
-  MVT VT = Op.getValueType().getSimpleVT();
-  if (VT.SimpleTy == MVT::i64) {
-    Opcode = DPUISD::LD_BIG;
-  }
-
-  SDValue SpillSlot = DAG.getFrameIndex(
-      DAG.getMachineFunction()
-          .getInfo<DPUMachineFunctionInfo>()
-          ->getTemporaryFrameIndex(),
-      MVT::getIntegerVT(DAG.getDataLayout().getPointerSizeInBits(0)));
-  SDValue Store = DAG.getStore(DAG.getEntryNode(), DL, Op.getOperand(0),
-                               SpillSlot, MachinePointerInfo());
-  return DAG.getNode(Opcode, DL, VT, Store, SpillSlot);
-}
-
-SDValue DPUTargetLowering::LowerBswap(SDValue Op, SelectionDAG &DAG) const {
-  return LowerBswapStatic(Op, DAG);
-}
 SDValue DPUTargetLowering::LowerUnsupported(SDValue Op, SelectionDAG &DAG,
                                             StringRef Message) const {
   const Function &Func = DAG.getMachineFunction().getFunction();
@@ -1541,15 +1506,6 @@ static SDValue performORCombine(SDNode *N,
   return SDValue();
 }
 
-static SDValue PerformShiftCombine(SDValue Op, SelectionDAG &DAG, int Opcode) {
-  SDValue Bswap = Op.getOperand(0);
-  if ((Bswap.getOpcode() == ISD::BSWAP) &&
-      (Op.getConstantOperandVal(1) == 16)) {
-    return LowerBswapStatic(Bswap, DAG, Opcode);
-  }
-  return SDValue();
-}
-
 SDValue DPUTargetLowering::PerformDAGCombine(SDNode *N,
                                              DAGCombinerInfo &DCI) const {
   SelectionDAG &DAG = DCI.DAG;
@@ -1558,10 +1514,6 @@ SDValue DPUTargetLowering::PerformDAGCombine(SDNode *N,
     return PerformMULCombine(SDValue(N, 0), DAG, optLevel);
   case ISD::OR:
     return performORCombine(N, DCI, DAG);
-  case ISD::SRA:
-    return PerformShiftCombine(SDValue(N, 0), DAG, DPUISD::LHS_BIG);
-  case ISD::SRL:
-    return PerformShiftCombine(SDValue(N, 0), DAG, DPUISD::LHU_BIG);
   }
   return TargetLowering::PerformDAGCombine(N, DCI);
 }
@@ -1888,12 +1840,6 @@ static uint64_t PageSizeLog2ToNcCondition(uint64_t pageSize) {
     return DPUAsmCondition::NotCarry10;
   case 11:
     return DPUAsmCondition::NotCarry11;
-  case 12:
-    return DPUAsmCondition::NotCarry12;
-  case 13:
-    return DPUAsmCondition::NotCarry13;
-  case 14:
-    return DPUAsmCondition::NotCarry14;
   default:
     return DPUAsmCondition::NR_CONDITIONS;
   }
@@ -1911,10 +1857,10 @@ SDValue DPUTargetLowering::LowerSeqreadGet(SDValue Op,
   }
   pageSizeLog2 = (uint64_t)log2((double)pageSize);
   if (pageSize != ((uint64_t)pow(2, (double)pageSizeLog2)) ||
-      pageSizeLog2 < 5 || pageSizeLog2 > 14) {
+      pageSizeLog2 < 4 || pageSizeLog2 > 11) {
     LowerUnsupported(
         Op, DAG,
-        "NC only apply on a page size of a power of 2 in range [64;32768]");
+        "NC only apply on a page size of a power of 2 in range [32;4096]");
   }
 
   int Opcode = DPUISD::SEQREAD_GET;

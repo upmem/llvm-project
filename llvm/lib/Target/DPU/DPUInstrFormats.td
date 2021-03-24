@@ -52,14 +52,6 @@ class ImmAsmOperandClass<int nr_bits, string signedness> : AsmOperandClass {
   let PredicateMethod = "is" # signedness # "Imm<" # nr_bits # ">";
 }
 
-def EndianAsmOperandClass : AsmOperandClass {
-  let Name = "Endian";
-  let RenderMethod = "addEndianOperands";
-  let ParserMethod = "parseAnyEndianness";
-  let PredicateMethod = "isEndian";
-}
-
-
 class ConditionClassOperand<string cc> : Operand<i32> {
   let PrintMethod = "printCondition";
   let ParserMatchClass = ConditionClassAsmOperand<cc>;
@@ -71,48 +63,46 @@ class ImmOperand<int nr_bits, string signedness, ValueType super_op> : Operand<s
   let ParserMatchClass = ImmAsmOperandClass<nr_bits, signedness>;
 }
 
+class InvImmOperand<int nr_bits, string signedness, ValueType super_op> : Operand<super_op> {
+  let PrintMethod = "print" # signedness # "Imm<" # nr_bits # ">";
+  let ParserMatchClass = ImmAsmOperandClass<nr_bits, signedness>;
+  let EncoderMethod = "getInvImmEncoding";
+}
+
 class SImmOperand<int nr_bits, ValueType super_op> : ImmOperand<nr_bits, "S", super_op>, ImmLeaf<super_op, !strconcat("return (Imm >= -(1L << (", !cast<string>(nr_bits), " - 1))) && (Imm < (1L << (", !cast<string>(nr_bits), " - 1)));")>;
 class UImmOperand<int nr_bits, ValueType super_op> : ImmOperand<nr_bits, "U", super_op>, ImmLeaf<super_op, !strconcat("return (Imm >= 0) && (Imm < (1L << ", !cast<string>(nr_bits), "));")>;
 class SUImmOperand<int nr_bits, ValueType super_op> : ImmOperand<nr_bits, "SU", super_op>, ImmLeaf<super_op, !strconcat("return (Imm >= -(1L << (", !cast<string>(nr_bits), " - 1))) && (Imm < (1L << ", !cast<string>(nr_bits), "));")>;
 class PCImmOperand<int nr_bits, ValueType super_op> : ImmOperand<nr_bits, "PC", super_op>, ImmLeaf<super_op, !strconcat("return (Imm >= -(1L << (", !cast<string>(nr_bits), " - 1))) && (Imm < (1L << ", !cast<string>(nr_bits), "));")>;
-
-def endian : Operand<i32> {
-  let PrintMethod = "printEndianness";
-  let ParserMatchClass = EndianAsmOperandClass;
-}
+class UInvImmOperand<int nr_bits, ValueType super_op> : InvImmOperand<nr_bits, "U", super_op>, ImmLeaf<super_op, !strconcat("return (Imm >= 0) && (Imm < (1L << ", !cast<string>(nr_bits), "));")>;
 
 def  s8_imm : SImmOperand< 8, i32>;
-def s11_imm : SImmOperand<11, i32>;
 def s12_imm : SImmOperand<12, i32>;
+def s14_imm : SImmOperand<14, i32>;
 def s16_imm : SImmOperand<16, i32>;
-def s17_imm : SImmOperand<17, i32>;
+def s22_imm : SImmOperand<22, i32>;
 def s24_imm : SImmOperand<24, i32>;
-def s27_imm : SImmOperand<27, i32>;
-def s28_imm : SImmOperand<28, i32>;
 
 def  su8_imm : SUImmOperand< 8, i32>;
 def su16_imm : SUImmOperand<16, i32>;
 def u32_imm : SUImmOperand<32, i32>;
+def u4_imm  : UImmOperand< 4, i32>;
 def u5_imm  : UImmOperand< 5, i32>;
 def u8_imm  : UImmOperand< 8, i32>;
+def u5_inv_imm  : UInvImmOperand< 5, i32>;
 
 def s8_i64_imm : SImmOperand<8, i64>;
 def s16_i64_imm : SImmOperand<16, i64>;
 def s32_i64_imm : SImmOperand<32, i64>;
 def u32_i64_imm : UImmOperand<32, i64>;
 
-def pc16 : PCImmOperand<16, OtherVT> {
+def pc14 : PCImmOperand<14, OtherVT> {
 }
-def pc24 : PCImmOperand<24, i32> {
-}
-def pc28 : PCImmOperand<28, i32> {
-}
-def pcbb : PCImmOperand<28, OtherVT>;
+def pcbb : PCImmOperand<22, OtherVT>;
 
-def acquire_cc      : ConditionClassOperand<"Acquire_cc">;
 def add_cc          : ConditionClassOperand<"Add_cc">;
 def add_nz_cc       : ConditionClassOperand<"Add_nz_cc">;
 def boot_cc         : ConditionClassOperand<"Boot_cc">;
+def boot_nz_cc      : ConditionClassOperand<"Boot_nz_cc">;
 def const_cc_ge0    : ConditionClassOperand<"Const_cc_ge0">;
 def const_cc_geu    : ConditionClassOperand<"Const_cc_geu">;
 def const_cc_zero   : ConditionClassOperand<"Const_cc_zero">;
@@ -130,7 +120,6 @@ def log_set_cc      : ConditionClassOperand<"Log_set_cc">;
 def mul_cc          : ConditionClassOperand<"Mul_cc">;
 def mul_nz_cc       : ConditionClassOperand<"Mul_nz_cc">;
 def no_cc           : ConditionClassOperand<"No_cc">;
-def release_cc      : ConditionClassOperand<"Release_cc">;
 def shift_cc        : ConditionClassOperand<"Shift_cc">;
 def shift_nz_cc     : ConditionClassOperand<"Shift_nz_cc">;
 def sub_cc          : ConditionClassOperand<"Sub_cc">;
@@ -138,27 +127,6 @@ def sub_nz_cc       : ConditionClassOperand<"Sub_nz_cc">;
 def sub_set_cc      : ConditionClassOperand<"Sub_set_cc">;
 def true_cc         : ConditionClassOperand<"True_cc">;
 def true_false_cc   : ConditionClassOperand<"True_false_cc">;
-
-def ACQUIRErici: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s16_imm:$imm, acquire_cc:$cc, pc16:$pc);
-	let AsmString        = "acquire $ra, $imm, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isBarrier        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<16> imm; bits<2> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{25-24} = cc{1-0};
-	let Inst{30-26} = imm{12-8};
-	let Inst{33-31} = 0b111;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{15-13};
-	let Inst{47-42} = 0b011111;
-}
 
 def ADDrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
@@ -168,14 +136,10 @@ def ADDrri: DPUInstruction {
 	let isAsCheapAsAMove = 1;
 	let isAdd            = 1;
 	bits<32> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{31-28} = imm{7-4};
 	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
@@ -184,21 +148,20 @@ def ADDrri: DPUInstruction {
 
 def ADDrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "add $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, add_nz_cc:$cc);
+	let AsmString        = "add $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isAdd            = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11000;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10010;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -208,7 +171,7 @@ def ADDrric: DPUInstruction {
 
 def ADDrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "add $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -216,12 +179,13 @@ def ADDrrici: DPUInstruction {
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11000;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -237,14 +201,16 @@ def ADDrrif: DPUInstruction {
 	let isAsCheapAsAMove = 1;
 	let isAdd            = 1;
 	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100000000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b100;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -260,10 +226,8 @@ def ADDrrr: DPUInstruction {
 	let isAsCheapAsAMove = 1;
 	let isAdd            = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01000000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -273,18 +237,16 @@ def ADDrrr: DPUInstruction {
 
 def ADDrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc);
 	let AsmString        = "add $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isAdd            = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -294,7 +256,7 @@ def ADDrrrc: DPUInstruction {
 
 def ADDrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "add $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -302,67 +264,16 @@ def ADDrrrci: DPUInstruction {
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
 	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def ADDssi: DPUInstruction {
-	let OutOperandList   = (outs SafeReg:$sc);
-	let InOperandList    = (ins SafeRegOrCst:$sa, s17_imm:$imm);
-	let AsmString        = "add $sc, $sa, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isAdd            = 1;
-	bits<17> imm; bits<5> sa; bits<5> sc;
-	let Inst{4-0} = imm{16-12};
-	let Inst{5} = imm{16};
-	let Inst{6} = imm{16};
-	let Inst{7} = imm{16};
-	let Inst{8} = imm{16};
-	let Inst{9} = imm{16};
-	let Inst{10} = imm{16};
-	let Inst{11} = imm{16};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100010000;
-	let Inst{38-34} = sa{4-0};
-	let Inst{41-39} = sc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = sc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def ADDsss: DPUInstruction {
-	let OutOperandList   = (outs SafeReg:$sc);
-	let InOperandList    = (ins SafeRegOrCst:$sa, SafeReg:$sb);
-	let AsmString        = "add $sc, $sa, $sb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isAdd            = 1;
-	bits<5> sa; bits<5> sb; bits<5> sc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = sa{2-0};
-	let Inst{31-20} = 0b000100001100;
-	let Inst{33-32} = sa{4-3};
-	let Inst{38-34} = sb{4-0};
-	let Inst{41-39} = sc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = sc{4-3};
 	let Inst{47-46} = 0b00;
 }
 
@@ -374,47 +285,20 @@ def ADDzri: DPUInstruction {
 	let isAsCheapAsAMove = 1;
 	let isAdd            = 1;
 	bits<32> imm; bits<5> rb;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{38-37} = 0b11;
 	let Inst{39} = imm{7};
 	let Inst{47-40} = 0b01100000;
 }
 
-def ADDzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s27_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "add $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isAdd            = 1;
-	bits<27> imm; bits<5> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
-}
-
 def ADDzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s11_imm:$imm, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "add $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -422,12 +306,16 @@ def ADDzrici: DPUInstruction {
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11000;
+	bits<14> pc; bits<12> imm; bits<5> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b100;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -435,23 +323,24 @@ def ADDzrici: DPUInstruction {
 
 def ADDzrif: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s27_imm:$imm, false_cc:$cc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
 	let AsmString        = "add $zero, $ra, $imm, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isAdd            = 1;
-	bits<27> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100000000;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b100;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ADDzrr: DPUInstruction {
@@ -462,35 +351,15 @@ def ADDzrr: DPUInstruction {
 	let isAsCheapAsAMove = 1;
 	let isAdd            = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def ADDzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "add $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isAdd            = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01000000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def ADDzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "add $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -498,14 +367,12 @@ def ADDzrrci: DPUInstruction {
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -517,16 +384,11 @@ def ADD_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{39-37} = 0b111;
 	let Inst{43-40} = dc{4-1};
@@ -536,20 +398,19 @@ def ADD_Srri: DPUInstruction {
 
 def ADD_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "add.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, add_nz_cc:$cc);
+	let AsmString        = "add.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11000;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10010;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -560,19 +421,20 @@ def ADD_Srric: DPUInstruction {
 
 def ADD_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "add.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11000;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -588,14 +450,16 @@ def ADD_Srrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100000000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b100;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -611,10 +475,8 @@ def ADD_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01000000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -625,17 +487,15 @@ def ADD_Srrr: DPUInstruction {
 
 def ADD_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc);
 	let AsmString        = "add.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -646,21 +506,19 @@ def ADD_Srrrc: DPUInstruction {
 
 def ADD_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "add.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -676,16 +534,11 @@ def ADD_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{39-37} = 0b011;
 	let Inst{43-40} = dc{4-1};
@@ -695,20 +548,19 @@ def ADD_Urri: DPUInstruction {
 
 def ADD_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "add.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, add_nz_cc:$cc);
+	let AsmString        = "add.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11000;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10010;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -719,19 +571,20 @@ def ADD_Urric: DPUInstruction {
 
 def ADD_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "add.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11000;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -747,14 +600,16 @@ def ADD_Urrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100000000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b100;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -770,10 +625,8 @@ def ADD_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01000000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -784,17 +637,15 @@ def ADD_Urrr: DPUInstruction {
 
 def ADD_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc);
 	let AsmString        = "add.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -805,21 +656,19 @@ def ADD_Urrrc: DPUInstruction {
 
 def ADD_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "add.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -835,14 +684,10 @@ def ADDCrri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{31-28} = imm{7-4};
 	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
@@ -851,20 +696,19 @@ def ADDCrri: DPUInstruction {
 
 def ADDCrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "addc $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, add_nz_cc:$cc);
+	let AsmString        = "addc $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11001;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10011;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -874,19 +718,20 @@ def ADDCrric: DPUInstruction {
 
 def ADDCrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "addc $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11001;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -901,14 +746,16 @@ def ADDCrrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100100000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b100;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -923,10 +770,8 @@ def ADDCrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b001000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01000100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -936,17 +781,15 @@ def ADDCrrr: DPUInstruction {
 
 def ADDCrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc);
 	let AsmString        = "addc $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -956,21 +799,19 @@ def ADDCrrrc: DPUInstruction {
 
 def ADDCrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "addc $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -985,58 +826,36 @@ def ADDCzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{38-37} = 0b11;
 	let Inst{39} = imm{7};
 	let Inst{47-40} = 0b01100001;
 }
 
-def ADDCzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s27_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "addc $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<27> imm; bits<5> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11001;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
-}
-
 def ADDCzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s11_imm:$imm, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "addc $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11001;
+	bits<14> pc; bits<12> imm; bits<5> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b100;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -1044,22 +863,23 @@ def ADDCzrici: DPUInstruction {
 
 def ADDCzrif: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s27_imm:$imm, false_cc:$cc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
 	let AsmString        = "addc $zero, $ra, $imm, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<27> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100100000;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b100;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ADDCzrr: DPUInstruction {
@@ -1069,68 +889,46 @@ def ADDCzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b001000001100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def ADDCzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "addc $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01000100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def ADDCzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "addc $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def ADDC_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "addc.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, add_nz_cc:$cc);
+	let AsmString        = "addc.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11001;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10011;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -1141,19 +939,20 @@ def ADDC_Srric: DPUInstruction {
 
 def ADDC_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "addc.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11001;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -1169,14 +968,16 @@ def ADDC_Srrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100100000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b100;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -1192,10 +993,8 @@ def ADDC_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b001000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01000100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -1206,17 +1005,15 @@ def ADDC_Srrr: DPUInstruction {
 
 def ADDC_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc);
 	let AsmString        = "addc.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -1227,21 +1024,19 @@ def ADDC_Srrrc: DPUInstruction {
 
 def ADDC_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "addc.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -1252,20 +1047,19 @@ def ADDC_Srrrci: DPUInstruction {
 
 def ADDC_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "addc.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, add_nz_cc:$cc);
+	let AsmString        = "addc.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11001;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10011;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -1276,19 +1070,20 @@ def ADDC_Urric: DPUInstruction {
 
 def ADDC_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "addc.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11001;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -1304,14 +1099,16 @@ def ADDC_Urrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100100000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b100;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -1327,10 +1124,8 @@ def ADDC_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b001000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01000100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -1341,17 +1136,15 @@ def ADDC_Urrr: DPUInstruction {
 
 def ADDC_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc);
 	let AsmString        = "addc.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -1362,74 +1155,25 @@ def ADDC_Urrrc: DPUInstruction {
 
 def ADDC_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, add_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "addc.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
 	let Inst{43-42} = 0b11;
 	let Inst{45-44} = dc{4-3};
 	let Inst{47-46} = 0b01;
-}
-
-def ADDSrri: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s17_imm:$imm);
-	let AsmString        = "adds $rc, $ra, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<17> imm; bits<5> ra; bits<5> rc;
-	let Inst{4-0} = imm{16-12};
-	let Inst{5} = imm{16};
-	let Inst{6} = imm{16};
-	let Inst{7} = imm{16};
-	let Inst{8} = imm{16};
-	let Inst{9} = imm{16};
-	let Inst{10} = imm{16};
-	let Inst{11} = imm{16};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def ADDSrrr: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb);
-	let AsmString        = "adds $rc, $ra, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> ra; bits<5> rb; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = ra{2-0};
-	let Inst{31-20} = 0b000100001100;
-	let Inst{33-32} = ra{4-3};
-	let Inst{38-34} = rb{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
 }
 
 def ANDrri: DPUInstruction {
@@ -1439,14 +1183,10 @@ def ANDrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (and SimpleReg:$ra, u32_imm:$imm))];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{31-28} = imm{7-4};
 	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
@@ -1455,63 +1195,47 @@ def ANDrri: DPUInstruction {
 
 def ANDrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "and $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "and $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111010;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000110;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ANDrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "and $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111010;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000010;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def ANDrrif: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "and $rc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110100000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ANDrrr: DPUInstruction {
@@ -1521,53 +1245,53 @@ def ANDrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (and SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ANDrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "and $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ANDrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "and $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ANDzri: DPUInstruction {
@@ -1577,87 +1301,39 @@ def ANDzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{38-37} = 0b11;
 	let Inst{39} = imm{7};
 	let Inst{47-40} = 0b01100101;
 }
 
-def ANDzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "and $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<4> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
-}
-
 def ANDzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "and $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<12> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111010;
+	bits<14> pc; bits<12> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b10;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{11};
-	let Inst{47-45} = 0b100;
-}
-
-def ANDzrif: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, false_cc:$cc);
-	let AsmString        = "and $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110100000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-42} = 0b001111;
 }
 
 def ANDzrr: DPUInstruction {
@@ -1667,72 +1343,29 @@ def ANDzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def ANDzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "and $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ANDzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "and $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def AND_Srki: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins CstReg:$ra, u32_imm:$imm);
-	let AsmString        = "and.s $dc, $ra, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<32> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = 0b11;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b0101;
+	let Inst{47-39} = 0b001111000;
 }
 
 def AND_Srri: DPUInstruction {
@@ -1742,16 +1375,11 @@ def AND_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{39-37} = 0b111;
 	let Inst{43-40} = dc{4-1};
@@ -1761,66 +1389,49 @@ def AND_Srri: DPUInstruction {
 
 def AND_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "and.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "and.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111010;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000110;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def AND_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "and.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111010;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000010;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def AND_Srrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "and.s $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110100000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def AND_Srrr: DPUInstruction {
@@ -1830,78 +1441,56 @@ def AND_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def AND_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "and.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def AND_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "and.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def AND_Urki: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins CstReg:$ra, u32_imm:$imm);
-	let AsmString        = "and.u $dc, $ra, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<32> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = 0b11;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b0101;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def AND_Urri: DPUInstruction {
@@ -1911,16 +1500,11 @@ def AND_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{39-37} = 0b011;
 	let Inst{43-40} = dc{4-1};
@@ -1930,66 +1514,49 @@ def AND_Urri: DPUInstruction {
 
 def AND_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "and.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "and.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111010;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000110;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def AND_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "and.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111010;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000010;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def AND_Urrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "and.u $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110100000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def AND_Urrr: DPUInstruction {
@@ -1999,56 +1566,56 @@ def AND_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def AND_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "and.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def AND_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "and.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDNrri: DPUInstruction {
@@ -2058,78 +1625,66 @@ def ANDNrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (and (not SimpleRegOrCst:$ra), s24_imm:$imm))];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111000000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ANDNrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "andn $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "andn $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111100;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001100;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ANDNrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "andn $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111100;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def ANDNrrif: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "andn $rc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111000000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ANDNrrr: DPUInstruction {
@@ -2139,120 +1694,98 @@ def ANDNrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (and (not SimpleRegOrCst:$ra), SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ANDNrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "andn $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ANDNrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "andn $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
-def ANDNzric: DPUInstruction {
+def ANDNzri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "andn $zero, $ra, $imm, $cc";
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "andn $zero, $ra, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<4> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111100;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ANDNzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "andn $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<12> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111100;
+	bits<14> pc; bits<12> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b00;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{11};
-	let Inst{47-45} = 0b100;
-}
-
-def ANDNzrif: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, false_cc:$cc);
-	let AsmString        = "andn $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111000000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-42} = 0b001111;
 }
 
 def ANDNzrr: DPUInstruction {
@@ -2262,114 +1795,101 @@ def ANDNzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def ANDNzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "andn $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ANDNzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "andn $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
+}
+
+def ANDN_Srri: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "andn.s $dc, $ra, $imm";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<24> imm; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDN_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "andn.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "andn.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111100;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001100;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDN_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "andn.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111100;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def ANDN_Srrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "andn.s $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111000000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDN_Srrr: DPUInstruction {
@@ -2379,120 +1899,128 @@ def ANDN_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDN_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "andn.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDN_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "andn.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def ANDN_Urri: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "andn.u $dc, $ra, $imm";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<24> imm; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b0;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDN_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "andn.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "andn.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111100;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001100;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDN_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "andn.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111100;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def ANDN_Urrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "andn.u $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111000000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDN_Urrr: DPUInstruction {
@@ -2502,56 +2030,56 @@ def ANDN_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDN_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "andn.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ANDN_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "andn.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASRrri: DPUInstruction {
@@ -2561,53 +2089,59 @@ def ASRrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (sra SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b10000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ASRrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "asr $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b10000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ASRrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "asr $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ASRrrr: DPUInstruction {
@@ -2617,55 +2151,53 @@ def ASRrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (sra SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000001000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ASRrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "asr $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b001000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ASRrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "asr $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ASRzri: DPUInstruction {
@@ -2675,50 +2207,33 @@ def ASRzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b10000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def ASRzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "asr $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b10000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ASRzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "asr $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ASRzrr: DPUInstruction {
@@ -2728,52 +2243,29 @@ def ASRzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000001000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def ASRzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "asr $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ASRzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "asr $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ASR_Srri: DPUInstruction {
@@ -2783,56 +2275,62 @@ def ASR_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b10000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "asr.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b10000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "asr.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Srrr: DPUInstruction {
@@ -2842,58 +2340,56 @@ def ASR_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000001000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "asr.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b001000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "asr.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Urri: DPUInstruction {
@@ -2903,56 +2399,62 @@ def ASR_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b10000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "asr.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b10000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "asr.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11001;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Urrr: DPUInstruction {
@@ -2962,58 +2464,198 @@ def ASR_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000001000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "asr.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b001000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ASR_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "asr.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def BITSWAPrr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra);
+	let AsmString        = "bitswap $rc, $ra";
+	let Pattern          = [(set SimpleReg:$rc, (bitreverse SimpleRegOrCst:$ra))];
+	let isAsCheapAsAMove = 1;
+	bits<5> ra; bits<5> rc;
+	let Inst{33-0} = 0b1100011111110000000100000000000000;
+	let Inst{38-34} = ra{4-0};
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
+}
+
+def BITSWAPrrci: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "bitswap $rc, $ra, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
+	let Inst{38-34} = ra{4-0};
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
+}
+
+def BITSWAPzr: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra);
+	let AsmString        = "bitswap $zero, $ra";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> ra;
+	let Inst{33-0} = 0b1100011111110000000100000000000000;
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b001111000;
+}
+
+def BITSWAPzrci: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "bitswap $zero, $ra, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b001111000;
+}
+
+def BITSWAP_Srr: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra);
+	let AsmString        = "bitswap.s $dc, $ra";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> ra; bits<5> dc;
+	let Inst{33-0} = 0b1100011111110000000100000000000000;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def BITSWAP_Srrci: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "bitswap.s $dc, $ra, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def BITSWAP_Urr: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra);
+	let AsmString        = "bitswap.u $dc, $ra";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> ra; bits<5> dc;
+	let Inst{33-0} = 0b1100011111110000000100000000000000;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b0;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def BITSWAP_Urrci: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "bitswap.u $dc, $ra, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b0;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def BKP: DPUInstruction {
@@ -3022,61 +2664,225 @@ def BKP: DPUInstruction {
 	let AsmString        = "bkp";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	let Inst{47-0} = 0b011111100110001100100000000000000000000000000000;
-}
-
-def BOOTri: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm);
-	let AsmString        = "boot $ra, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<8> imm; bits<5> ra;
-	let Inst{15-0} = 0b0000000000000000;
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100100000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b011111011;
+	let Inst{47-0} = 0b001111000110001101001111110000001000000000000000;
 }
 
 def BOOTrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, boot_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u4_imm:$imm, boot_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "boot $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<8> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
+	bits<14> pc; bits<4> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110000010010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b011111011;
+	let Inst{47-39} = 0b001111100;
+}
+
+def BOOT_MASKri: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "boot_mask $ra, $imm";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b010;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b001111000;
+}
+
+def BOOT_STOPici: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins u4_imm:$imm, boot_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "boot_stop $imm, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{47-22} = 0b00111111011100111000010010;
+}
+
+def BYTESWAPrr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra);
+	let AsmString        = "byteswap $rc, $ra";
+	let Pattern          = [(set SimpleReg:$rc, (bswap SimpleRegOrCst:$ra))];
+	let isAsCheapAsAMove = 1;
+	bits<5> ra; bits<5> rc;
+	let Inst{33-0} = 0b1100011111110000001000000000000000;
+	let Inst{38-34} = ra{4-0};
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
+}
+
+def BYTESWAPrrci: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "byteswap $rc, $ra, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
+	let Inst{38-34} = ra{4-0};
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
+}
+
+def BYTESWAPzr: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra);
+	let AsmString        = "byteswap $zero, $ra";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> ra;
+	let Inst{33-0} = 0b1100011111110000001000000000000000;
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b001111000;
+}
+
+def BYTESWAPzrci: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "byteswap $zero, $ra, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b001111000;
+}
+
+def BYTESWAP_Srr: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra);
+	let AsmString        = "byteswap.s $dc, $ra";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> ra; bits<5> dc;
+	let Inst{33-0} = 0b1100011111110000001000000000000000;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def BYTESWAP_Srrci: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "byteswap.s $dc, $ra, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def BYTESWAP_Urr: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra);
+	let AsmString        = "byteswap.u $dc, $ra";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> ra; bits<5> dc;
+	let Inst{33-0} = 0b1100011111110000001000000000000000;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b0;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def BYTESWAP_Urrci: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "byteswap.u $dc, $ra, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b0;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CALLri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins pc24:$off);
+	let InOperandList    = (ins s22_imm:$off);
 	let AsmString        = "call $rc, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isCall           = 1;
-	bits<24> off; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{38-24} = 0b110001100000000;
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	bits<22> off; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{27-18} = 0b1110100000;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{38-32} = 0b1100011;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CALLrr: DPUInstruction {
@@ -3087,31 +2893,34 @@ def CALLrr: DPUInstruction {
 	let isAsCheapAsAMove = 1;
 	let isCall           = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1100000000000000000000000000000000;
+	let Inst{33-0} = 0b1100001110100000000000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CALLrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, pc24:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "call $rc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isCall           = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1100000000;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{27-18} = 0b1110100000;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CALLrrr: DPUInstruction {
@@ -3122,38 +2931,34 @@ def CALLrrr: DPUInstruction {
 	let isAsCheapAsAMove = 1;
 	let isCall           = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000000000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CALLzri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, pc28:$off);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "call $zero, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isBarrier        = 1;
 	let isTerminator     = 1;
-	bits<28> off; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1100000000;
+	bits<22> off; bits<5> ra;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{27-18} = 0b1110100000;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = off{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CALLzrr: DPUInstruction {
@@ -3164,12 +2969,10 @@ def CALLzrr: DPUInstruction {
 	let isAsCheapAsAMove = 1;
 	let isCall           = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000000000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CAOrr: DPUInstruction {
@@ -3179,44 +2982,33 @@ def CAOrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (ctpop SimpleRegOrCst:$ra))];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1100110000000000000000000000000000;
+	let Inst{33-0} = 0b1100101111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def CAOrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "cao $rc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{23-0} = 0b000000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CAOrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cao $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CAOzr: DPUInstruction {
@@ -3226,41 +3018,27 @@ def CAOzr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra;
-	let Inst{33-0} = 0b1100110000000000000000000000000000;
+	let Inst{33-0} = 0b1100101111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def CAOzrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "cao $zero, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra;
-	let Inst{23-0} = 0b000000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CAOzrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cao $zero, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CAO_Srr: DPUInstruction {
@@ -3270,47 +3048,35 @@ def CAO_Srr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000000000000000000000000000;
+	let Inst{33-0} = 0b1100101111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CAO_Srrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "cao.s $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b000000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CAO_Srrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cao.s $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CAO_Urr: DPUInstruction {
@@ -3320,47 +3086,83 @@ def CAO_Urr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000000000000000000000000000;
+	let Inst{33-0} = 0b1100101111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CAO_Urrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "cao.u $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b000000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CAO_Urrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cao.u $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def CLEAR_COUNTr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "clear_count $rc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111100011111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
+}
+
+def CLEAR_COUNT_ALLr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "clear_count_all $rc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111100111111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
+}
+
+def CLEAR_COUNT_MASKr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "clear_count_mask $rc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111100101111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
+}
+
+def CLEAR_TIMEr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "clear_time $rc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111110011111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
 }
 
 def CLOrr: DPUInstruction {
@@ -3370,44 +3172,33 @@ def CLOrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Clo SimpleRegOrCst:$ra))];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1100110000000100000000000000000000;
+	let Inst{33-0} = 0b1100101111110000000100000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def CLOrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "clo $rc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{23-0} = 0b000100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CLOrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "clo $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00010000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CLOzr: DPUInstruction {
@@ -3417,41 +3208,27 @@ def CLOzr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra;
-	let Inst{33-0} = 0b1100110000000100000000000000000000;
+	let Inst{33-0} = 0b1100101111110000000100000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def CLOzrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "clo $zero, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra;
-	let Inst{23-0} = 0b000100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CLOzrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "clo $zero, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00010000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CLO_Srr: DPUInstruction {
@@ -3461,47 +3238,35 @@ def CLO_Srr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000000100000000000000000000;
+	let Inst{33-0} = 0b1100101111110000000100000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CLO_Srrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "clo.s $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b000100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLO_Srrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "clo.s $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00010000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLO_Urr: DPUInstruction {
@@ -3511,66 +3276,35 @@ def CLO_Urr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000000100000000000000000000;
+	let Inst{33-0} = 0b1100101111110000000100000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CLO_Urrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "clo.u $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b000100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLO_Urrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "clo.u $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00010000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CLR_RUNrici: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, boot_cc:$cc, pc16:$pc);
-	let AsmString        = "clr_run $ra, $imm, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<8> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b011111001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLSrr: DPUInstruction {
@@ -3580,44 +3314,33 @@ def CLSrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Cls SimpleRegOrCst:$ra))];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1100110000001000000000000000000000;
+	let Inst{33-0} = 0b1100101111110000001000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def CLSrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "cls $rc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{23-0} = 0b001000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CLSrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cls $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00100000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CLSzr: DPUInstruction {
@@ -3627,41 +3350,27 @@ def CLSzr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra;
-	let Inst{33-0} = 0b1100110000001000000000000000000000;
+	let Inst{33-0} = 0b1100101111110000001000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def CLSzrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "cls $zero, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra;
-	let Inst{23-0} = 0b001000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CLSzrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cls $zero, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00100000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CLS_Srr: DPUInstruction {
@@ -3671,47 +3380,35 @@ def CLS_Srr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000001000000000000000000000;
+	let Inst{33-0} = 0b1100101111110000001000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CLS_Srrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "cls.s $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b001000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLS_Srrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cls.s $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00100000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLS_Urr: DPUInstruction {
@@ -3721,47 +3418,35 @@ def CLS_Urr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000001000000000000000000000;
+	let Inst{33-0} = 0b1100101111110000001000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CLS_Urrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "cls.u $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b001000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLS_Urrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cls.u $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00100000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLZrr: DPUInstruction {
@@ -3771,44 +3456,33 @@ def CLZrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (ctlz SimpleRegOrCst:$ra))];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1100110000001100000000000000000000;
+	let Inst{33-0} = 0b1100101111110000001100000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def CLZrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "clz $rc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{23-0} = 0b001100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CLZrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "clz $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00110000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CLZzr: DPUInstruction {
@@ -3818,41 +3492,27 @@ def CLZzr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra;
-	let Inst{33-0} = 0b1100110000001100000000000000000000;
+	let Inst{33-0} = 0b1100101111110000001100000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def CLZzrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "clz $zero, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra;
-	let Inst{23-0} = 0b001100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CLZzrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "clz $zero, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00110000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CLZ_Srr: DPUInstruction {
@@ -3862,47 +3522,35 @@ def CLZ_Srr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000001100000000000000000000;
+	let Inst{33-0} = 0b1100101111110000001100000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CLZ_Srrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "clz.s $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b001100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLZ_Srrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "clz.s $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00110000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLZ_Urr: DPUInstruction {
@@ -3912,47 +3560,35 @@ def CLZ_Urr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000001100000000000000000000;
+	let Inst{33-0} = 0b1100101111110000001100000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CLZ_Urrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "clz.u $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b001100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CLZ_Urrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, count_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "clz.u $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00110000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110010111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CMPB4rrr: DPUInstruction {
@@ -3962,53 +3598,35 @@ def CMPB4rrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100000000000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000110000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def CMPB4rrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "cmpb4 $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CMPB4rrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cmpb4 $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def CMPB4zrr: DPUInstruction {
@@ -4018,50 +3636,29 @@ def CMPB4zrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100000000000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000110000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def CMPB4zrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "cmpb4 $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CMPB4zrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cmpb4 $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def CMPB4_Srrr: DPUInstruction {
@@ -4071,56 +3668,37 @@ def CMPB4_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100000000000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000110000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CMPB4_Srrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "cmpb4.s $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CMPB4_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cmpb4.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CMPB4_Urrr: DPUInstruction {
@@ -4130,56 +3708,37 @@ def CMPB4_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100000000000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000110000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def CMPB4_Urrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "cmpb4.u $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def CMPB4_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "cmpb4.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def DIV_STEPrrri: DPUInstruction {
@@ -4188,40 +3747,42 @@ def DIV_STEPrrri: DPUInstruction {
 	let AsmString        = "div_step $dc, $ra, $db, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> db; bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b10000000000000000;
-	let Inst{19-17} = db{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = db{4-3};
+	bits<5> shift; bits<5> db; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b110000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b1010;
+	let Inst{33-29} = db{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = dc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = dc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def DIV_STEPrrrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, DoubleReg:$db, u5_imm:$shift, div_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, DoubleReg:$db, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "div_step $dc, $ra, $db, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> db; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b1;
-	let Inst{19-17} = db{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = db{4-3};
+	bits<5> dc; bits<5> shift; bits<5> db; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b11;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b1010;
+	let Inst{33-29} = db{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = dc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = dc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def EXTSBrr: DPUInstruction {
@@ -4231,44 +3792,33 @@ def EXTSBrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (sext_inreg SimpleRegOrCst:$ra, i8))];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1100110000010100000000000000000000;
+	let Inst{33-0} = 0b1100111111110000000100000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def EXTSBrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extsb $rc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{23-0} = 0b010100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def EXTSBrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extsb $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01010000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def EXTSBzr: DPUInstruction {
@@ -4278,41 +3828,27 @@ def EXTSBzr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra;
-	let Inst{33-0} = 0b1100110000010100000000000000000000;
+	let Inst{33-0} = 0b1100111111110000000100000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def EXTSBzrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extsb $zero, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra;
-	let Inst{23-0} = 0b010100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def EXTSBzrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extsb $zero, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01010000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def EXTSB_Srr: DPUInstruction {
@@ -4322,47 +3858,35 @@ def EXTSB_Srr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000010100000000000000000000;
+	let Inst{33-0} = 0b1100111111110000000100000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def EXTSB_Srrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extsb.s $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b010100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def EXTSB_Srrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extsb.s $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01010000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def EXTSHrr: DPUInstruction {
@@ -4372,44 +3896,33 @@ def EXTSHrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (sext_inreg SimpleRegOrCst:$ra, i16))];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1100110000011100000000000000000000;
+	let Inst{33-0} = 0b1100111111110000001100000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def EXTSHrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extsh $rc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{23-0} = 0b011100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def EXTSHrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extsh $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01110000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def EXTSHzr: DPUInstruction {
@@ -4419,41 +3932,27 @@ def EXTSHzr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra;
-	let Inst{33-0} = 0b1100110000011100000000000000000000;
+	let Inst{33-0} = 0b1100111111110000001100000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def EXTSHzrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extsh $zero, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra;
-	let Inst{23-0} = 0b011100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def EXTSHzrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extsh $zero, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01110000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def EXTSH_Srr: DPUInstruction {
@@ -4463,47 +3962,35 @@ def EXTSH_Srr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000011100000000000000000000;
+	let Inst{33-0} = 0b1100111111110000001100000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def EXTSH_Srrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extsh.s $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b011100000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def EXTSH_Srrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extsh.s $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01110000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def EXTUBrr: DPUInstruction {
@@ -4513,44 +4000,33 @@ def EXTUBrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1100110000010000000000000000000000;
+	let Inst{33-0} = 0b1100111111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def EXTUBrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extub $rc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{23-0} = 0b010000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def EXTUBrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extub $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def EXTUBzr: DPUInstruction {
@@ -4560,41 +4036,27 @@ def EXTUBzr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra;
-	let Inst{33-0} = 0b1100110000010000000000000000000000;
+	let Inst{33-0} = 0b1100111111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def EXTUBzrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extub $zero, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra;
-	let Inst{23-0} = 0b010000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def EXTUBzrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extub $zero, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def EXTUB_Urr: DPUInstruction {
@@ -4604,47 +4066,35 @@ def EXTUB_Urr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000010000000000000000000000;
+	let Inst{33-0} = 0b1100111111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def EXTUB_Urrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extub.u $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b010000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def EXTUB_Urrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extub.u $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def EXTUHrr: DPUInstruction {
@@ -4654,44 +4104,33 @@ def EXTUHrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1100110000011000000000000000000000;
+	let Inst{33-0} = 0b1100111111110000001000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def EXTUHrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extuh $rc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{23-0} = 0b011000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def EXTUHrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extuh $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01100000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def EXTUHzr: DPUInstruction {
@@ -4701,41 +4140,27 @@ def EXTUHzr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra;
-	let Inst{33-0} = 0b1100110000011000000000000000000000;
+	let Inst{33-0} = 0b1100111111110000001000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def EXTUHzrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extuh $zero, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra;
-	let Inst{23-0} = 0b011000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def EXTUHzrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extuh $zero, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01100000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def EXTUH_Urr: DPUInstruction {
@@ -4745,145 +4170,140 @@ def EXTUH_Urr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100110000011000000000000000000000;
+	let Inst{33-0} = 0b1100111111110000001000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def EXTUH_Urrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "extuh.u $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b011000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def EXTUH_Urrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "extuh.u $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b01100000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110011111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def FAULTi: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins s24_imm:$imm);
-	let AsmString        = "fault $imm";
+	let InOperandList    = (ins s14_imm:$off);
+	let AsmString        = "fault $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{47-24} = 0b011111100110001100100000;
+	bits<14> off;
+	let Inst{13-0} = off{13-0};
+	let Inst{47-14} = 0b0011110001100011010011111100000010;
+}
+
+def GET_COUNTr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "get_count $rc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111100001111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
+}
+
+def GET_FLAGSrci: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins log_cc:$cc, pc14:$pc);
+	let AsmString        = "get_flags $rc, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{38-22} = 0b11000110000111010;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
+}
+
+def GET_SYSTEMr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "get_system $rc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111111001111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
+}
+
+def GET_TIMEr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "get_time $rc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111110001111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
 }
 
 def HASHrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u4_imm:$imm);
 	let AsmString        = "hash $rc, $ra, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100010000;
+	bits<4> imm; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = imm{3-0};
+	let Inst{33-18} = 0b1100001111100000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def HASHrric: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "hash $rc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110001;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def HASHrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u4_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "hash $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110001;
+	bits<5> ra; bits<14> pc; bits<4> imm; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110000111110;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def HASHrrif: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "hash $rc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def HASHrrr: DPUInstruction {
@@ -4893,120 +4313,67 @@ def HASHrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000000001;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01111100000110000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def HASHrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "hash $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def HASHrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "hash $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
-def HASHzric: DPUInstruction {
+def HASHzri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "hash $zero, $ra, $imm, $cc";
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u4_imm:$imm);
+	let AsmString        = "hash $zero, $ra, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<4> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110001;
+	bits<4> imm; bits<5> ra;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = imm{3-0};
+	let Inst{33-18} = 0b1100001111100000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-39} = 0b001111000;
 }
 
 def HASHzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u4_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "hash $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<12> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110001;
+	bits<14> pc; bits<4> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110000111110;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{10-8};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{11};
-	let Inst{47-45} = 0b100;
-}
-
-def HASHzrif: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, false_cc:$cc);
-	let AsmString        = "hash $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-39} = 0b001111000;
 }
 
 def HASHzrr: DPUInstruction {
@@ -5016,114 +4383,69 @@ def HASHzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000000001;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01111100000110000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def HASHzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "hash $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def HASHzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "hash $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
-def HASH_Srric: DPUInstruction {
+def HASH_Srri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "hash.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u4_imm:$imm);
+	let AsmString        = "hash.s $dc, $ra, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110001;
+	bits<4> imm; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = imm{3-0};
+	let Inst{33-18} = 0b1100001111100000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def HASH_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u4_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "hash.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110001;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<4> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110000111110;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def HASH_Srrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "hash.s $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def HASH_Srrr: DPUInstruction {
@@ -5133,120 +4455,77 @@ def HASH_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000000001;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01111100000110000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def HASH_Srrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "hash.s $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def HASH_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "hash.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
-def HASH_Urric: DPUInstruction {
+def HASH_Urri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "hash.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u4_imm:$imm);
+	let AsmString        = "hash.u $dc, $ra, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110001;
+	bits<4> imm; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = imm{3-0};
+	let Inst{33-18} = 0b1100001111100000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def HASH_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u4_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "hash.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110001;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<4> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110000111110;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def HASH_Urrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "hash.u $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def HASH_Urrr: DPUInstruction {
@@ -5256,72 +4535,57 @@ def HASH_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000000001;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01111100000110000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def HASH_Urrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "hash.u $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def HASH_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "hash.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def JEQrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s11_imm:$imm, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$imm, pc14:$pc);
 	let AsmString        = "jeq $ra, $imm, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110000010;
+	bits<14> pc; bits<12> imm; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{23-18} = 0b000010;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -5329,37 +4593,39 @@ def JEQrii: DPUInstruction {
 
 def JEQrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc14:$pc);
 	let AsmString        = "jeq $ra, $rb, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100000101100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{28-14} = 0b011000000100000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def JGESrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s11_imm:$imm, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$imm, pc14:$pc);
 	let AsmString        = "jges $ra, $imm, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010111;
+	bits<14> pc; bits<12> imm; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{23-18} = 0b010111;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -5367,37 +4633,39 @@ def JGESrii: DPUInstruction {
 
 def JGESrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc14:$pc);
 	let AsmString        = "jges $ra, $rb, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100101111100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{28-14} = 0b011000101110000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def JGEUrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s11_imm:$imm, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$imm, pc14:$pc);
 	let AsmString        = "jgeu $ra, $imm, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010101;
+	bits<14> pc; bits<12> imm; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{23-18} = 0b010101;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -5405,37 +4673,39 @@ def JGEUrii: DPUInstruction {
 
 def JGEUrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc14:$pc);
 	let AsmString        = "jgeu $ra, $rb, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100101011100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{28-14} = 0b011000101010000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def JGTSrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s11_imm:$imm, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$imm, pc14:$pc);
 	let AsmString        = "jgts $ra, $imm, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110011001;
+	bits<14> pc; bits<12> imm; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{23-18} = 0b011001;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -5443,37 +4713,39 @@ def JGTSrii: DPUInstruction {
 
 def JGTSrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc14:$pc);
 	let AsmString        = "jgts $ra, $rb, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100110011100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{28-14} = 0b011000110010000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def JGTUrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s11_imm:$imm, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$imm, pc14:$pc);
 	let AsmString        = "jgtu $ra, $imm, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110011011;
+	bits<14> pc; bits<12> imm; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{23-18} = 0b011011;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -5481,37 +4753,39 @@ def JGTUrii: DPUInstruction {
 
 def JGTUrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc14:$pc);
 	let AsmString        = "jgtu $ra, $rb, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100110111100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{28-14} = 0b011000110110000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def JLESrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s11_imm:$imm, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$imm, pc14:$pc);
 	let AsmString        = "jles $ra, $imm, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110011000;
+	bits<14> pc; bits<12> imm; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{23-18} = 0b011000;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -5519,37 +4793,39 @@ def JLESrii: DPUInstruction {
 
 def JLESrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc14:$pc);
 	let AsmString        = "jles $ra, $rb, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100110001100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{28-14} = 0b011000110000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def JLEUrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s11_imm:$imm, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$imm, pc14:$pc);
 	let AsmString        = "jleu $ra, $imm, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110011010;
+	bits<14> pc; bits<12> imm; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{23-18} = 0b011010;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -5557,37 +4833,39 @@ def JLEUrii: DPUInstruction {
 
 def JLEUrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc14:$pc);
 	let AsmString        = "jleu $ra, $rb, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100110101100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{28-14} = 0b011000110100000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def JLTSrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s11_imm:$imm, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$imm, pc14:$pc);
 	let AsmString        = "jlts $ra, $imm, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010110;
+	bits<14> pc; bits<12> imm; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{23-18} = 0b010110;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -5595,37 +4873,39 @@ def JLTSrii: DPUInstruction {
 
 def JLTSrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc14:$pc);
 	let AsmString        = "jlts $ra, $rb, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100101101100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{28-14} = 0b011000101100000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def JLTUrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s11_imm:$imm, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$imm, pc14:$pc);
 	let AsmString        = "jltu $ra, $imm, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010100;
+	bits<14> pc; bits<12> imm; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{23-18} = 0b010100;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -5633,37 +4913,39 @@ def JLTUrii: DPUInstruction {
 
 def JLTUrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc14:$pc);
 	let AsmString        = "jltu $ra, $rb, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100101001100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{28-14} = 0b011000101000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def JNEQrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s11_imm:$imm, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$imm, pc14:$pc);
 	let AsmString        = "jneq $ra, $imm, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110000011;
+	bits<14> pc; bits<12> imm; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{23-18} = 0b000011;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -5671,35 +4953,33 @@ def JNEQrii: DPUInstruction {
 
 def JNEQrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, pc14:$pc);
 	let AsmString        = "jneq $ra, $rb, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100000111100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{28-14} = 0b011000000110000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def JNZri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, pc14:$pc);
 	let AsmString        = "jnz $ra, $pc";
 	let Pattern          = [(brcond SimpleRegOrCst:$ra, bb:$pc)];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{33-16} = 0b111000001100000000;
+	bits<14> pc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{33-14} = 0b11000011000000110000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -5713,19 +4993,14 @@ def JUMPi: DPUInstruction {
 	let isBranch         = 1;
 	let isBarrier        = 1;
 	let isTerminator     = 1;
-	bits<28> off;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{38-24} = 0b110001100000000;
-	let Inst{41-39} = off{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = off{27};
-	let Inst{47-45} = 0b100;
+	bits<22> off;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{27-18} = 0b1110100000;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{47-32} = 0b0011110001100011;
 }
 
 def JUMPr: DPUInstruction {
@@ -5739,371 +5014,330 @@ def JUMPr: DPUInstruction {
 	let isTerminator     = 1;
 	let isIndirectBranch = 1;
 	bits<5> ra;
-	let Inst{33-0} = 0b1100000000000000000000000000000000;
+	let Inst{33-0} = 0b1100001110100000000000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def JUMPri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, pc28:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "jump $ra, $off";
-	let Pattern          = [(brind (add SimpleRegOrCst:$ra, pc28:$off))];
+	let Pattern          = [(brind (add SimpleRegOrCst:$ra, s22_imm:$off))];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isBarrier        = 1;
 	let isTerminator     = 1;
 	let isIndirectBranch = 1;
-	bits<28> off; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1100000000;
+	bits<22> off; bits<5> ra;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{27-18} = 0b1110100000;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = off{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-39} = 0b001111000;
 }
 
 def JZri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, pc14:$pc);
 	let AsmString        = "jz $ra, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{33-16} = 0b111000001000000000;
+	bits<14> pc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{33-14} = 0b11000011000000100000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
-def LBSerri: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lbs $endian, $rc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b001;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110100;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LBSersi: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s24_imm:$off);
-	let AsmString        = "lbs $endian, $rc, $sa, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> sa; bits<5> sc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b001;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110101;
-	let Inst{38-34} = sa{4-0};
-	let Inst{43-39} = sc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
 def LBSrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lbs $rc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101000001;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110000000010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LBS_Serri: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lbs.s $endian, $dc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b001;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110110;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
 def LBS_Srri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lbs.s $dc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101100001;
+	bits<22> off; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110001010010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
-def LBSSrri: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lbss $rc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101010001;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LBUerri: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lbu $endian, $rc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b000;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110100;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LBUersi: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s24_imm:$off);
-	let AsmString        = "lbu $endian, $rc, $sa, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> sa; bits<5> sc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b000;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110101;
-	let Inst{38-34} = sa{4-0};
-	let Inst{43-39} = sc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
 def LBUrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lbu $rc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101000000;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LBU_Uerri: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lbu.u $endian, $dc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b000;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110110;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
 def LBU_Urri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lbu.u $dc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101100000;
+	bits<22> off; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110001010000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
-def LBUSrri: DPUInstruction {
+def LBU_ADDrrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lbus $rc, $ra, $off";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lbu_add $rc, $ra, $rb, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101010000;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0110000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
 	let Inst{47-44} = 0b0111;
 }
 
-def LDerri: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "ld $endian, $dc, $ra, $off";
+def LBU_ANDrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lbu_and $rc, $ra, $rb, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b110;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110100;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = dc{4-0};
+	let Inst{43-39} = rc{4-0};
 	let Inst{47-44} = 0b0111;
 }
 
-def LDersi: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s24_imm:$off);
-	let AsmString        = "ld $endian, $dc, $sa, $off";
+def LBU_DECrki: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins CstReg:$ra, s22_imm:$off);
+	let AsmString        = "lbu_dec $rc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> sa; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b110;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110101;
-	let Inst{38-34} = sa{4-0};
-	let Inst{43-39} = dc{4-0};
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b000000100010;
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LBU_DECrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleReg:$ra, s22_imm:$off);
+	let AsmString        = "lbu_dec $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0100010;
+	let Inst{33-29} = ra{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LBU_INCrki: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins CstReg:$ra, s22_imm:$off);
+	let AsmString        = "lbu_inc $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b000000100000;
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LBU_INCrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleReg:$ra, s22_imm:$off);
+	let AsmString        = "lbu_inc $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0100000;
+	let Inst{33-29} = ra{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LBU_ORrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lbu_or $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0000010;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LBU_SETSrki: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins CstReg:$ra, s22_imm:$off);
+	let AsmString        = "lbu_sets $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b000000110010;
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LBU_SETSrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleReg:$ra, s22_imm:$off);
+	let AsmString        = "lbu_sets $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0110010;
+	let Inst{33-29} = ra{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LBU_SWAPrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lbu_swap $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0010010;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LBU_XORrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lbu_xor $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0010000;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
 	let Inst{47-44} = 0b0111;
 }
 
 def LDrri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "ld $dc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101000110;
+	bits<22> off; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110001001100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = dc{4-0};
 	let Inst{47-44} = 0b0111;
+}
+
+def LDMAriri: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off, SimpleReg:$rb, u8_imm:$immDma);
+	let AsmString        = "ldma $ra, $off, $rb, $immDma";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let hasSideEffects   = 1;
+	bits<14> off; bits<8> immDma; bits<5> rb; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = immDma{7-0};
+	let Inst{21-14} = off{7-0};
+	let Inst{28-22} = 0b0100000;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b011111000;
 }
 
 def LDMArri: DPUInstruction {
@@ -6113,14 +5347,29 @@ def LDMArri: DPUInstruction {
 	let Pattern          = [(SDT_Ldma SimpleRegOrCst:$ra, SimpleReg:$rb, u8_imm:$immDma)];
 	let isAsCheapAsAMove = 1;
 	let hasSideEffects   = 1;
-	bits<5> rb; bits<8> immDma; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{31-24} = immDma{7-0};
-	let Inst{33-32} = rb{4-3};
+	bits<8> immDma; bits<5> rb; bits<5> ra;
+	let Inst{5-0} = 0b000000;
+	let Inst{13-6} = immDma{7-0};
+	let Inst{28-14} = 0b010000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b011100000;
+	let Inst{47-39} = 0b011111000;
+}
+
+def LDMAIriri: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off, SimpleReg:$rb, u8_imm:$immDma);
+	let AsmString        = "ldmai $ra, $off, $rb, $immDma";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<14> off; bits<8> immDma; bits<5> rb; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = immDma{7-0};
+	let Inst{21-14} = off{7-0};
+	let Inst{28-22} = 0b0100001;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b011111000;
 }
 
 def LDMAIrri: DPUInstruction {
@@ -6129,287 +5378,260 @@ def LDMAIrri: DPUInstruction {
 	let AsmString        = "ldmai $ra, $rb, $immDma";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<8> immDma; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000001;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{31-24} = immDma{7-0};
-	let Inst{33-32} = rb{4-3};
+	bits<8> immDma; bits<5> rb; bits<5> ra;
+	let Inst{5-0} = 0b000000;
+	let Inst{13-6} = immDma{7-0};
+	let Inst{28-14} = 0b010000100000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b011100000;
-}
-
-def LDSrri: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lds $dc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101010110;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = dc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LHSerri: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lhs $endian, $rc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b011;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110100;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LHSersi: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s24_imm:$off);
-	let AsmString        = "lhs $endian, $rc, $sa, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> sa; bits<5> sc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b011;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110101;
-	let Inst{38-34} = sa{4-0};
-	let Inst{43-39} = sc{4-0};
-	let Inst{47-44} = 0b0111;
+	let Inst{47-39} = 0b011111000;
 }
 
 def LHSrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lhs $rc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101000011;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110000000110;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LHS_Serri: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lhs.s $endian, $dc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b011;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110110;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
 def LHS_Srri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lhs.s $dc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101100011;
+	bits<22> off; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110001010110;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
-def LHSSrri: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lhss $rc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101010011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LHUerri: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lhu $endian, $rc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b010;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110100;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LHUersi: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s24_imm:$off);
-	let AsmString        = "lhu $endian, $rc, $sa, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> sa; bits<5> sc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b010;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110101;
-	let Inst{38-34} = sa{4-0};
-	let Inst{43-39} = sc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
 def LHUrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lhu $rc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101000010;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110000000100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LHU_Uerri: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lhu.u $endian, $dc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b010;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110110;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
 def LHU_Urri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lhu.u $dc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101100010;
+	bits<22> off; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110001010100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
-def LHUSrri: DPUInstruction {
+def LHU_ADDrrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lhus $rc, $ra, $off";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lhu_add $rc, $ra, $rb, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101010010;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0110100;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LHU_ANDrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lhu_and $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0000100;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LHU_DECrki: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins CstReg:$ra, s22_imm:$off);
+	let AsmString        = "lhu_dec $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b000000100110;
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LHU_DECrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleReg:$ra, s22_imm:$off);
+	let AsmString        = "lhu_dec $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0100110;
+	let Inst{33-29} = ra{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LHU_INCrki: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins CstReg:$ra, s22_imm:$off);
+	let AsmString        = "lhu_inc $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b000000100100;
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LHU_INCrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleReg:$ra, s22_imm:$off);
+	let AsmString        = "lhu_inc $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0100100;
+	let Inst{33-29} = ra{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LHU_ORrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lhu_or $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0000110;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LHU_SETSrki: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins CstReg:$ra, s22_imm:$off);
+	let AsmString        = "lhu_sets $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b000000110110;
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LHU_SETSrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleReg:$ra, s22_imm:$off);
+	let AsmString        = "lhu_sets $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0110110;
+	let Inst{33-29} = ra{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LHU_SWAPrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lhu_swap $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0010110;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LHU_XORrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lhu_xor $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0010100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
 	let Inst{47-44} = 0b0111;
@@ -6422,53 +5644,59 @@ def LSLrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (shl SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b01000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsl $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b01000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0100;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLrrr: DPUInstruction {
@@ -6478,55 +5706,53 @@ def LSLrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (shl SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsl $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b010000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLzri: DPUInstruction {
@@ -6536,50 +5762,33 @@ def LSLzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b01000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSLzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "lsl $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b01000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSLzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0100;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSLzrr: DPUInstruction {
@@ -6589,52 +5798,29 @@ def LSLzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSLzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "lsl $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSLzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL_Srri: DPUInstruction {
@@ -6644,56 +5830,62 @@ def LSL_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsl.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0100;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Srrr: DPUInstruction {
@@ -6703,58 +5895,56 @@ def LSL_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsl.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b010000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Urri: DPUInstruction {
@@ -6764,56 +5954,62 @@ def LSL_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsl.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0100;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Urrr: DPUInstruction {
@@ -6823,58 +6019,56 @@ def LSL_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsl.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b010000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1rri: DPUInstruction {
@@ -6884,53 +6078,59 @@ def LSL1rri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lsl1 SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b01100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1rric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsl1 $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b01100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1rrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1 $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0110;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1rrr: DPUInstruction {
@@ -6940,55 +6140,53 @@ def LSL1rrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lsl1 SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1rrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsl1 $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b100000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1rrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1 $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1zri: DPUInstruction {
@@ -6998,50 +6196,33 @@ def LSL1zri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b01100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSL1zric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "lsl1 $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b01100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL1zrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1 $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0110;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL1zrr: DPUInstruction {
@@ -7051,52 +6232,29 @@ def LSL1zrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSL1zrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "lsl1 $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL1zrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1 $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL1_Srri: DPUInstruction {
@@ -7106,56 +6264,62 @@ def LSL1_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsl1.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0110;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Srrr: DPUInstruction {
@@ -7165,58 +6329,56 @@ def LSL1_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsl1.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b100000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Urri: DPUInstruction {
@@ -7226,56 +6388,62 @@ def LSL1_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsl1.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0110;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Urrr: DPUInstruction {
@@ -7285,58 +6453,56 @@ def LSL1_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsl1.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b100000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1Xrri: DPUInstruction {
@@ -7346,53 +6512,59 @@ def LSL1Xrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lsl1x SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b01110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1Xrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsl1x $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b01110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1Xrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1x $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0111;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1Xrrr: DPUInstruction {
@@ -7402,55 +6574,53 @@ def LSL1Xrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lsl1x SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1Xrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsl1x $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b101000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1Xrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1x $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL1Xzri: DPUInstruction {
@@ -7460,50 +6630,33 @@ def LSL1Xzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b01110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSL1Xzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "lsl1x $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b01110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL1Xzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1x $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0111;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL1Xzrr: DPUInstruction {
@@ -7513,52 +6666,29 @@ def LSL1Xzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSL1Xzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "lsl1x $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL1Xzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1x $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL1X_Srri: DPUInstruction {
@@ -7568,56 +6698,62 @@ def LSL1X_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsl1x.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1x.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0111;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Srrr: DPUInstruction {
@@ -7627,58 +6763,56 @@ def LSL1X_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsl1x.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b101000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1x.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Urri: DPUInstruction {
@@ -7688,56 +6822,62 @@ def LSL1X_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsl1x.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1x.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0111;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Urrr: DPUInstruction {
@@ -7747,58 +6887,56 @@ def LSL1X_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsl1x.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b101000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL1X_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl1x.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_ADDrrri: DPUInstruction {
@@ -7807,40 +6945,42 @@ def LSL_ADDrrri: DPUInstruction {
 	let AsmString        = "lsl_add $rc, $rb, $ra, $shift";
 	let Pattern          = [(set SimpleReg:$rc, (add SimpleReg:$rb, (shl SimpleRegOrCst:$ra, u5_imm:$shift)))];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b010000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL_ADDrrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl_add $rc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b01;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL_ADDzrri: DPUInstruction {
@@ -7849,38 +6989,36 @@ def LSL_ADDzrri: DPUInstruction {
 	let AsmString        = "lsl_add $zero, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b010000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL_ADDzrrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl_add $zero, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b01;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL_ADD_Srrri: DPUInstruction {
@@ -7889,42 +7027,44 @@ def LSL_ADD_Srrri: DPUInstruction {
 	let AsmString        = "lsl_add.s $dc, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b010000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_ADD_Srrrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl_add.s $dc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b01;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_ADD_Urrri: DPUInstruction {
@@ -7933,42 +7073,44 @@ def LSL_ADD_Urrri: DPUInstruction {
 	let AsmString        = "lsl_add.u $dc, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b010000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_ADD_Urrrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl_add.u $dc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b01;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_SUBrrri: DPUInstruction {
@@ -7977,40 +7119,42 @@ def LSL_SUBrrri: DPUInstruction {
 	let AsmString        = "lsl_sub $rc, $rb, $ra, $shift";
 	let Pattern          = [(set SimpleReg:$rc, (sub SimpleReg:$rb, (shl SimpleRegOrCst:$ra, u5_imm:$shift)))];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b100000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL_SUBrrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl_sub $rc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b10;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSL_SUBzrri: DPUInstruction {
@@ -8019,38 +7163,36 @@ def LSL_SUBzrri: DPUInstruction {
 	let AsmString        = "lsl_sub $zero, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b100000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL_SUBzrrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl_sub $zero, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b10;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSL_SUB_Srrri: DPUInstruction {
@@ -8059,42 +7201,44 @@ def LSL_SUB_Srrri: DPUInstruction {
 	let AsmString        = "lsl_sub.s $dc, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b100000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_SUB_Srrrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl_sub.s $dc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b10;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_SUB_Urrri: DPUInstruction {
@@ -8103,42 +7247,44 @@ def LSL_SUB_Urrri: DPUInstruction {
 	let AsmString        = "lsl_sub.u $dc, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b100000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSL_SUB_Urrrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsl_sub.u $dc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b10;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLXrri: DPUInstruction {
@@ -8148,53 +7294,59 @@ def LSLXrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lslx SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b01010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLXrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lslx $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b01010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLXrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lslx $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0101;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLXrrr: DPUInstruction {
@@ -8204,55 +7356,53 @@ def LSLXrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lslx SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLXrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lslx $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b011000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLXrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lslx $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSLXzri: DPUInstruction {
@@ -8262,50 +7412,33 @@ def LSLXzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b01010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSLXzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "lslx $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b01010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSLXzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lslx $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0101;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSLXzrr: DPUInstruction {
@@ -8315,52 +7448,29 @@ def LSLXzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSLXzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "lslx $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSLXzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lslx $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSLX_Srri: DPUInstruction {
@@ -8370,56 +7480,62 @@ def LSLX_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lslx.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lslx.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0101;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Srrr: DPUInstruction {
@@ -8429,58 +7545,56 @@ def LSLX_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lslx.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b011000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lslx.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Urri: DPUInstruction {
@@ -8490,56 +7604,62 @@ def LSLX_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lslx.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b01010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lslx.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0101;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Urrr: DPUInstruction {
@@ -8549,58 +7669,56 @@ def LSLX_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lslx.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b011000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSLX_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lslx.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRrri: DPUInstruction {
@@ -8610,53 +7728,59 @@ def LSRrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (srl SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b11000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsr $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b11000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1100;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRrrr: DPUInstruction {
@@ -8666,55 +7790,53 @@ def LSRrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (srl SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsr $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b010000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRzri: DPUInstruction {
@@ -8724,50 +7846,33 @@ def LSRzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b11000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSRzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "lsr $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b11000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSRzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1100;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSRzrr: DPUInstruction {
@@ -8777,52 +7882,29 @@ def LSRzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSRzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "lsr $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSRzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR_Srri: DPUInstruction {
@@ -8832,56 +7914,62 @@ def LSR_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsr.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1100;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Srrr: DPUInstruction {
@@ -8891,58 +7979,56 @@ def LSR_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsr.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b010000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Urri: DPUInstruction {
@@ -8952,56 +8038,62 @@ def LSR_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsr.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11000000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
 	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1100;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11010;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Urrr: DPUInstruction {
@@ -9011,58 +8103,56 @@ def LSR_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsr.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b010000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1rri: DPUInstruction {
@@ -9072,53 +8162,59 @@ def LSR1rri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lsr1 SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b11100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1rric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsr1 $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b11100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1rrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1 $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1110;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1rrr: DPUInstruction {
@@ -9128,55 +8224,53 @@ def LSR1rrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lsr1 SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1rrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsr1 $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b100000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1rrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1 $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1zri: DPUInstruction {
@@ -9186,50 +8280,33 @@ def LSR1zri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b11100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSR1zric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "lsr1 $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b11100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR1zrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1 $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1110;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR1zrr: DPUInstruction {
@@ -9239,52 +8316,29 @@ def LSR1zrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSR1zrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "lsr1 $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR1zrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1 $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR1_Srri: DPUInstruction {
@@ -9294,56 +8348,62 @@ def LSR1_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsr1.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1110;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Srrr: DPUInstruction {
@@ -9353,58 +8413,56 @@ def LSR1_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsr1.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b100000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Urri: DPUInstruction {
@@ -9414,56 +8472,62 @@ def LSR1_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsr1.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1110;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Urrr: DPUInstruction {
@@ -9473,58 +8537,56 @@ def LSR1_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsr1.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b100000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1Xrri: DPUInstruction {
@@ -9534,53 +8596,59 @@ def LSR1Xrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lsr1x SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b11110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1Xrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsr1x $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b11110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1Xrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1x $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1111;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1Xrrr: DPUInstruction {
@@ -9590,55 +8658,53 @@ def LSR1Xrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lsr1x SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1Xrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsr1x $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b101000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1Xrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1x $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR1Xzri: DPUInstruction {
@@ -9648,50 +8714,33 @@ def LSR1Xzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b11110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSR1Xzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "lsr1x $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b11110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR1Xzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1x $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1111;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR1Xzrr: DPUInstruction {
@@ -9701,52 +8750,29 @@ def LSR1Xzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSR1Xzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "lsr1x $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR1Xzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1x $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR1X_Srri: DPUInstruction {
@@ -9756,56 +8782,62 @@ def LSR1X_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsr1x.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1x.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1111;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Srrr: DPUInstruction {
@@ -9815,58 +8847,56 @@ def LSR1X_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsr1x.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b101000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1x.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Urri: DPUInstruction {
@@ -9876,56 +8906,62 @@ def LSR1X_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsr1x.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11110000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1x.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1111;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11101;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Urrr: DPUInstruction {
@@ -9935,228 +8971,230 @@ def LSR1X_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsr1x.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b101000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR1X_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr1x.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_ADDrrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_inv_imm:$shift);
 	let AsmString        = "lsr_add $rc, $rb, $ra, $shift";
-	let Pattern          = [(set SimpleReg:$rc, (add SimpleReg:$rb, (srl SimpleRegOrCst:$ra, u5_imm:$shift)))];
+	let Pattern          = [(set SimpleReg:$rc, (add SimpleReg:$rb, (srl SimpleRegOrCst:$ra, u5_inv_imm:$shift)))];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b000000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR_ADDrrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_inv_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr_add $rc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b00;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSR_ADDzrri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, SimpleRegOrCst:$ra, u5_inv_imm:$shift);
 	let AsmString        = "lsr_add $zero, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b000000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR_ADDzrrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, SimpleRegOrCst:$ra, u5_inv_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr_add $zero, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b00;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSR_ADD_Srrri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_inv_imm:$shift);
 	let AsmString        = "lsr_add.s $dc, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b000000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_ADD_Srrrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_inv_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr_add.s $dc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b00;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_ADD_Urrri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_inv_imm:$shift);
 	let AsmString        = "lsr_add.u $dc, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b000000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSR_ADD_Urrrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_inv_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "lsr_add.u $dc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b001;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b00;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRXrri: DPUInstruction {
@@ -10166,53 +9204,59 @@ def LSRXrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lsrx SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b11010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRXrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsrx $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b11010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRXrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsrx $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1101;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRXrrr: DPUInstruction {
@@ -10222,55 +9266,53 @@ def LSRXrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Lsrx SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRXrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsrx $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b011000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRXrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsrx $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def LSRXzri: DPUInstruction {
@@ -10280,50 +9322,33 @@ def LSRXzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b11010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSRXzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "lsrx $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b11010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSRXzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsrx $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1101;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSRXzrr: DPUInstruction {
@@ -10333,52 +9358,29 @@ def LSRXzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def LSRXzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "lsrx $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSRXzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsrx $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def LSRX_Srri: DPUInstruction {
@@ -10388,56 +9390,62 @@ def LSRX_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsrx.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsrx.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1101;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Srrr: DPUInstruction {
@@ -10447,58 +9455,56 @@ def LSRX_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsrx.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b011000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsrx.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Urri: DPUInstruction {
@@ -10508,56 +9514,62 @@ def LSRX_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "lsrx.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b11010000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsrx.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1101;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Urrr: DPUInstruction {
@@ -10567,227 +9579,287 @@ def LSRX_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "lsrx.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b011000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LSRX_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "lsrx.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def LWerri: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lw $endian, $rc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b100;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110100;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LWersi: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s24_imm:$off);
-	let AsmString        = "lw $endian, $rc, $sa, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> sa; bits<5> sc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b100;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110101;
-	let Inst{38-34} = sa{4-0};
-	let Inst{43-39} = sc{4-0};
-	let Inst{47-44} = 0b0111;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def LWrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lw $rc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101000100;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110000001000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b0111;
-}
-
-def LW_Serri: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lw.s $endian, $dc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b100;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110110;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
 def LW_Srri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lw.s $dc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101100100;
+	bits<22> off; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110001011000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b0111;
-}
-
-def LW_Uerri: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lw.u $endian, $dc, $ra, $off";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<1> endian; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{26-24} = 0b100;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110110;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
 	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
 def LW_Urri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "lw.u $dc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101100100;
+	bits<22> off; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110001011000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0111;
 }
 
-def LWSrri: DPUInstruction {
+def LW_ADDrrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
-	let AsmString        = "lws $rc, $ra, $off";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lw_add $rc, $ra, $rb, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1101010100;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LW_ANDrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lw_and $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0001000;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LW_DECrki: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins CstReg:$ra, s22_imm:$off);
+	let AsmString        = "lw_dec $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b000000101010;
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LW_DECrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleReg:$ra, s22_imm:$off);
+	let AsmString        = "lw_dec $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0101010;
+	let Inst{33-29} = ra{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LW_INCrki: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins CstReg:$ra, s22_imm:$off);
+	let AsmString        = "lw_inc $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b000000101000;
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LW_INCrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleReg:$ra, s22_imm:$off);
+	let AsmString        = "lw_inc $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0101000;
+	let Inst{33-29} = ra{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LW_ORrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lw_or $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0001010;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LW_SETSrki: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins CstReg:$ra, s22_imm:$off);
+	let AsmString        = "lw_sets $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b000000111010;
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LW_SETSrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleReg:$ra, s22_imm:$off);
+	let AsmString        = "lw_sets $rc, $ra, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0111010;
+	let Inst{33-29} = ra{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LW_SWAPrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lw_swap $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0011010;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0111;
+}
+
+def LW_XORrrri: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, s22_imm:$off);
+	let AsmString        = "lw_xor $rc, $ra, $rb, $off";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<22> off; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0011000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
 	let Inst{47-44} = 0b0111;
@@ -10800,35 +9872,35 @@ def MOVDrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> db; bits<5> dc;
-	let Inst{16-0} = 0b10000000000000000;
-	let Inst{19-17} = db{2-0};
-	let Inst{31-20} = 0b001000000000;
-	let Inst{33-32} = db{4-3};
+	let Inst{28-0} = 0b10100010000000000000000000000;
+	let Inst{33-29} = db{4-0};
 	let Inst{38-34} = 0b11000;
-	let Inst{43-39} = dc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = dc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def MOVDrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins DoubleReg:$db, true_false_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins DoubleReg:$db, true_false_cc:$cc, pc14:$pc);
 	let AsmString        = "movd $dc, $db, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> db; bits<4> cc; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b1;
-	let Inst{19-17} = db{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0010;
-	let Inst{33-32} = db{4-3};
+	bits<14> pc; bits<4> cc; bits<5> db; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b1010001;
+	let Inst{33-29} = db{4-0};
 	let Inst{38-34} = 0b11000;
-	let Inst{43-39} = dc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = dc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def MOVEri: DPUInstruction {
@@ -10838,14 +9910,10 @@ def MOVEri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, u32_imm:$imm)];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{31-28} = imm{7-4};
 	let Inst{38-32} = 0b1100011;
 	let Inst{43-39} = rc{4-0};
 	let Inst{47-44} = 0b0110;
@@ -10853,21 +9921,24 @@ def MOVEri: DPUInstruction {
 
 def MOVErici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "move $rc, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<8> imm; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{38-28} = 0b11000111011;
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	bits<14> pc; bits<8> imm; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000011;
+	let Inst{31-28} = imm{7-4};
+	let Inst{38-32} = 0b1100011;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def MOVErr: DPUInstruction {
@@ -10877,29 +9948,31 @@ def MOVErr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1110110000000000000000000000000000;
+	let Inst{33-0} = 0b1100000000000000000000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{47-44} = 0b0110;
 }
 
 def MOVErrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "move $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110000000011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def MOVE_Sri: DPUInstruction {
@@ -10909,14 +9982,10 @@ def MOVE_Sri: DPUInstruction {
 	let Pattern          = [(set DoubleReg:$dc, s32_i64_imm:$imm)];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{31-28} = imm{7-4};
 	let Inst{39-32} = 0b11101011;
 	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0101;
@@ -10924,21 +9993,24 @@ def MOVE_Sri: DPUInstruction {
 
 def MOVE_Srici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s8_i64_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins s8_i64_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "move.s $dc, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<8> imm; bits<4> cc; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{39-28} = 0b111000111011;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	bits<14> pc; bits<8> imm; bits<4> cc; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000011;
+	let Inst{31-28} = imm{7-4};
+	let Inst{39-32} = 0b11100011;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def MOVE_Srr: DPUInstruction {
@@ -10948,31 +10020,35 @@ def MOVE_Srr: DPUInstruction {
 	let Pattern          = [(set DoubleReg:$dc, (sext SimpleRegOrCst:$ra))];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1110110000000000000000000000000000;
+	let Inst{33-0} = 0b1101001110000000000000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def MOVE_Srrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "move.s $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110000000011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def MOVE_Uri: DPUInstruction {
@@ -10982,14 +10058,10 @@ def MOVE_Uri: DPUInstruction {
 	let Pattern          = [(set DoubleReg:$dc, u32_i64_imm:$imm)];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{31-28} = imm{7-4};
 	let Inst{39-32} = 0b01101011;
 	let Inst{43-40} = dc{4-1};
 	let Inst{47-44} = 0b0101;
@@ -10997,21 +10069,24 @@ def MOVE_Uri: DPUInstruction {
 
 def MOVE_Urici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "move.u $dc, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<8> imm; bits<4> cc; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{39-28} = 0b011000111011;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	bits<14> pc; bits<8> imm; bits<4> cc; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000011;
+	let Inst{31-28} = imm{7-4};
+	let Inst{39-32} = 0b01100011;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def MOVE_Urr: DPUInstruction {
@@ -11021,31 +10096,35 @@ def MOVE_Urr: DPUInstruction {
 	let Pattern          = [(set DoubleReg:$dc, (zext SimpleRegOrCst:$ra))];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1110110000000000000000000000000000;
+	let Inst{33-0} = 0b1101001110000000000000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def MOVE_Urrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "move.u $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110000000011;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def MUL_SH_SHrrr: DPUInstruction {
@@ -11055,30 +10134,8 @@ def MUL_SH_SHrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000111;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_SH_SHrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_sh $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000011100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11088,21 +10145,19 @@ def MUL_SH_SHrrrc: DPUInstruction {
 
 def MUL_SH_SHrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_sh $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0111;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11117,48 +10172,27 @@ def MUL_SH_SHzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000111;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_SH_SHzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_sh $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000011100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_SH_SHzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_sh $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0111;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -11170,31 +10204,8 @@ def MUL_SH_SH_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000111;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_SH_SH_Srrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_sh.s $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000011100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -11205,21 +10216,19 @@ def MUL_SH_SH_Srrrc: DPUInstruction {
 
 def MUL_SH_SH_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_sh.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0111;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0111;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -11235,30 +10244,8 @@ def MUL_SH_SLrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000110;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_SH_SLrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_sl $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11268,21 +10255,19 @@ def MUL_SH_SLrrrc: DPUInstruction {
 
 def MUL_SH_SLrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_sl $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11297,48 +10282,27 @@ def MUL_SH_SLzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000110;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_SH_SLzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_sl $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_SH_SLzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_sl $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -11350,31 +10314,8 @@ def MUL_SH_SL_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000110;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_SH_SL_Srrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_sl.s $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000011000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -11385,21 +10326,19 @@ def MUL_SH_SL_Srrrc: DPUInstruction {
 
 def MUL_SH_SL_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_sl.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0110;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0110;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -11415,30 +10354,8 @@ def MUL_SH_UHrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001011;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_SH_UHrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_uh $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000101100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11448,21 +10365,19 @@ def MUL_SH_UHrrrc: DPUInstruction {
 
 def MUL_SH_UHrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_uh $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11477,48 +10392,27 @@ def MUL_SH_UHzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001011;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_SH_UHzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_uh $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000101100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_SH_UHzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_uh $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -11530,31 +10424,8 @@ def MUL_SH_UH_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001011;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_SH_UH_Srrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_uh.s $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000101100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -11565,21 +10436,19 @@ def MUL_SH_UH_Srrrc: DPUInstruction {
 
 def MUL_SH_UH_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_uh.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -11595,30 +10464,8 @@ def MUL_SH_ULrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_SH_ULrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_ul $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11628,21 +10475,19 @@ def MUL_SH_ULrrrc: DPUInstruction {
 
 def MUL_SH_ULrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_ul $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11657,48 +10502,27 @@ def MUL_SH_ULzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_SH_ULzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_ul $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_SH_ULzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_ul $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -11710,31 +10534,8 @@ def MUL_SH_UL_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_SH_UL_Srrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sh_ul.s $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000101000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -11745,21 +10546,19 @@ def MUL_SH_UL_Srrrc: DPUInstruction {
 
 def MUL_SH_UL_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sh_ul.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -11775,30 +10574,8 @@ def MUL_SL_SHrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_SL_SHrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_sh $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000010100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11808,21 +10585,19 @@ def MUL_SL_SHrrrc: DPUInstruction {
 
 def MUL_SL_SHrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_sh $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0101;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11837,48 +10612,27 @@ def MUL_SL_SHzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_SL_SHzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_sh $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000010100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_SL_SHzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_sh $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0101;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -11890,31 +10644,8 @@ def MUL_SL_SH_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_SL_SH_Srrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_sh.s $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000010100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -11925,21 +10656,19 @@ def MUL_SL_SH_Srrrc: DPUInstruction {
 
 def MUL_SL_SH_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_sh.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0101;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0101;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -11955,30 +10684,8 @@ def MUL_SL_SLrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Mul8SS SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_SL_SLrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_sl $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -11988,21 +10695,19 @@ def MUL_SL_SLrrrc: DPUInstruction {
 
 def MUL_SL_SLrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_sl $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12017,48 +10722,27 @@ def MUL_SL_SLzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_SL_SLzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_sl $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_SL_SLzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_sl $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -12070,31 +10754,8 @@ def MUL_SL_SL_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_SL_SL_Srrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_sl.s $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000010000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -12105,21 +10766,19 @@ def MUL_SL_SL_Srrrc: DPUInstruction {
 
 def MUL_SL_SL_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_sl.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0100;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -12135,30 +10794,8 @@ def MUL_SL_UHrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001001;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_SL_UHrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_uh $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000100100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12168,21 +10805,19 @@ def MUL_SL_UHrrrc: DPUInstruction {
 
 def MUL_SL_UHrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_uh $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12197,48 +10832,27 @@ def MUL_SL_UHzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001001;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_SL_UHzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_uh $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000100100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_SL_UHzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_uh $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -12250,31 +10864,8 @@ def MUL_SL_UH_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001001;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_SL_UH_Srrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_uh.s $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000100100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -12285,21 +10876,19 @@ def MUL_SL_UH_Srrrc: DPUInstruction {
 
 def MUL_SL_UH_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_uh.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -12315,30 +10904,8 @@ def MUL_SL_ULrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Mul8SU SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_SL_ULrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_ul $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12348,21 +10915,19 @@ def MUL_SL_ULrrrc: DPUInstruction {
 
 def MUL_SL_ULrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_ul $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12377,48 +10942,27 @@ def MUL_SL_ULzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_SL_ULzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_ul $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_SL_ULzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_ul $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -12430,31 +10974,8 @@ def MUL_SL_UL_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000001000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_SL_UL_Srrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_sl_ul.s $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000100000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -12465,21 +10986,19 @@ def MUL_SL_UL_Srrrc: DPUInstruction {
 
 def MUL_SL_UL_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_sl_ul.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -12490,44 +11009,46 @@ def MUL_SL_UL_Srrrci: DPUInstruction {
 
 def MUL_STEPrrri: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCstButZero:$ra, DoubleReg:$db, u5_imm:$shift);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, DoubleReg:$db, u5_imm:$shift);
 	let AsmString        = "mul_step $dc, $ra, $db, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> db; bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b10000000000000000;
-	let Inst{19-17} = db{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = db{4-3};
+	bits<5> shift; bits<5> db; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b100000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b1010;
+	let Inst{33-29} = db{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = dc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = dc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def MUL_STEPrrrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCstButZero:$ra, DoubleReg:$db, u5_imm:$shift, boot_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, DoubleReg:$db, u5_imm:$shift, log_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_step $dc, $ra, $db, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> db; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b1;
-	let Inst{19-17} = db{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = db{4-3};
+	bits<5> dc; bits<5> shift; bits<5> db; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b10;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b1010;
+	let Inst{33-29} = db{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = dc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = dc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def MUL_UH_UHrrr: DPUInstruction {
@@ -12537,30 +11058,8 @@ def MUL_UH_UHrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000011;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_UH_UHrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_uh_uh $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000001100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12570,21 +11069,19 @@ def MUL_UH_UHrrrc: DPUInstruction {
 
 def MUL_UH_UHrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_uh_uh $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0011;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12599,48 +11096,27 @@ def MUL_UH_UHzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000011;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_UH_UHzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_uh_uh $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000001100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_UH_UHzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_uh_uh $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0011;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -12652,31 +11128,8 @@ def MUL_UH_UH_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000011;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_UH_UH_Urrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_uh_uh.u $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000001100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -12687,21 +11140,19 @@ def MUL_UH_UH_Urrrc: DPUInstruction {
 
 def MUL_UH_UH_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_uh_uh.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0011;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0011;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -12717,30 +11168,8 @@ def MUL_UH_ULrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_UH_ULrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_uh_ul $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000001000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12750,21 +11179,19 @@ def MUL_UH_ULrrrc: DPUInstruction {
 
 def MUL_UH_ULrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_uh_ul $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12779,48 +11206,27 @@ def MUL_UH_ULzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_UH_ULzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_uh_ul $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000001000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_UH_ULzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_uh_ul $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -12832,31 +11238,8 @@ def MUL_UH_UL_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_UH_UL_Urrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_uh_ul.u $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000001000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -12867,21 +11250,19 @@ def MUL_UH_UL_Urrrc: DPUInstruction {
 
 def MUL_UH_UL_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_uh_ul.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0010;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -12897,30 +11278,8 @@ def MUL_UL_UHrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000001;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_UL_UHrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_ul_uh $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000000100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12930,21 +11289,19 @@ def MUL_UL_UHrrrc: DPUInstruction {
 
 def MUL_UL_UHrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_ul_uh $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -12959,48 +11316,27 @@ def MUL_UL_UHzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000001;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_UL_UHzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_ul_uh $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000000100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_UL_UHzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_ul_uh $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -13012,31 +11348,8 @@ def MUL_UL_UH_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000001;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_UL_UH_Urrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_ul_uh.u $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000000100000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -13047,21 +11360,19 @@ def MUL_UL_UH_Urrrc: DPUInstruction {
 
 def MUL_UL_UH_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_ul_uh.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0001;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -13077,30 +11388,8 @@ def MUL_UL_ULrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (SDT_Mul8UU SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def MUL_UL_ULrrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_ul_ul $rc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -13110,21 +11399,19 @@ def MUL_UL_ULrrrc: DPUInstruction {
 
 def MUL_UL_ULrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_ul_ul $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -13139,48 +11426,27 @@ def MUL_UL_ULzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def MUL_UL_ULzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_ul_ul $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def MUL_UL_ULzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_ul_ul $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -13192,31 +11458,8 @@ def MUL_UL_UL_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def MUL_UL_UL_Urrrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "mul_ul_ul.u $dc, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -13227,21 +11470,19 @@ def MUL_UL_UL_Urrrc: DPUInstruction {
 
 def MUL_UL_UL_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, mul_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "mul_ul_ul.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -13257,78 +11498,66 @@ def NANDrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (not (and SimpleRegOrCst:$ra, s24_imm:$imm)))];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111110000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NANDrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nand $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "nand $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111111;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001111;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NANDrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nand $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111111;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001011;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def NANDrrif: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "nand $rc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111110000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NANDrrr: DPUInstruction {
@@ -13338,120 +11567,98 @@ def NANDrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (not (and SimpleRegOrCst:$ra, SimpleReg:$rb)))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NANDrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "nand $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001111;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NANDrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nand $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
-def NANDzric: DPUInstruction {
+def NANDzri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nand $zero, $ra, $imm, $cc";
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "nand $zero, $ra, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<4> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111111;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-39} = 0b001111000;
 }
 
 def NANDzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nand $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<12> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111111;
+	bits<14> pc; bits<12> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b11;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{11};
-	let Inst{47-45} = 0b100;
-}
-
-def NANDzrif: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, false_cc:$cc);
-	let AsmString        = "nand $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111110000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-42} = 0b001111;
 }
 
 def NANDzrr: DPUInstruction {
@@ -13461,114 +11668,101 @@ def NANDzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def NANDzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "nand $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def NANDzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nand $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
+}
+
+def NAND_Srri: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "nand.s $dc, $ra, $imm";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<24> imm; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NAND_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nand.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "nand.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111111;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001111;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NAND_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nand.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111111;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001011;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def NAND_Srrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "nand.s $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111110000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NAND_Srrr: DPUInstruction {
@@ -13578,120 +11772,128 @@ def NAND_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NAND_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "nand.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001111;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NAND_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nand.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def NAND_Urri: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "nand.u $dc, $ra, $imm";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<24> imm; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b0;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NAND_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nand.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "nand.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111111;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001111;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NAND_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nand.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111111;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001011;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def NAND_Urrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "nand.u $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111110000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NAND_Urrr: DPUInstruction {
@@ -13701,56 +11903,56 @@ def NAND_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001111;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NAND_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "nand.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001111;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NAND_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nand.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NEGrr: DPUInstruction {
@@ -13768,18 +11970,18 @@ def NEGrr: DPUInstruction {
 
 def NEGrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "neg $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11010;
+	bits<14> pc; bits<5> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{33-23} = 0b11000010100;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -13793,7 +11995,7 @@ def NOP: DPUInstruction {
 	let AsmString        = "nop";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	let Inst{47-0} = 0b011111000110001100000000000000000000000000000000;
+	let Inst{47-0} = 0b001111000110001101001111110000000000000000000000;
 }
 
 def NORrri: DPUInstruction {
@@ -13803,78 +12005,66 @@ def NORrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (not (or SimpleRegOrCst:$ra, s24_imm:$imm)))];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111100000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NORrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nor $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "nor $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111110;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001110;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NORrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nor $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111110;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001010;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def NORrrif: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "nor $rc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111100000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NORrrr: DPUInstruction {
@@ -13884,120 +12074,98 @@ def NORrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (not (or SimpleRegOrCst:$ra, SimpleReg:$rb)))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NORrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "nor $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NORrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nor $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
-def NORzric: DPUInstruction {
+def NORzri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nor $zero, $ra, $imm, $cc";
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "nor $zero, $ra, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<4> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111110;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-39} = 0b001111000;
 }
 
 def NORzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nor $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<12> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111110;
+	bits<14> pc; bits<12> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b10;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{11};
-	let Inst{47-45} = 0b100;
-}
-
-def NORzrif: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, false_cc:$cc);
-	let AsmString        = "nor $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111100000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-42} = 0b001111;
 }
 
 def NORzrr: DPUInstruction {
@@ -14007,114 +12175,101 @@ def NORzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def NORzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "nor $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def NORzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nor $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
+}
+
+def NOR_Srri: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "nor.s $dc, $ra, $imm";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<24> imm; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOR_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nor.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "nor.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111110;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001110;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOR_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nor.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111110;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001010;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def NOR_Srrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "nor.s $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111100000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOR_Srrr: DPUInstruction {
@@ -14124,120 +12279,128 @@ def NOR_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOR_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "nor.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOR_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nor.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def NOR_Urri: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "nor.u $dc, $ra, $imm";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<24> imm; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b0;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOR_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nor.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "nor.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111110;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001110;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOR_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nor.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111110;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001010;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def NOR_Urrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "nor.u $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111100000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOR_Urrr: DPUInstruction {
@@ -14247,74 +12410,56 @@ def NOR_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001110;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOR_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "nor.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOR_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nor.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1110;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def NOTrci: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
-	let AsmString        = "not $ra, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b11111111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100111111;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NOTrr: DPUInstruction {
@@ -14332,102 +12477,86 @@ def NOTrr: DPUInstruction {
 
 def NOTrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "not $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b11111111;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111000;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1111;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b111111000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
-def NXORrri: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
-	let AsmString        = "nxor $rc, $ra, $imm";
-	let Pattern          = [(set SimpleReg:$rc, (not (xor SimpleRegOrCst:$ra, s24_imm:$imm)))];
+def NOTzrci: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "not $zero, $ra, $cc, $pc";
+	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010000;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b1111;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b111111000100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{47-39} = 0b001111111;
 }
 
 def NXORrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nxor $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "nxor $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111001;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000101;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NXORrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nxor $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111001;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def NXORrrif: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "nxor $rc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NXORrrr: DPUInstruction {
@@ -14437,120 +12566,77 @@ def NXORrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (not (xor SimpleRegOrCst:$ra, SimpleReg:$rb)))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001001;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NXORrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "nxor $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NXORrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nxor $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def NXORzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nxor $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<4> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111001;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
+	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def NXORzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nxor $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<12> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111001;
+	bits<14> pc; bits<12> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b01;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{11};
-	let Inst{47-45} = 0b100;
-}
-
-def NXORzrif: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, false_cc:$cc);
-	let AsmString        = "nxor $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-42} = 0b001111;
 }
 
 def NXORzrr: DPUInstruction {
@@ -14560,114 +12646,76 @@ def NXORzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001001;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def NXORzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "nxor $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def NXORzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nxor $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def NXOR_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nxor.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "nxor.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111001;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000101;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NXOR_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nxor.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111001;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def NXOR_Srrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "nxor.s $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NXOR_Srrr: DPUInstruction {
@@ -14677,120 +12725,103 @@ def NXOR_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001001;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NXOR_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "nxor.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NXOR_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nxor.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NXOR_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "nxor.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "nxor.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111001;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000101;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NXOR_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nxor.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111001;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def NXOR_Urrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "nxor.u $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NXOR_Urrr: DPUInstruction {
@@ -14800,56 +12831,56 @@ def NXOR_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001001;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NXOR_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "nxor.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def NXOR_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "nxor.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1001;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORrri: DPUInstruction {
@@ -14859,14 +12890,10 @@ def ORrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (or SimpleRegOrCst:$ra, u32_imm:$imm))];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{31-28} = imm{7-4};
 	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
@@ -14875,63 +12902,47 @@ def ORrri: DPUInstruction {
 
 def ORrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "or $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "or $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000111;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ORrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "or $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000011;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def ORrrif: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "or $rc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110110000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ORrrr: DPUInstruction {
@@ -14941,53 +12952,53 @@ def ORrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (or SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001011;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ORrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "or $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000111;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ORrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "or $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ORzri: DPUInstruction {
@@ -14997,87 +13008,39 @@ def ORzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{38-37} = 0b11;
 	let Inst{39} = imm{7};
 	let Inst{47-40} = 0b01100110;
 }
 
-def ORzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "or $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<4> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
-}
-
 def ORzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "or $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<12> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
+	bits<14> pc; bits<12> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b11;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{11};
-	let Inst{47-45} = 0b100;
-}
-
-def ORzrif: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, false_cc:$cc);
-	let AsmString        = "or $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110110000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-42} = 0b001111;
 }
 
 def ORzrr: DPUInstruction {
@@ -15087,50 +13050,29 @@ def ORzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001011;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def ORzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "or $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ORzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "or $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def OR_Srri: DPUInstruction {
@@ -15140,16 +13082,11 @@ def OR_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{39-37} = 0b111;
 	let Inst{43-40} = dc{4-1};
@@ -15159,66 +13096,49 @@ def OR_Srri: DPUInstruction {
 
 def OR_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "or.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "or.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000111;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def OR_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "or.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000011;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def OR_Srrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "or.s $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110110000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def OR_Srrr: DPUInstruction {
@@ -15228,56 +13148,56 @@ def OR_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001011;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def OR_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "or.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000111;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def OR_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "or.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def OR_Urri: DPUInstruction {
@@ -15287,16 +13207,11 @@ def OR_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{39-37} = 0b011;
 	let Inst{43-40} = dc{4-1};
@@ -15306,66 +13221,49 @@ def OR_Urri: DPUInstruction {
 
 def OR_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "or.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "or.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000111;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def OR_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "or.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111011;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000011;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def OR_Urrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "or.u $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110110000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def OR_Urrr: DPUInstruction {
@@ -15375,56 +13273,56 @@ def OR_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001011;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000110000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def OR_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "or.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000111;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def OR_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "or.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1011;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORNrri: DPUInstruction {
@@ -15434,78 +13332,66 @@ def ORNrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (or (not SimpleRegOrCst:$ra), s24_imm:$imm))];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111010000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ORNrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "orn $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "orn $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111101;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001101;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ORNrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "orn $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111101;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def ORNrrif: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "orn $rc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ORNrrr: DPUInstruction {
@@ -15515,120 +13401,98 @@ def ORNrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (or (not SimpleRegOrCst:$ra), SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ORNrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "orn $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ORNrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "orn $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
-def ORNzric: DPUInstruction {
+def ORNzri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "orn $zero, $ra, $imm, $cc";
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "orn $zero, $ra, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<4> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111101;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ORNzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "orn $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<12> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111101;
+	bits<14> pc; bits<12> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b01;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{11};
-	let Inst{47-45} = 0b100;
-}
-
-def ORNzrif: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, false_cc:$cc);
-	let AsmString        = "orn $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-42} = 0b001111;
 }
 
 def ORNzrr: DPUInstruction {
@@ -15638,114 +13502,101 @@ def ORNzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def ORNzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "orn $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ORNzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "orn $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
+}
+
+def ORN_Srri: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "orn.s $dc, $ra, $imm";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<24> imm; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORN_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "orn.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "orn.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111101;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001101;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORN_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "orn.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111101;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def ORN_Srrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "orn.s $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORN_Srrr: DPUInstruction {
@@ -15755,120 +13606,128 @@ def ORN_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORN_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "orn.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORN_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "orn.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def ORN_Urri: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "orn.u $dc, $ra, $imm";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<24> imm; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b001;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b0;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORN_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "orn.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "orn.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111101;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001101;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORN_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "orn.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111101;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b001001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def ORN_Urrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "orn.u $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1111010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORN_Urrr: DPUInstruction {
@@ -15878,130 +13737,144 @@ def ORN_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001101;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00010010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORN_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "orn.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ORN_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "orn.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1101;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0001001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
-def READ_RUNrici: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, boot_cc:$cc, pc16:$pc);
-	let AsmString        = "read_run $ra, $imm, $cc, $pc";
+def PERF_INT_OFFr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "perf_int_off $rc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<8> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b011111000;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111101101111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
 }
 
-def RELEASErici: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s16_imm:$imm, release_cc:$cc, pc16:$pc);
-	let AsmString        = "release $ra, $imm, $cc, $pc";
+def PERF_INT_ONr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "perf_int_on $rc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isBarrier        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<16> imm; bits<2> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{25-24} = cc{1-0};
-	let Inst{30-26} = imm{12-8};
-	let Inst{33-31} = 0b111;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{15-13};
-	let Inst{47-42} = 0b011111;
-}
-
-def RESUMEri: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm);
-	let AsmString        = "resume $ra, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<8> imm; bits<5> ra;
-	let Inst{15-0} = 0b0000000000000000;
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1100100000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b011111010;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111101111111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
 }
 
 def RESUMErici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, boot_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u4_imm:$imm, boot_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "resume $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<8> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
+	bits<14> pc; bits<4> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110000010000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b011111010;
+	let Inst{47-39} = 0b001111100;
+}
+
+def RESUME_MASKri: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
+	let AsmString        = "resume_mask $ra, $imm";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b010;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b001111000;
+}
+
+def RESUME_STOPici: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins u4_imm:$imm, boot_nz_cc:$cc, pc14:$pc);
+	let AsmString        = "resume_stop $imm, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<14> pc; bits<4> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{47-22} = 0b00111111011100111000010000;
+}
+
+def RETI: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins);
+	let AsmString        = "reti";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let Inst{47-0} = 0b001111000110001101001111110000001100000000000000;
 }
 
 def ROLrri: DPUInstruction {
@@ -16011,53 +13884,59 @@ def ROLrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (rotl SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b00100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ROLrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "rol $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b00100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ROLrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rol $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0010;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ROLrrr: DPUInstruction {
@@ -16067,55 +13946,53 @@ def ROLrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (rotl SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ROLrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "rol $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ROLrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rol $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ROLzri: DPUInstruction {
@@ -16125,50 +14002,33 @@ def ROLzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b00100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def ROLzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "rol $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b00100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ROLzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rol $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0010;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ROLzrr: DPUInstruction {
@@ -16178,52 +14038,29 @@ def ROLzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def ROLzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "rol $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ROLzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rol $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ROL_Srri: DPUInstruction {
@@ -16233,56 +14070,62 @@ def ROL_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b00100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "rol.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b00100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rol.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0010;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Srrr: DPUInstruction {
@@ -16292,58 +14135,56 @@ def ROL_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "rol.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rol.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Urri: DPUInstruction {
@@ -16353,56 +14194,62 @@ def ROL_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b00100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110000000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "rol.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b00100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111100;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rol.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b0010;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111000;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Urrr: DPUInstruction {
@@ -16412,58 +14259,56 @@ def ROL_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100000010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "rol.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rol.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_ADDrrri: DPUInstruction {
@@ -16472,40 +14317,42 @@ def ROL_ADDrrri: DPUInstruction {
 	let AsmString        = "rol_add $rc, $rb, $ra, $shift";
 	let Pattern          = [(set SimpleReg:$rc, (add SimpleReg:$rb, (rotl SimpleRegOrCst:$ra, u5_imm:$shift)))];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b110000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ROL_ADDrrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "rol_add $rc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b11;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def ROL_ADDzrri: DPUInstruction {
@@ -16514,38 +14361,36 @@ def ROL_ADDzrri: DPUInstruction {
 	let AsmString        = "rol_add $zero, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b110000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ROL_ADDzrrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "rol_add $zero, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b11;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ROL_ADD_Srrri: DPUInstruction {
@@ -16554,42 +14399,44 @@ def ROL_ADD_Srrri: DPUInstruction {
 	let AsmString        = "rol_add.s $dc, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b110000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_ADD_Srrrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "rol_add.s $dc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b11;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_ADD_Urrri: DPUInstruction {
@@ -16598,42 +14445,44 @@ def ROL_ADD_Urrri: DPUInstruction {
 	let AsmString        = "rol_add.u $dc, $rb, $ra, $shift";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> shift; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{23-18} = 0b110000;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROL_ADD_Urrrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, div_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$rb, SimpleRegOrCst:$ra, u5_imm:$shift, boot_cc:$cc, pc14:$pc);
 	let AsmString        = "rol_add.u $dc, $rb, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{31-29} = 0b000;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> shift; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b11;
+	let Inst{24} = shift{4};
+	let Inst{28-25} = 0b0010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def RORrri: DPUInstruction {
@@ -16643,53 +14492,59 @@ def RORrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (rotr SimpleRegOrCst:$ra, u5_imm:$shift))];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b10100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def RORrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "ror $rc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{19-0} = 0b10100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def RORrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "ror $rc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1010;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def RORrrr: DPUInstruction {
@@ -16699,55 +14554,53 @@ def RORrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (rotr SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def RORrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "ror $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def RORrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "ror $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def RORzri: DPUInstruction {
@@ -16757,50 +14610,33 @@ def RORzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra;
-	let Inst{19-0} = 0b10100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def RORzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
-	let AsmString        = "ror $zero, $ra, $shift, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> shift; bits<4> cc; bits<5> ra;
-	let Inst{19-0} = 0b10100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def RORzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "ror $zero, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> shift; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1010;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<14> pc; bits<5> shift; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def RORzrr: DPUInstruction {
@@ -16810,52 +14646,29 @@ def RORzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def RORzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "ror $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def RORzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "ror $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def ROR_Srri: DPUInstruction {
@@ -16865,56 +14678,62 @@ def ROR_Srri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b10100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "ror.s $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b10100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "ror.s $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1010;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Srrr: DPUInstruction {
@@ -16924,58 +14743,56 @@ def ROR_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "ror.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "ror.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Urri: DPUInstruction {
@@ -16985,56 +14802,62 @@ def ROR_Urri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b10100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = 0b0000;
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{27-18} = 0b1110010000;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc);
 	let AsmString        = "ror.u $dc, $ra, $shift, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> shift; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{19-0} = 0b10100000000000000000;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	let Inst{13-0} = 0b00000000000000;
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111101;
 	let Inst{28} = shift{4};
-	let Inst{33-29} = 0b11010;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, imm_shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, u5_imm:$shift, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "ror.u $dc, $ra, $shift, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> shift; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = 0b1010;
-	let Inst{23-20} = shift{3-0};
-	let Inst{27-24} = cc{3-0};
+	bits<5> dc; bits<5> shift; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = shift{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b111001;
 	let Inst{28} = shift{4};
-	let Inst{29} = cc{4};
-	let Inst{33-30} = 0b1101;
+	let Inst{33-29} = 0b11000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Urrr: DPUInstruction {
@@ -17044,58 +14867,56 @@ def ROR_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110100001010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01110010000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc);
 	let AsmString        = "ror.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1101;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def ROR_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, shift_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "ror.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1010;
-	let Inst{27-24} = cc{3-0};
-	let Inst{28} = 0b1;
-	let Inst{29} = cc{4};
-	let Inst{31-30} = 0b11;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0111001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def RSUBrrr: DPUInstruction {
@@ -17105,10 +14926,8 @@ def RSUBrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b010000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01010000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -17118,17 +14937,15 @@ def RSUBrrr: DPUInstruction {
 
 def RSUBrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "rsub $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -17138,21 +14955,19 @@ def RSUBrrrc: DPUInstruction {
 
 def RSUBrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rsub $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -17167,48 +14982,27 @@ def RSUBzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b010000001100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def RSUBzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, sub_set_cc:$cc);
-	let AsmString        = "rsub $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01010000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def RSUBzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rsub $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -17220,10 +15014,8 @@ def RSUB_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b010000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01010000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -17234,17 +15026,15 @@ def RSUB_Srrr: DPUInstruction {
 
 def RSUB_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "rsub.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -17255,21 +15045,19 @@ def RSUB_Srrrc: DPUInstruction {
 
 def RSUB_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rsub.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -17285,10 +15073,8 @@ def RSUB_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b010000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01010000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -17299,17 +15085,15 @@ def RSUB_Urrr: DPUInstruction {
 
 def RSUB_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "rsub.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010110;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -17320,21 +15104,19 @@ def RSUB_Urrrc: DPUInstruction {
 
 def RSUB_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rsub.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b010;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -17350,10 +15132,8 @@ def RSUBCrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b011000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01010100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -17363,17 +15143,15 @@ def RSUBCrrr: DPUInstruction {
 
 def RSUBCrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "rsubc $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010111;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -17383,21 +15161,19 @@ def RSUBCrrrc: DPUInstruction {
 
 def RSUBCrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rsubc $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -17412,48 +15188,27 @@ def RSUBCzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b011000001100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def RSUBCzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, sub_set_cc:$cc);
-	let AsmString        = "rsubc $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01010100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def RSUBCzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rsubc $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
@@ -17465,10 +15220,8 @@ def RSUBC_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b011000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01010100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -17479,17 +15232,15 @@ def RSUBC_Srrr: DPUInstruction {
 
 def RSUBC_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "rsubc.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010111;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -17500,21 +15251,19 @@ def RSUBC_Srrrc: DPUInstruction {
 
 def RSUBC_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rsubc.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -17530,10 +15279,8 @@ def RSUBC_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b011000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01010100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -17544,17 +15291,15 @@ def RSUBC_Urrr: DPUInstruction {
 
 def RSUBC_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "rsubc.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010111;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -17565,21 +15310,19 @@ def RSUBC_Urrrc: DPUInstruction {
 
 def RSUBC_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "rsubc.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{31-29} = 0b011;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b010101;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -17595,44 +15338,33 @@ def SATSrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> rc;
-	let Inst{33-0} = 0b1100100000000000000000000000000000;
+	let Inst{33-0} = 0b1100011111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def SATSrrc: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "sats $rc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{23-0} = 0b000000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def SATSrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sats $rc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def SATSzr: DPUInstruction {
@@ -17642,41 +15374,27 @@ def SATSzr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra;
-	let Inst{33-0} = 0b1100100000000000000000000000000000;
+	let Inst{33-0} = 0b1100011111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def SATSzrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "sats $zero, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra;
-	let Inst{23-0} = 0b000000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def SATSzrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sats $zero, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
+	bits<14> pc; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def SATS_Srr: DPUInstruction {
@@ -17686,47 +15404,35 @@ def SATS_Srr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100100000000000000000000000000000;
+	let Inst{33-0} = 0b1100011111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def SATS_Srrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "sats.s $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b000000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def SATS_Srrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sats.s $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def SATS_Urr: DPUInstruction {
@@ -17736,507 +15442,210 @@ def SATS_Urr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> ra; bits<5> dc;
-	let Inst{33-0} = 0b1100100000000000000000000000000000;
+	let Inst{33-0} = 0b1100011111110000000000000000000000;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def SATS_Urrc: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_set_cc:$cc);
-	let AsmString        = "sats.u $dc, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{23-0} = 0b000000000000000000000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def SATS_Urrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sats.u $dc, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b110010;
+	bits<14> pc; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{33-22} = 0b110001111111;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def SBerii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s12_imm:$off, su8_imm:$imm);
-	let AsmString        = "sb $endian, $ra, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<8> imm; bits<12> off; bits<1> endian; bits<5> ra;
-	let Inst{3-0} = imm{7-4};
-	let Inst{11-4} = 0b00000000;
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b00;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110100;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SBerir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off, SimpleReg:$rb);
-	let AsmString        = "sb $endian, $ra, $off, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> rb; bits<1> endian; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b00;
-	let Inst{27} = endian{0};
-	let Inst{31-28} = 0b0100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SBesii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s12_imm:$off, su8_imm:$imm);
-	let AsmString        = "sb $endian, $sa, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<8> imm; bits<12> off; bits<1> endian; bits<5> sa;
-	let Inst{3-0} = imm{7-4};
-	let Inst{11-4} = 0b00000000;
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b00;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110101;
-	let Inst{38-34} = sa{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SBesir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s24_imm:$off, SimpleReg:$rb);
-	let AsmString        = "sb $endian, $sa, $off, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> sb; bits<1> endian; bits<5> sa;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = sb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b00;
-	let Inst{27} = endian{0};
-	let Inst{31-28} = 0b0101;
-	let Inst{33-32} = sb{4-3};
-	let Inst{38-34} = sa{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def SBrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, su8_imm:$imm);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, su8_imm:$imm);
 	let AsmString        = "sb $ra, $off, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<8> imm; bits<12> off; bits<5> ra;
-	let Inst{3-0} = imm{7-4};
-	let Inst{11-4} = 0b00000000;
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110100000;
+	bits<22> off; bits<8> imm; bits<5> ra;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{22} = 0b0;
+	let Inst{23} = imm{0};
+	let Inst{27-24} = 0b0000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
+	let Inst{41-39} = imm{3-1};
 	let Inst{47-42} = 0b011111;
 }
 
 def SBrir: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off, SimpleReg:$rb);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, SimpleReg:$rb);
 	let AsmString        = "sb $ra, $off, $rb";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> rb; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{31-25} = 0b0100000;
-	let Inst{33-32} = rb{4-3};
+	bits<22> off; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b011111000;
 }
 
-def SB_IDerii: DPUInstruction {
+def SB4rir: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s12_imm:$off, su8_imm:$imm);
-	let AsmString        = "sb_id $endian, $ra, $off, $imm";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, SimpleReg:$rb);
+	let AsmString        = "sb4 $ra, $off, $rb";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<8> imm; bits<12> off; bits<1> endian; bits<5> ra;
-	let Inst{3-0} = imm{7-4};
-	let Inst{11-4} = 0b00000000;
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b00;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110110;
+	bits<22> off; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0001010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b011111000;
 }
 
 def SB_IDri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off);
 	let AsmString        = "sb_id $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<12> off; bits<5> ra;
-	let Inst{11-0} = 0b000000000000;
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = 0b0000;
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110110000;
+	bits<22> off; bits<5> ra;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{33-22} = 0b110000010000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b011111000;
 }
 
 def SB_IDrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, su8_imm:$imm);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, su8_imm:$imm);
 	let AsmString        = "sb_id $ra, $off, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<8> imm; bits<12> off; bits<5> ra;
-	let Inst{3-0} = imm{7-4};
-	let Inst{11-4} = 0b00000000;
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110110000;
+	bits<22> off; bits<8> imm; bits<5> ra;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{22} = 0b0;
+	let Inst{23} = imm{0};
+	let Inst{27-24} = 0b0100;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SBSrii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, s8_imm:$imm);
-	let AsmString        = "sbs $ra, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<8> imm; bits<12> off; bits<5> ra;
-	let Inst{3-0} = imm{7-4};
-	let Inst{11-4} = 0b00000000;
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110101000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SBSrir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off, SimpleReg:$rb);
-	let AsmString        = "sbs $ra, $off, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> rb; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{31-25} = 0b0101000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SDerii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s12_imm:$off, s16_i64_imm:$imm);
-	let AsmString        = "sd $endian, $ra, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<1> endian; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b11;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110100;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SDerir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off, DoubleReg:$db);
-	let AsmString        = "sd $endian, $ra, $off, $db";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> db; bits<1> endian; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b1;
-	let Inst{19-17} = db{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b11;
-	let Inst{27} = endian{0};
-	let Inst{31-28} = 0b0100;
-	let Inst{33-32} = db{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SDesii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s12_imm:$off, s16_i64_imm:$imm);
-	let AsmString        = "sd $endian, $sa, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<1> endian; bits<5> sa;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b11;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110101;
-	let Inst{38-34} = sa{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SDesir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s24_imm:$off, DoubleReg:$db);
-	let AsmString        = "sd $endian, $sa, $off, $db";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> db; bits<1> endian; bits<5> sa;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b1;
-	let Inst{19-17} = db{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b11;
-	let Inst{27} = endian{0};
-	let Inst{31-28} = 0b0101;
-	let Inst{33-32} = db{4-3};
-	let Inst{38-34} = sa{4-0};
-	let Inst{41-39} = off{6-4};
+	let Inst{41-39} = imm{3-1};
 	let Inst{47-42} = 0b011111;
 }
 
 def SDrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, s16_i64_imm:$imm);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off, s16_i64_imm:$imm);
 	let AsmString        = "sd $ra, $off, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110100011;
+	bits<14> off; bits<16> imm; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = imm{15-8};
+	let Inst{21-14} = off{7-0};
+	let Inst{22} = 0b0;
+	let Inst{23} = imm{0};
+	let Inst{27-24} = 0b0011;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
+	let Inst{41-39} = imm{3-1};
 	let Inst{47-42} = 0b011111;
 }
 
 def SDrir: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off, DoubleReg:$db);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, DoubleReg:$db);
 	let AsmString        = "sd $ra, $off, $db";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> db; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b1;
-	let Inst{19-17} = db{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{31-25} = 0b0100011;
-	let Inst{33-32} = db{4-3};
+	bits<22> off; bits<5> db; bits<5> ra;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b1001100;
+	let Inst{33-29} = db{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SD_IDerii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s12_imm:$off, s16_i64_imm:$imm);
-	let AsmString        = "sd_id $endian, $ra, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<1> endian; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b11;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110110;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b011111000;
 }
 
 def SD_IDri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off);
 	let AsmString        = "sd_id $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<12> off; bits<5> ra;
-	let Inst{11-0} = 0b000000000000;
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = 0b0000;
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110110011;
+	bits<14> off; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = 0b00000000;
+	let Inst{21-14} = off{7-0};
+	let Inst{33-22} = 0b110000011100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b011111000;
 }
 
 def SD_IDrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, s16_i64_imm:$imm);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off, s16_i64_imm:$imm);
 	let AsmString        = "sd_id $ra, $off, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110110011;
+	bits<14> off; bits<16> imm; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = imm{15-8};
+	let Inst{21-14} = off{7-0};
+	let Inst{22} = 0b0;
+	let Inst{23} = imm{0};
+	let Inst{27-24} = 0b0111;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
+	let Inst{41-39} = imm{3-1};
 	let Inst{47-42} = 0b011111;
+}
+
+def SDMAriri: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off, SimpleReg:$rb, u8_imm:$immDma);
+	let AsmString        = "sdma $ra, $off, $rb, $immDma";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let hasSideEffects   = 1;
+	bits<14> off; bits<8> immDma; bits<5> rb; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = immDma{7-0};
+	let Inst{21-14} = off{7-0};
+	let Inst{28-22} = 0b0100010;
+	let Inst{33-29} = rb{4-0};
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b011111000;
 }
 
 def SDMArri: DPUInstruction {
@@ -18246,332 +15655,175 @@ def SDMArri: DPUInstruction {
 	let Pattern          = [(SDT_Sdma SimpleRegOrCst:$ra, SimpleReg:$rb, u8_imm:$immDma)];
 	let isAsCheapAsAMove = 1;
 	let hasSideEffects   = 1;
-	bits<5> rb; bits<8> immDma; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000010;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{31-24} = immDma{7-0};
-	let Inst{33-32} = rb{4-3};
+	bits<8> immDma; bits<5> rb; bits<5> ra;
+	let Inst{5-0} = 0b000000;
+	let Inst{13-6} = immDma{7-0};
+	let Inst{28-14} = 0b010001000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b011100000;
+	let Inst{47-39} = 0b011111000;
 }
 
-def SDSrii: DPUInstruction {
+def SDMAI4Brii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, s16_imm:$imm);
-	let AsmString        = "sds $ra, $off, $imm";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off, u8_imm:$immDma);
+	let AsmString        = "sdmai4b $ra, $off, $immDma";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110101011;
+	bits<14> off; bits<8> immDma; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = immDma{7-0};
+	let Inst{21-14} = off{7-0};
+	let Inst{33-22} = 0b000000100011;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b011111000;
 }
 
-def SDSrir: DPUInstruction {
+def SET_FLAGSr: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off, DoubleReg:$db);
-	let AsmString        = "sds $ra, $off, $db";
+	let InOperandList    = (ins SimpleRegOrCst:$ra);
+	let AsmString        = "set_flags $ra";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> db; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b1;
-	let Inst{19-17} = db{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{31-25} = 0b0101011;
-	let Inst{33-32} = db{4-3};
+	bits<5> ra;
+	let Inst{33-0} = 0b1111111111110000001100000000000000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SHerii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s12_imm:$off, su16_imm:$imm);
-	let AsmString        = "sh $endian, $ra, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<1> endian; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b01;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110100;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SHerir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off, SimpleReg:$rb);
-	let AsmString        = "sh $endian, $ra, $off, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> rb; bits<1> endian; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b01;
-	let Inst{27} = endian{0};
-	let Inst{31-28} = 0b0100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SHesii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s12_imm:$off, su16_imm:$imm);
-	let AsmString        = "sh $endian, $sa, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<1> endian; bits<5> sa;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b01;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110101;
-	let Inst{38-34} = sa{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SHesir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s24_imm:$off, SimpleReg:$rb);
-	let AsmString        = "sh $endian, $sa, $off, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> sb; bits<1> endian; bits<5> sa;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = sb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b01;
-	let Inst{27} = endian{0};
-	let Inst{31-28} = 0b0101;
-	let Inst{33-32} = sb{4-3};
-	let Inst{38-34} = sa{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b001111000;
 }
 
 def SHrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, su16_imm:$imm);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off, su16_imm:$imm);
 	let AsmString        = "sh $ra, $off, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110100001;
+	bits<14> off; bits<16> imm; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = imm{15-8};
+	let Inst{21-14} = off{7-0};
+	let Inst{22} = 0b0;
+	let Inst{23} = imm{0};
+	let Inst{27-24} = 0b0001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
+	let Inst{41-39} = imm{3-1};
 	let Inst{47-42} = 0b011111;
 }
 
 def SHrir: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off, SimpleReg:$rb);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, SimpleReg:$rb);
 	let AsmString        = "sh $ra, $off, $rb";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> rb; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{31-25} = 0b0100001;
-	let Inst{33-32} = rb{4-3};
+	bits<22> off; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0000100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SH_IDerii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s12_imm:$off, su16_imm:$imm);
-	let AsmString        = "sh_id $endian, $ra, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<1> endian; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b01;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110110;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b011111000;
 }
 
 def SH_IDri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off);
 	let AsmString        = "sh_id $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<12> off; bits<5> ra;
-	let Inst{11-0} = 0b000000000000;
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = 0b0000;
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110110001;
+	bits<14> off; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = 0b00000000;
+	let Inst{21-14} = off{7-0};
+	let Inst{33-22} = 0b110000010100;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b011111000;
 }
 
 def SH_IDrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, su16_imm:$imm);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off, su16_imm:$imm);
 	let AsmString        = "sh_id $ra, $off, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110110001;
+	bits<14> off; bits<16> imm; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = imm{15-8};
+	let Inst{21-14} = off{7-0};
+	let Inst{22} = 0b0;
+	let Inst{23} = imm{0};
+	let Inst{27-24} = 0b0101;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
+	let Inst{41-39} = imm{3-1};
 	let Inst{47-42} = 0b011111;
 }
 
-def SHSrii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, s16_imm:$imm);
-	let AsmString        = "shs $ra, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110101001;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SHSrir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off, SimpleReg:$rb);
-	let AsmString        = "shs $ra, $off, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> rb; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{31-25} = 0b0101001;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def STOP: DPUInstruction {
-	let OutOperandList   = (outs);
+def START_COUNTr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
 	let InOperandList    = (ins);
-	let AsmString        = "stop";
+	let AsmString        = "start_count $rc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	let Inst{47-0} = 0b011111101111001100100000000000000000000000000000;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111101001111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
+}
+
+def START_TIMEr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "start_time $rc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111110101111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
 }
 
 def STOPci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins boot_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins boot_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "stop $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b00000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{47-28} = 0b01111110111100110010;
+	bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{47-22} = 0b00111100011100111000010000;
+}
+
+def STOP_COUNTr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "stop_count $rc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111101011111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
+}
+
+def STOP_TIMEr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins);
+	let AsmString        = "stop_time $rc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rc;
+	let Inst{38-0} = 0b110001111111111111111111111111110111111;
+	let Inst{43-39} = rc{4-0};
+	let Inst{47-44} = 0b0101;
 }
 
 def SUBrir: DPUInstruction {
@@ -18581,14 +15833,10 @@ def SUBrir: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (sub u32_imm:$imm, SimpleRegOrCst:$ra))];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{31-28} = imm{7-4};
 	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
@@ -18597,20 +15845,19 @@ def SUBrir: DPUInstruction {
 
 def SUBrirc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins s24_imm:$imm, SimpleRegOrCst:$ra, sub_set_cc:$cc);
-	let AsmString        = "sub $rc, $imm, $ra, $cc";
+	let InOperandList    = (ins s22_imm:$off, SimpleRegOrCst:$ra, sub_nz_cc:$cc);
+	let AsmString        = "sub $rc, $off, $ra, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11010;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10110;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -18620,19 +15867,20 @@ def SUBrirc: DPUInstruction {
 
 def SUBrirci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub $rc, $imm, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11010;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10100;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -18647,14 +15895,16 @@ def SUBrirf: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1101000000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b101;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -18664,22 +15914,19 @@ def SUBrirf: DPUInstruction {
 
 def SUBrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, ext_sub_set_cc:$cc);
-	let AsmString        = "sub $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, sub_nz_cc:$cc);
+	let AsmString        = "sub $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<6> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11010;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -18689,21 +15936,20 @@ def SUBrric: DPUInstruction {
 
 def SUBrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<6> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -18718,14 +15964,16 @@ def SUBrrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110000000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -18740,10 +15988,8 @@ def SUBrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (sub SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01100000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -18753,19 +15999,15 @@ def SUBrrr: DPUInstruction {
 
 def SUBrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, ext_sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "sub $rc, $ra, $rb, $cc";
 	let Pattern          = [(set SimpleReg:$rc, (DPUSetCC (i32 imm:$cc), SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<6> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -18775,74 +16017,23 @@ def SUBrrrc: DPUInstruction {
 
 def SUBrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<6> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
 	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def SUBssi: DPUInstruction {
-	let OutOperandList   = (outs SafeReg:$sc);
-	let InOperandList    = (ins SafeRegOrCst:$sa, s17_imm:$imm);
-	let AsmString        = "sub $sc, $sa, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<17> imm; bits<5> sa; bits<5> sc;
-	let Inst{4-0} = imm{16-12};
-	let Inst{5} = imm{16};
-	let Inst{6} = imm{16};
-	let Inst{7} = imm{16};
-	let Inst{8} = imm{16};
-	let Inst{9} = imm{16};
-	let Inst{10} = imm{16};
-	let Inst{11} = imm{16};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010000;
-	let Inst{38-34} = sa{4-0};
-	let Inst{41-39} = sc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = sc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def SUBsss: DPUInstruction {
-	let OutOperandList   = (outs SafeReg:$sc);
-	let InOperandList    = (ins SafeRegOrCst:$sa, SafeReg:$sb);
-	let AsmString        = "sub $sc, $sa, $sb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> sa; bits<5> sb; bits<5> sc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = sa{2-0};
-	let Inst{31-20} = 0b010100001100;
-	let Inst{33-32} = sa{4-3};
-	let Inst{38-34} = sb{4-0};
-	let Inst{41-39} = sc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = sc{4-3};
 	let Inst{47-46} = 0b00;
 }
 
@@ -18853,58 +16044,36 @@ def SUBzir: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{38-37} = 0b11;
 	let Inst{39} = imm{7};
 	let Inst{47-40} = 0b01100010;
 }
 
-def SUBzirc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, s27_imm:$imm, SimpleRegOrCst:$ra, sub_set_cc:$cc);
-	let AsmString        = "sub $zero, $imm, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<27> imm; bits<5> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
-}
-
 def SUBzirci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, s11_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, s12_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub $zero, $imm, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11010;
+	bits<14> pc; bits<12> imm; bits<5> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b101;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -18912,64 +16081,44 @@ def SUBzirci: DPUInstruction {
 
 def SUBzirf: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, s27_imm:$imm, SimpleRegOrCst:$ra, false_cc:$cc);
+	let InOperandList    = (ins ZeroRegister:$zero, s24_imm:$imm, SimpleRegOrCst:$ra, false_cc:$cc);
 	let AsmString        = "sub $zero, $imm, $ra, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<27> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1101000000;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b101;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
-}
-
-def SUBzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s27_imm:$imm, ext_sub_set_cc:$cc);
-	let AsmString        = "sub $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<27> imm; bits<6> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
+	let Inst{47-39} = 0b001111000;
 }
 
 def SUBzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s11_imm:$imm, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<6> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<14> pc; bits<12> imm; bits<5> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -18977,22 +16126,23 @@ def SUBzrici: DPUInstruction {
 
 def SUBzrif: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s27_imm:$imm, false_cc:$cc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
 	let AsmString        = "sub $zero, $ra, $imm, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<27> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110000000;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
+	let Inst{47-39} = 0b001111000;
 }
 
 def SUBzrr: DPUInstruction {
@@ -19002,72 +16152,46 @@ def SUBzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100000001100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def SUBzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, ext_sub_set_cc:$cc);
-	let AsmString        = "sub $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<6> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01100000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def SUBzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<6> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def SUB_Srirc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s24_imm:$imm, SimpleRegOrCst:$ra, sub_set_cc:$cc);
-	let AsmString        = "sub.s $dc, $imm, $ra, $cc";
+	let InOperandList    = (ins s22_imm:$off, SimpleRegOrCst:$ra, sub_nz_cc:$cc);
+	let AsmString        = "sub.s $dc, $off, $ra, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11010;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10110;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19078,19 +16202,20 @@ def SUB_Srirc: DPUInstruction {
 
 def SUB_Srirci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub.s $dc, $imm, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11010;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10100;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19106,14 +16231,16 @@ def SUB_Srirf: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1101000000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b101;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19124,22 +16251,19 @@ def SUB_Srirf: DPUInstruction {
 
 def SUB_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, ext_sub_set_cc:$cc);
-	let AsmString        = "sub.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, sub_nz_cc:$cc);
+	let AsmString        = "sub.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<6> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11010;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19150,21 +16274,20 @@ def SUB_Srric: DPUInstruction {
 
 def SUB_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<6> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19180,14 +16303,16 @@ def SUB_Srrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110000000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19203,10 +16328,8 @@ def SUB_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01100000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19217,19 +16340,15 @@ def SUB_Srrr: DPUInstruction {
 
 def SUB_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, ext_sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "sub.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<6> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19240,23 +16359,19 @@ def SUB_Srrrc: DPUInstruction {
 
 def SUB_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<6> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19267,20 +16382,19 @@ def SUB_Srrrci: DPUInstruction {
 
 def SUB_Urirc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s24_imm:$imm, SimpleRegOrCst:$ra, sub_set_cc:$cc);
-	let AsmString        = "sub.u $dc, $imm, $ra, $cc";
+	let InOperandList    = (ins s22_imm:$off, SimpleRegOrCst:$ra, sub_nz_cc:$cc);
+	let AsmString        = "sub.u $dc, $off, $ra, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11010;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10110;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -19291,19 +16405,20 @@ def SUB_Urirc: DPUInstruction {
 
 def SUB_Urirci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub.u $dc, $imm, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11010;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10100;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -19319,14 +16434,16 @@ def SUB_Urirf: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1101000000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b101;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -19337,22 +16454,19 @@ def SUB_Urirf: DPUInstruction {
 
 def SUB_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, ext_sub_set_cc:$cc);
-	let AsmString        = "sub.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, sub_nz_cc:$cc);
+	let AsmString        = "sub.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<6> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11010;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -19363,21 +16477,20 @@ def SUB_Urric: DPUInstruction {
 
 def SUB_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<6> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -19393,14 +16506,16 @@ def SUB_Urrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110000000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b0;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -19416,10 +16531,8 @@ def SUB_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b100000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01100000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -19430,19 +16543,15 @@ def SUB_Urrr: DPUInstruction {
 
 def SUB_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, ext_sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "sub.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<6> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011010;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -19453,23 +16562,19 @@ def SUB_Urrrc: DPUInstruction {
 
 def SUB_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "sub.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<6> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b0;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -19485,14 +16590,10 @@ def SUBCrir: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{31-28} = imm{7-4};
 	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
@@ -19501,20 +16602,19 @@ def SUBCrir: DPUInstruction {
 
 def SUBCrirc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins s24_imm:$imm, SimpleRegOrCst:$ra, sub_set_cc:$cc);
-	let AsmString        = "subc $rc, $imm, $ra, $cc";
+	let InOperandList    = (ins s22_imm:$off, SimpleRegOrCst:$ra, sub_nz_cc:$cc);
+	let AsmString        = "subc $rc, $off, $ra, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11011;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10111;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -19524,19 +16624,20 @@ def SUBCrirc: DPUInstruction {
 
 def SUBCrirci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc $rc, $imm, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11011;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10101;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -19551,14 +16652,16 @@ def SUBCrirf: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1101100000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b101;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -19568,22 +16671,19 @@ def SUBCrirf: DPUInstruction {
 
 def SUBCrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, ext_sub_set_cc:$cc);
-	let AsmString        = "subc $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, sub_nz_cc:$cc);
+	let AsmString        = "subc $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<6> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11011;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -19593,21 +16693,20 @@ def SUBCrric: DPUInstruction {
 
 def SUBCrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<6> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -19622,14 +16721,16 @@ def SUBCrrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110100000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -19644,10 +16745,8 @@ def SUBCrrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b101000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01100100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -19657,19 +16756,15 @@ def SUBCrrr: DPUInstruction {
 
 def SUBCrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, ext_sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "subc $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<6> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -19679,23 +16774,19 @@ def SUBCrrrc: DPUInstruction {
 
 def SUBCrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<6> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
 	let Inst{43-42} = 0b11;
@@ -19710,58 +16801,36 @@ def SUBCzir: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{38-37} = 0b11;
 	let Inst{39} = imm{7};
 	let Inst{47-40} = 0b01100011;
 }
 
-def SUBCzirc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, s27_imm:$imm, SimpleRegOrCst:$ra, sub_set_cc:$cc);
-	let AsmString        = "subc $zero, $imm, $ra, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<27> imm; bits<5> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11011;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
-}
-
 def SUBCzirci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, s11_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, s12_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc $zero, $imm, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<5> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11011;
+	bits<14> pc; bits<12> imm; bits<5> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b101;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -19769,64 +16838,44 @@ def SUBCzirci: DPUInstruction {
 
 def SUBCzirf: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, s27_imm:$imm, SimpleRegOrCst:$ra, false_cc:$cc);
+	let InOperandList    = (ins ZeroRegister:$zero, s24_imm:$imm, SimpleRegOrCst:$ra, false_cc:$cc);
 	let AsmString        = "subc $zero, $imm, $ra, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<27> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1101100000;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b101;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
-}
-
-def SUBCzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s27_imm:$imm, ext_sub_set_cc:$cc);
-	let AsmString        = "subc $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<27> imm; bits<6> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
+	let Inst{47-39} = 0b001111000;
 }
 
 def SUBCzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s11_imm:$imm, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<11> imm; bits<6> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<14> pc; bits<12> imm; bits<5> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
 	let Inst{47-42} = 0b001111;
@@ -19834,22 +16883,23 @@ def SUBCzrici: DPUInstruction {
 
 def SUBCzrif: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s27_imm:$imm, false_cc:$cc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
 	let AsmString        = "subc $zero, $ra, $imm, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<27> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110100000;
+	bits<24> imm; bits<5> ra;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{47-42} = 0b001111;
+	let Inst{47-39} = 0b001111000;
 }
 
 def SUBCzrr: DPUInstruction {
@@ -19859,72 +16909,46 @@ def SUBCzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b101000001100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b001111000;
-}
-
-def SUBCzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, ext_sub_set_cc:$cc);
-	let AsmString        = "subc $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<6> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01100100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def SUBCzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<6> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<5> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
 }
 
 def SUBC_Srirc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s24_imm:$imm, SimpleRegOrCst:$ra, sub_set_cc:$cc);
-	let AsmString        = "subc.s $dc, $imm, $ra, $cc";
+	let InOperandList    = (ins s22_imm:$off, SimpleRegOrCst:$ra, sub_nz_cc:$cc);
+	let AsmString        = "subc.s $dc, $off, $ra, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11011;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10111;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19935,19 +16959,20 @@ def SUBC_Srirc: DPUInstruction {
 
 def SUBC_Srirci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc.s $dc, $imm, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11011;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10101;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19963,14 +16988,16 @@ def SUBC_Srirf: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1101100000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b101;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -19981,22 +17008,19 @@ def SUBC_Srirf: DPUInstruction {
 
 def SUBC_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, ext_sub_set_cc:$cc);
-	let AsmString        = "subc.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, sub_nz_cc:$cc);
+	let AsmString        = "subc.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<6> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11011;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -20007,21 +17031,20 @@ def SUBC_Srric: DPUInstruction {
 
 def SUBC_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<6> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -20037,14 +17060,16 @@ def SUBC_Srrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110100000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -20060,10 +17085,8 @@ def SUBC_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b101000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01100100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -20074,19 +17097,15 @@ def SUBC_Srrr: DPUInstruction {
 
 def SUBC_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, ext_sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "subc.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<6> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -20097,23 +17116,19 @@ def SUBC_Srrrc: DPUInstruction {
 
 def SUBC_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<6> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
 	let Inst{41-40} = dc{2-1};
@@ -20124,20 +17139,19 @@ def SUBC_Srrrci: DPUInstruction {
 
 def SUBC_Urirc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s24_imm:$imm, SimpleRegOrCst:$ra, sub_set_cc:$cc);
-	let AsmString        = "subc.u $dc, $imm, $ra, $cc";
+	let InOperandList    = (ins s22_imm:$off, SimpleRegOrCst:$ra, sub_nz_cc:$cc);
+	let AsmString        = "subc.u $dc, $off, $ra, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11011;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10111;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -20148,19 +17162,20 @@ def SUBC_Urirc: DPUInstruction {
 
 def SUBC_Urirci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins s8_imm:$imm, SimpleRegOrCst:$ra, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc.u $dc, $imm, $ra, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<5> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{33-29} = 0b11011;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b10101;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -20176,14 +17191,16 @@ def SUBC_Urirf: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1101100000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b101;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -20194,22 +17211,19 @@ def SUBC_Urirf: DPUInstruction {
 
 def SUBC_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, ext_sub_set_cc:$cc);
-	let AsmString        = "subc.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, sub_nz_cc:$cc);
+	let AsmString        = "subc.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<6> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<22> off; bits<5> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11011;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -20220,21 +17234,20 @@ def SUBC_Urric: DPUInstruction {
 
 def SUBC_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<6> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{33-31} = 0b111;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{22-18} = cc{4-0};
+	let Inst{27-23} = 0b11001;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -20250,14 +17263,16 @@ def SUBC_Urrif: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110100000;
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = 0b0000;
+	let Inst{22} = imm{22};
+	let Inst{23} = 0b1;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b110;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{23};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -20273,10 +17288,8 @@ def SUBC_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b101000001100;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b01100100000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -20287,19 +17300,15 @@ def SUBC_Urrr: DPUInstruction {
 
 def SUBC_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, ext_sub_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc);
 	let AsmString        = "subc.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<6> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011011;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -20310,23 +17319,19 @@ def SUBC_Urrrc: DPUInstruction {
 
 def SUBC_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, sub_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "subc.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<6> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1100;
-	let Inst{28-24} = cc{4-0};
-	let Inst{29} = 0b1;
-	let Inst{30} = cc{5};
-	let Inst{31} = 0b1;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<5> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{22-18} = cc{4-0};
+	let Inst{28-23} = 0b011001;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
 	let Inst{41-40} = dc{2-1};
@@ -20335,255 +17340,74 @@ def SUBC_Urrrci: DPUInstruction {
 	let Inst{47-46} = 0b01;
 }
 
-def SUBSrri: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s17_imm:$imm);
-	let AsmString        = "subs $rc, $ra, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<17> imm; bits<5> ra; bits<5> rc;
-	let Inst{4-0} = imm{16-12};
-	let Inst{5} = imm{16};
-	let Inst{6} = imm{16};
-	let Inst{7} = imm{16};
-	let Inst{8} = imm{16};
-	let Inst{9} = imm{16};
-	let Inst{10} = imm{16};
-	let Inst{11} = imm{16};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110010000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def SUBSrrr: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb);
-	let AsmString        = "subs $rc, $ra, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> ra; bits<5> rb; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = ra{2-0};
-	let Inst{31-20} = 0b010100001100;
-	let Inst{33-32} = ra{4-3};
-	let Inst{38-34} = rb{4-0};
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def SWerii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s12_imm:$off, s16_imm:$imm);
-	let AsmString        = "sw $endian, $ra, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<1> endian; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b10;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110100;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SWerir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s24_imm:$off, SimpleReg:$rb);
-	let AsmString        = "sw $endian, $ra, $off, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> rb; bits<1> endian; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b10;
-	let Inst{27} = endian{0};
-	let Inst{31-28} = 0b0100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SWesii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s12_imm:$off, s16_imm:$imm);
-	let AsmString        = "sw $endian, $sa, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<1> endian; bits<5> sa;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b10;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110101;
-	let Inst{38-34} = sa{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SWesir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SafeRegOrCst:$sa, s24_imm:$off, SimpleReg:$rb);
-	let AsmString        = "sw $endian, $sa, $off, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> sb; bits<1> endian; bits<5> sa;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = sb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b10;
-	let Inst{27} = endian{0};
-	let Inst{31-28} = 0b0101;
-	let Inst{33-32} = sb{4-3};
-	let Inst{38-34} = sa{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
 def SWrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, s16_imm:$imm);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off, s16_imm:$imm);
 	let AsmString        = "sw $ra, $off, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110100010;
+	bits<14> off; bits<16> imm; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = imm{15-8};
+	let Inst{21-14} = off{7-0};
+	let Inst{22} = 0b0;
+	let Inst{23} = imm{0};
+	let Inst{27-24} = 0b0010;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
+	let Inst{41-39} = imm{3-1};
 	let Inst{47-42} = 0b011111;
 }
 
 def SWrir: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off, SimpleReg:$rb);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, SimpleReg:$rb);
 	let AsmString        = "sw $ra, $off, $rb";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> rb; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{31-25} = 0b0100010;
-	let Inst{33-32} = rb{4-3};
+	bits<22> off; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = off{21-8};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = off{7-4};
+	let Inst{28-22} = 0b0001000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SW_IDerii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins endian:$endian, SimpleRegOrCst:$ra, s12_imm:$off, s16_imm:$imm);
-	let AsmString        = "sw_id $endian, $ra, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<1> endian; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{26-25} = 0b10;
-	let Inst{27} = endian{0};
-	let Inst{33-28} = 0b110110;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b011111000;
 }
 
 def SW_IDri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off);
 	let AsmString        = "sw_id $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<12> off; bits<5> ra;
-	let Inst{11-0} = 0b000000000000;
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = 0b0000;
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110110010;
+	bits<14> off; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = 0b00000000;
+	let Inst{21-14} = off{7-0};
+	let Inst{33-22} = 0b110000011000;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{47-39} = 0b011111000;
 }
 
 def SW_IDrii: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, s16_imm:$imm);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s14_imm:$off, s16_imm:$imm);
 	let AsmString        = "sw_id $ra, $off, $imm";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110110010;
+	bits<14> off; bits<16> imm; bits<5> ra;
+	let Inst{5-0} = off{13-8};
+	let Inst{13-6} = imm{15-8};
+	let Inst{21-14} = off{7-0};
+	let Inst{22} = 0b0;
+	let Inst{23} = imm{0};
+	let Inst{27-24} = 0b0110;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
+	let Inst{41-39} = imm{3-1};
 	let Inst{47-42} = 0b011111;
 }
 
@@ -20594,399 +17418,48 @@ def SWAPDrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> db; bits<5> dc;
-	let Inst{16-0} = 0b10000000000000000;
-	let Inst{19-17} = db{2-0};
-	let Inst{31-20} = 0b101000000000;
-	let Inst{33-32} = db{4-3};
+	let Inst{28-0} = 0b10100000000000000000000000000;
+	let Inst{33-29} = db{4-0};
 	let Inst{38-34} = 0b11000;
-	let Inst{43-39} = dc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = dc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def SWAPDrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins DoubleReg:$db, true_false_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins DoubleReg:$db, true_false_cc:$cc, pc14:$pc);
 	let AsmString        = "swapd $dc, $db, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> db; bits<4> cc; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b1;
-	let Inst{19-17} = db{2-0};
-	let Inst{23-20} = 0b0000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1010;
-	let Inst{33-32} = db{4-3};
+	bits<14> pc; bits<4> cc; bits<5> db; bits<5> dc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b1010000;
+	let Inst{33-29} = db{4-0};
 	let Inst{38-34} = 0b11000;
-	let Inst{43-39} = dc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def SWSrii: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off, s16_imm:$imm);
-	let AsmString        = "sws $ra, $off, $imm";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<16> imm; bits<12> off; bits<5> ra;
-	let Inst{11-0} = imm{15-4};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = imm{3-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{33-25} = 0b110101010;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
-}
-
-def SWSrir: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off, SimpleReg:$rb);
-	let AsmString        = "sws $ra, $off, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> rb; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = off{3-0};
-	let Inst{24} = off{7};
-	let Inst{31-25} = 0b0101010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = off{6-4};
-	let Inst{47-42} = 0b011111;
+	let Inst{41-39} = dc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def TELLri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleReg:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleReg:$ra, s14_imm:$off);
 	let AsmString        = "tell $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> off; bits<5> ra;
-	let Inst{11-0} = off{23-12};
-	let Inst{12} = off{11};
-	let Inst{13} = off{10};
-	let Inst{14} = off{9};
-	let Inst{15} = off{8};
-	let Inst{19-16} = off{7-4};
-	let Inst{23-20} = off{3-0};
-	let Inst{33-24} = 0b1100000000;
+	bits<14> off; bits<5> ra;
+	let Inst{13-0} = off{13-0};
+	let Inst{33-14} = 0b11010011111100000001;
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b011111000;
-}
-
-def TIMEr: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins);
-	let AsmString        = "time $rc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rc;
-	let Inst{38-0} = 0b110000000100000100000000000000000000000;
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def TIMErci: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins true_cc:$cc, pc16:$pc);
-	let AsmString        = "time $rc, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b10000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{38-28} = 0b11000000010;
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def TIMEz: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero);
-	let AsmString        = "time $zero";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let Inst{47-0} = 0b001111000110000000100000100000000000000000000000;
-}
-
-def TIMEzci: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, true_cc:$cc, pc16:$pc);
-	let AsmString        = "time $zero, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b10000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{47-28} = 0b00111100011000000010;
-}
-
-def TIME_Sr: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins);
-	let AsmString        = "time.s $dc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> dc;
-	let Inst{39-0} = 0b1110000000100000100000000000000000000000;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def TIME_Srci: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins true_cc:$cc, pc16:$pc);
-	let AsmString        = "time.s $dc, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b10000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{39-28} = 0b111000000010;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def TIME_Ur: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins);
-	let AsmString        = "time.u $dc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> dc;
-	let Inst{39-0} = 0b0110000000100000100000000000000000000000;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def TIME_Urci: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins true_cc:$cc, pc16:$pc);
-	let AsmString        = "time.u $dc, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<4> cc; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{23-16} = 0b10000000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{39-28} = 0b011000000010;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def TIME_CFGr: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleReg:$rb);
-	let AsmString        = "time_cfg $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b001000001000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{47-34} = 0b00111100011001;
-}
-
-def TIME_CFGrr: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleReg:$rb);
-	let AsmString        = "time_cfg $rc, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b001000001000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = 0b11001;
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def TIME_CFGrrci: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleReg:$rb, true_cc:$cc, pc16:$pc);
-	let AsmString        = "time_cfg $rc, $rb, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = 0b11001;
-	let Inst{41-39} = rc{2-0};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = rc{4-3};
-	let Inst{47-46} = 0b00;
-}
-
-def TIME_CFGzr: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb);
-	let AsmString        = "time_cfg $zero, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b001000001000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{47-34} = 0b00111100011001;
-}
-
-def TIME_CFGzrci: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
-	let AsmString        = "time_cfg $zero, $rb, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{47-34} = 0b00111100011001;
-}
-
-def TIME_CFG_Srr: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb);
-	let AsmString        = "time_cfg.s $dc, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b001000001000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{39-34} = 0b111001;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def TIME_CFG_Srrci: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, true_cc:$cc, pc16:$pc);
-	let AsmString        = "time_cfg.s $dc, $rb, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{39-34} = 0b111001;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def TIME_CFG_Urr: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb);
-	let AsmString        = "time_cfg.u $dc, $rb";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b001000001000;
-	let Inst{33-32} = rb{4-3};
-	let Inst{39-34} = 0b011001;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
-}
-
-def TIME_CFG_Urrci: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleReg:$rb, true_cc:$cc, pc16:$pc);
-	let AsmString        = "time_cfg.u $dc, $rb, $cc, $pc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	let isBranch         = 1;
-	let isCompare        = 1;
-	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> dc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0010;
-	let Inst{33-32} = rb{4-3};
-	let Inst{39-34} = 0b011001;
-	let Inst{41-40} = dc{2-1};
-	let Inst{43-42} = 0b11;
-	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b01;
+	let Inst{47-39} = 0b001111000;
 }
 
 def XORrri: DPUInstruction {
@@ -20996,14 +17469,10 @@ def XORrri: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (xor SimpleRegOrCst:$ra, u32_imm:$imm))];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{31-28} = imm{7-4};
 	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{43-39} = rc{4-0};
@@ -21012,63 +17481,47 @@ def XORrri: DPUInstruction {
 
 def XORrric: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "xor $rc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "xor $rc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111000;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> rc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000100;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def XORrrici: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "xor $rc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111000;
+	bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
-}
-
-def XORrrif: DPUInstruction {
-	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "xor $rc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> rc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110000000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def XORrrr: DPUInstruction {
@@ -21078,53 +17531,53 @@ def XORrrr: DPUInstruction {
 	let Pattern          = [(set SimpleReg:$rc, (xor SimpleRegOrCst:$ra, SimpleReg:$rb))];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def XORrrrc: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "xor $rc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> rc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def XORrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "xor $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc; bits<5> rc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{43-39} = rc{4-0};
-	let Inst{47-44} = 0b1000;
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
 }
 
 def XORzri: DPUInstruction {
@@ -21134,87 +17587,39 @@ def XORzri: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<32> imm; bits<5> rb;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = imm{3-0};
-	let Inst{31-24} = imm{31-24};
-	let Inst{33-32} = rb{4-3};
+	let Inst{13-0} = imm{21-8};
+	let Inst{17-14} = imm{3-0};
+	let Inst{27-18} = imm{31-22};
+	let Inst{28} = 0b0;
+	let Inst{33-29} = rb{4-0};
 	let Inst{36-34} = imm{6-4};
 	let Inst{38-37} = 0b11;
 	let Inst{39} = imm{7};
 	let Inst{47-40} = 0b01100100;
 }
 
-def XORzric: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "xor $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<4> cc; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
-}
-
 def XORzrici: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "xor $zero, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<12> imm; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111000;
+	bits<14> pc; bits<12> imm; bits<4> cc; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{23-22} = 0b00;
+	let Inst{24} = imm{7};
+	let Inst{27-25} = 0b000;
+	let Inst{30-28} = imm{6-4};
+	let Inst{31} = imm{11};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = imm{10-8};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{11};
-	let Inst{47-45} = 0b100;
-}
-
-def XORzrif: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s28_imm:$imm, false_cc:$cc);
-	let AsmString        = "xor $zero, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<28> imm; bits<5> ra;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110000000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{41-39} = imm{26-24};
-	let Inst{43-42} = 0b11;
-	let Inst{44} = imm{27};
-	let Inst{47-45} = 0b100;
+	let Inst{47-42} = 0b001111;
 }
 
 def XORzrr: DPUInstruction {
@@ -21224,114 +17629,76 @@ def XORzrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
-}
-
-def XORzrrc: DPUInstruction {
-	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
-	let AsmString        = "xor $zero, $ra, $rb, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
-	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def XORzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "xor $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<14> pc; bits<4> cc; bits<5> rb; bits<5> ra;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
-	let Inst{47-39} = 0b100011000;
+	let Inst{47-39} = 0b001111000;
 }
 
 def XOR_Srric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "xor.s $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "xor.s $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111000;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000100;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def XOR_Srrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "xor.s $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111000;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def XOR_Srrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "xor.s $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110000000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def XOR_Srrr: DPUInstruction {
@@ -21341,120 +17708,103 @@ def XOR_Srrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def XOR_Srrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "xor.s $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def XOR_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "xor.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def XOR_Urric: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, log_set_cc:$cc);
-	let AsmString        = "xor.u $dc, $ra, $imm, $cc";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s22_imm:$off, log_nz_cc:$cc);
+	let AsmString        = "xor.u $dc, $ra, $off, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111000;
+	bits<22> off; bits<4> cc; bits<5> ra; bits<5> dc;
+	let Inst{12-0} = off{20-8};
+	let Inst{13} = off{7};
+	let Inst{17-14} = off{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000100;
+	let Inst{30-28} = off{6-4};
+	let Inst{31} = off{21};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def XOR_Urrici: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "xor.u $dc, $ra, $imm, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> ra; bits<16> pc; bits<8> imm; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{27-24} = cc{3-0};
-	let Inst{33-28} = 0b111000;
+	bits<5> dc; bits<5> ra; bits<14> pc; bits<8> imm; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = imm{3-0};
+	let Inst{21-18} = cc{3-0};
+	let Inst{27-22} = 0b000000;
+	let Inst{31-28} = imm{7-4};
+	let Inst{33-32} = 0b11;
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
-}
-
-def XOR_Urrif: DPUInstruction {
-	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm, false_cc:$cc);
-	let AsmString        = "xor.u $dc, $ra, $imm, $cc";
-	let Pattern          = [];
-	let isAsCheapAsAMove = 1;
-	bits<24> imm; bits<5> ra; bits<5> dc;
-	let Inst{11-0} = imm{23-12};
-	let Inst{12} = imm{11};
-	let Inst{13} = imm{10};
-	let Inst{14} = imm{9};
-	let Inst{15} = imm{8};
-	let Inst{19-16} = imm{7-4};
-	let Inst{23-20} = imm{3-0};
-	let Inst{33-24} = 0b1110000000;
-	let Inst{38-34} = ra{4-0};
-	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def XOR_Urrr: DPUInstruction {
@@ -21464,55 +17814,55 @@ def XOR_Urrr: DPUInstruction {
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	bits<5> rb; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b110000001000;
-	let Inst{33-32} = rb{4-3};
+	let Inst{28-0} = 0b00000000000000000000000000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def XOR_Urrrc: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_set_cc:$cc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc);
 	let AsmString        = "xor.u $dc, $ra, $rb, $cc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	bits<5> rb; bits<4> cc; bits<5> ra; bits<5> dc;
-	let Inst{16-0} = 0b00000000000000000;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<4> cc; bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{17-0} = 0b000000000000000000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000100;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 
 def XOR_Urrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, log_nz_cc:$cc, pc14:$pc);
 	let AsmString        = "xor.u $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isCompare        = 1;
 	let isTerminator     = 1;
-	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
-	let Inst{15-0} = pc{15-0};
-	let Inst{16} = 0b0;
-	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b1000;
-	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b1100;
-	let Inst{33-32} = rb{4-3};
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<14> pc; bits<4> cc;
+	let Inst{13-0} = pc{13-0};
+	let Inst{17-14} = 0b0000;
+	let Inst{21-18} = cc{3-0};
+	let Inst{28-22} = 0b0000000;
+	let Inst{33-29} = rb{4-0};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b0;
-	let Inst{43-40} = dc{4-1};
-	let Inst{47-44} = 0b1001;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
 }
 

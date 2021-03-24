@@ -352,12 +352,6 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
     OpNullJumpOpc = DPU::XORzrrci;
     usableConditions = normalConditionsSet;
     break;
-  case DPU::NXORrri:
-    OpPrototype = OprriLimited;
-    OpJumpOpc = DPU::NXORrrici;
-    OpNullJumpOpc = DPU::NXORzrici;
-    usableConditions = normalConditionsSet;
-    break;
   case DPU::NXORrrr:
     OpPrototype = Oprrr;
     OpJumpOpc = DPU::NXORrrrci;
@@ -613,7 +607,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
   case DPU::NOTrr:
     OpPrototype = Oprr;
     OpJumpOpc = DPU::NOTrrci;
-    OpNullJumpOpc = DPU::NOTrci;
+    OpNullJumpOpc = DPU::NOTzrci;
     usableConditions = normalConditionsSet;
     break;
   }

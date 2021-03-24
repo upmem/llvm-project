@@ -121,11 +121,10 @@ bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       StackSize = MF->getFrameInfo().getStackSize();
     }
     unsigned int ResultReg = MI.getOperand(0).getReg();
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::SUBrrif))
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::ADDrri))
         .addReg(ResultReg)
         .addReg(DPU::R22)
-        .addImm(StackSize + STACK_SIZE_FOR_D22)
-        .addImm(DPUAsmCondition::Condition::False);
+        .addImm(-(StackSize + STACK_SIZE_FOR_D22));
     break;
   }
   }
