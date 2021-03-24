@@ -26,22 +26,21 @@ enum Fixups {
 
   FIXUP_DPU_32,
   FIXUP_DPU_PC,
+  FIXUP_DPU_IMM4,
   FIXUP_DPU_IMM5,
+  FIXUP_DPU_IMM5_RB,
+  FIXUP_DPU_IMM5_RB_INV,
+  FIXUP_DPU_IMM8,
   FIXUP_DPU_IMM8_DMA,
-  FIXUP_DPU_IMM24_PC,
-  FIXUP_DPU_IMM27_PC,
-  FIXUP_DPU_IMM28_PC_OPC8,
   FIXUP_DPU_IMM8_STR,
-  FIXUP_DPU_IMM12_STR,
+  FIXUP_DPU_IMM12,
+  FIXUP_DPU_IMM14_STR,
   FIXUP_DPU_IMM16_STR,
-  FIXUP_DPU_IMM16_ATM,
+  FIXUP_DPU_IMM22,
+  FIXUP_DPU_IMM22_RB,
   FIXUP_DPU_IMM24,
-  FIXUP_DPU_IMM24_RB,
-  FIXUP_DPU_IMM27,
-  FIXUP_DPU_IMM28,
   FIXUP_DPU_IMM32,
   FIXUP_DPU_IMM32_ZERO_RB,
-  FIXUP_DPU_IMM17_24,
   FIXUP_DPU_IMM32_DUS_RB,
 
   // Marker
@@ -59,94 +58,55 @@ static inline void applyDPUFixup(uint64_t &Data, uint64_t Value, Fixups Kind) {
     Data |= (((Value >> 0) & 0xffffffffl) << 0);
     break;
   case FIXUP_DPU_PC:
-    Data |= (((Value >> 0) & 0xffffl) << 0);
+    Data |= (((Value >> 0) & 0x3fffl) << 0);
+    break;
+  case FIXUP_DPU_IMM4:
+    Data |= (((Value >> 0) & 15) << 14);
     break;
   case FIXUP_DPU_IMM5:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0x1l) << 28);
+    Data |= (((Value >> 0) & 15) << 14) | (((Value >> 4) & 1) << 28);
+    break;
+  case FIXUP_DPU_IMM5_RB:
+    Data |= (((Value >> 0) & 15) << 14) | (((Value >> 4) & 1) << 24);
+    break;
+  case FIXUP_DPU_IMM5_RB_INV:
+    Data |= ((((~Value) >> 0) & 15) << 14) | ((((~Value) >> 4) & 1) << 24);
+    break;
+  case FIXUP_DPU_IMM8:
+    Data |= (((Value >> 0) & 15) << 14) | (((Value >> 4) & 15) << 28);
     break;
   case FIXUP_DPU_IMM8_DMA:
-    Data |= (((Value >> 0) & 0xffl) << 24);
-    break;
-  case FIXUP_DPU_IMM24_PC:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0xfl) << 16);
-    break;
-  case FIXUP_DPU_IMM27_PC:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0xfl) << 16) |
-            (((Value >> 8) & 0x7l) << 39);
-    break;
-  case FIXUP_DPU_IMM28_PC_OPC8:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0xfl) << 16) |
-            (((Value >> 8) & 0x7l) << 39) | (((Value >> 11) & 0x1l) << 44);
+    Data |= (((Value >> 0) & 0xffl) << 6);
     break;
   case FIXUP_DPU_IMM8_STR:
-    Data |= (((Value >> 0) & 0xfl) << 16) | (((Value >> 4) & 0xfl) << 0);
+    Data |= (((Value >> 0) & 1) << 23) | (((Value >> 1) & 7) << 39) | (((Value >> 4) & 15) << 28);
     break;
-  case FIXUP_DPU_IMM12_STR:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0x7l) << 39) |
-            (((Value >> 7) & 0x1l) << 24) | (((Value >> 8) & 0x1l) << 15) |
-            (((Value >> 9) & 0x1l) << 14) | (((Value >> 10) & 0x1l) << 13) |
-            (((Value >> 11) & 0x1l) << 12);
+  case FIXUP_DPU_IMM12:
+    Data |= (((Value >> 0) & 15) << 14) | (((Value >> 4) & 7) << 28) | (((Value >> 7) & 1) << 24) | (((Value >> 8) & 7) << 39) | (((Value >> 11) & 1) << 31);
+    break;
+  case FIXUP_DPU_IMM14_STR:
+    Data |= (((Value >> 8) & 63) << 0) | (((Value >> 0) & 255) << 14);
     break;
   case FIXUP_DPU_IMM16_STR:
-    Data |= (((Value >> 0) & 0xfl) << 16) | (((Value >> 4) & 0xfffl) << 0);
+    Data |= (((Value >> 0) & 1) << 23) | (((Value >> 1) & 7) << 39) | (((Value >> 4) & 15) << 28) | (((Value >> 8) & 255) << 6);
     break;
-  case FIXUP_DPU_IMM16_ATM:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0xfl) << 16) |
-            (((Value >> 8) & 0x1fl) << 26) | (((Value >> 13) & 0x7l) << 39);
+  case FIXUP_DPU_IMM22:
+    Data |= (((Value >> 8) & 16383) << 0) | (((Value >> 0) & 15) << 14) | (((Value >> 4) & 15) << 18);
+    break;
+  case FIXUP_DPU_IMM22_RB:
+    Data |= (((Value >> 0) & 15) << 14) | (((Value >> 4) & 7) << 28) | (((Value >> 7) & 1) << 13) | (((Value >> 8) & 0x1fff) << 0) | (((Value >> 21) & 1) << 31);
     break;
   case FIXUP_DPU_IMM24:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0xfl) << 16) |
-            (((Value >> 8) & 0x1l) << 15) | (((Value >> 9) & 0x1l) << 14) |
-            (((Value >> 10) & 0x1l) << 13) | (((Value >> 11) & 0x1l) << 12) |
-            (((Value >> 12) & 0xfffl) << 0);
-    break;
-  case FIXUP_DPU_IMM24_RB:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0x7l) << 39) |
-            (((Value >> 7) & 0x1l) << 24) | (((Value >> 8) & 0x1l) << 15) |
-            (((Value >> 9) & 0x1l) << 14) | (((Value >> 10) & 0x1l) << 13) |
-            (((Value >> 11) & 0x1l) << 12) | (((Value >> 12) & 0xfffl) << 0);
-    break;
-  case FIXUP_DPU_IMM27:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0xfl) << 16) |
-            (((Value >> 8) & 0x1l) << 15) | (((Value >> 9) & 0x1l) << 14) |
-            (((Value >> 10) & 0x1l) << 13) | (((Value >> 11) & 0x1l) << 12) |
-            (((Value >> 12) & 0xfffl) << 0) | (((Value >> 24) & 0x7l) << 39);
-    break;
-  case FIXUP_DPU_IMM28:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0xfl) << 16) |
-            (((Value >> 8) & 0x1l) << 15) | (((Value >> 9) & 0x1l) << 14) |
-            (((Value >> 10) & 0x1l) << 13) | (((Value >> 11) & 0x1l) << 12) |
-            (((Value >> 12) & 0xfffl) << 0) | (((Value >> 24) & 0x7l) << 39) |
-            (((Value >> 27) & 0x1l) << 44);
+    Data |= (((Value >> 0) & 15) << 14) | (((Value >> 4) & 7) << 28) | (((Value >> 7) & 1) << 24) | (((Value >> 8) & 0x3fff) << 0) | (((Value >> 22) & 1) << 22) | (((Value >> 23) & 1) << 31);
     break;
   case FIXUP_DPU_IMM32:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0xfl) << 16) |
-            (((Value >> 8) & 0x1l) << 15) | (((Value >> 9) & 0x1l) << 14) |
-            (((Value >> 10) & 0x1l) << 13) | (((Value >> 11) & 0x1l) << 12) |
-            (((Value >> 12) & 0xfffl) << 0) | (((Value >> 24) & 0xffl) << 24);
+    Data |= (((Value >> 8) & 16383) << 0) | (((Value >> 0) & 15) << 14) | (((Value >> 22) & 1023) << 18) | (((Value >> 4) & 15) << 28);
     break;
   case FIXUP_DPU_IMM32_ZERO_RB:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0x7l) << 34) |
-            (((Value >> 7) & 0x1l) << 39) | (((Value >> 8) & 0x1l) << 15) |
-            (((Value >> 9) & 0x1l) << 14) | (((Value >> 10) & 0x1l) << 13) |
-            (((Value >> 11) & 0x1l) << 12) | (((Value >> 12) & 0xfffl) << 0) |
-            (((Value >> 24) & 0xffl) << 24);
-    break;
-  case FIXUP_DPU_IMM17_24:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0xfl) << 16) |
-            (((Value >> 8) & 0x1l) << 15) | (((Value >> 9) & 0x1l) << 14) |
-            (((Value >> 10) & 0x1l) << 13) | (((Value >> 11) & 0x1l) << 12) |
-            (((Value >> 12) & 0x1fl) << 0) | (((Value >> 16) & 0x1l) << 5) |
-            (((Value >> 16) & 0x1l) << 6) | (((Value >> 16) & 0x1l) << 7) |
-            (((Value >> 16) & 0x1l) << 8) | (((Value >> 16) & 0x1l) << 9) |
-            (((Value >> 16) & 0x1l) << 10) | (((Value >> 16) & 0x1l) << 11);
+    Data |= (((Value >> 8) & 16383) << 0) | (((Value >> 0) & 15) << 14) | (((Value >> 22) & 1023) << 18) | (((Value >> 4) & 7) << 34) | (((Value >> 7) & 1) << 39);
     break;
   case FIXUP_DPU_IMM32_DUS_RB:
-    Data |= (((Value >> 0) & 0xfl) << 20) | (((Value >> 4) & 0x7l) << 34) |
-            (((Value >> 7) & 0x1l) << 44) | (((Value >> 8) & 0x1l) << 15) |
-            (((Value >> 9) & 0x1l) << 14) | (((Value >> 10) & 0x1l) << 13) |
-            (((Value >> 11) & 0x1l) << 12) | (((Value >> 12) & 0xfffl) << 0) |
-            (((Value >> 24) & 0xffl) << 24);
+    Data |= (((Value >> 8) & 16383) << 0) | (((Value >> 0) & 15) << 14) | (((Value >> 22) & 1023) << 18) | (((Value >> 4) & 7) << 34) | (((Value >> 7) & 1) << 44);
     break;
   }
 }

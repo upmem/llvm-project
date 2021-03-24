@@ -51,6 +51,10 @@ public:
                                 SmallVectorImpl<MCFixup> &Fixups,
                                 const MCSubtargetInfo &STI) const;
 
+  unsigned getInvImmEncoding(const MCInst &MI, unsigned OpNo,
+                                SmallVectorImpl<MCFixup> &Fixups,
+                                const MCSubtargetInfo &STI) const;
+
 private:
   unsigned getExprOpValue(const MCExpr *Expr, unsigned InstOpcode,
                           unsigned OpNum, SmallVectorImpl<MCFixup> &Fixups,

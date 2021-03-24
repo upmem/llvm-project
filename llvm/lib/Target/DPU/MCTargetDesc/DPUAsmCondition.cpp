@@ -18,14 +18,13 @@
 namespace llvm {
 namespace DPUAsmCondition {
 const std::string ConditionStrings[] = {
-    {"c"},     {"eq"},   {"e"},     {"xgts"}, {"xgtu"}, {"xles"}, {"xleu"},
-    {"xnz"},   {"xz"},   {"false"}, {"ges"},  {"geu"},  {"gts"},  {"gtu"},
-    {"large"}, {"les"},  {"leu"},   {"lts"},  {"ltu"},  {"max"},  {"mi"},
-    {"nc"},    {"nc10"}, {"nc11"},  {"nc12"}, {"nc13"}, {"nc14"}, {"nc5"},
-    {"nc6"},   {"nc7"},  {"nc8"},   {"nc9"},  {"neq"},  {"nmax"}, {"nov"},
-    {"nsh32"}, {"nz"},   {"o"},     {"ov"},   {"pl"},   {"sh32"}, {"small"},
-    {"se"},    {"smi"},  {"snz"},   {"so"},   {"spl"},  {"sz"},   {"true"},
-    {"z"},
+    {"c"},     {"eq"},   {"e"},     {"xgts"}, {"xgtu"},  {"xles"},  {"xleu"},
+    {"xnz"},   {"xz"},   {"false"}, {"ges"},  {"geu"},   {"gts"},   {"gtu"},
+    {"large"}, {"les"},  {"leu"},   {"lts"},  {"ltu"},   {"max"},   {"mi"},
+    {"nc"},    {"nc10"}, {"nc11"},  {"nc4"},  {"nc5"},   {"nc6"},   {"nc7"},
+    {"nc8"},   {"nc9"},  {"neq"},   {"nmax"}, {"nov"},   {"nsh32"}, {"nz"},
+    {"o"},     {"ov"},   {"pl"},    {"sh32"}, {"small"}, {"se"},    {"smi"},
+    {"snz"},   {"so"},   {"spl"},   {"sz"},   {"true"},  {"z"},
 };
 
 std::map<const std::string, const std::string> ConditionStringsAliases = {
@@ -45,39 +44,36 @@ std::map<const std::string, const std::string> ConditionStringsAliases = {
     {"max", "max"},     {"MI", "mi"},       {"mi", "mi"},
     {"NC", "nc"},       {"nc", "nc"},       {"NC10", "nc10"},
     {"nc10", "nc10"},   {"NC11", "nc11"},   {"nc11", "nc11"},
-    {"NC12", "nc12"},   {"nc12", "nc12"},   {"NC13", "nc13"},
-    {"nc13", "nc13"},   {"NC14", "nc14"},   {"nc14", "nc14"},
-    {"NC5", "nc5"},     {"nc5", "nc5"},     {"NC6", "nc6"},
-    {"nc6", "nc6"},     {"NC7", "nc7"},     {"nc7", "nc7"},
-    {"NC8", "nc8"},     {"nc8", "nc8"},     {"NC9", "nc9"},
-    {"nc9", "nc9"},     {"NEQ", "neq"},     {"neq", "neq"},
-    {"NMAX", "nmax"},   {"nmax", "nmax"},   {"NOV", "nov"},
-    {"nov", "nov"},     {"NSH32", "nsh32"}, {"nsh32", "nsh32"},
-    {"NZ", "nz"},       {"nz", "nz"},       {"O", "o"},
-    {"o", "o"},         {"OV", "ov"},       {"ov", "ov"},
-    {"PL", "pl"},       {"pl", "pl"},       {"SH32", "sh32"},
-    {"sh32", "sh32"},   {"SMALL", "small"}, {"small", "small"},
-    {"SE", "se"},       {"se", "se"},       {"SMI", "smi"},
-    {"smi", "smi"},     {"SNZ", "snz"},     {"snz", "snz"},
-    {"SO", "so"},       {"so", "so"},       {"SPL", "spl"},
-    {"spl", "spl"},     {"SZ", "sz"},       {"sz", "sz"},
-    {"TRUE", "true"},   {"true", "true"},   {"Z", "z"},
-    {"z", "z"},         {"nsz", "snz"},     {"NSZ", "snz"},
-    {"t", "true"},      {"T", "true"},
+    {"NC4", "nc4"},     {"nc4", "nc4"},     {"NC5", "nc5"},
+    {"nc5", "nc5"},     {"NC6", "nc6"},     {"nc6", "nc6"},
+    {"NC7", "nc7"},     {"nc7", "nc7"},     {"NC8", "nc8"},
+    {"nc8", "nc8"},     {"NC9", "nc9"},     {"nc9", "nc9"},
+    {"NEQ", "neq"},     {"neq", "neq"},     {"NMAX", "nmax"},
+    {"nmax", "nmax"},   {"NOV", "nov"},     {"nov", "nov"},
+    {"NSH32", "nsh32"}, {"nsh32", "nsh32"}, {"NZ", "nz"},
+    {"nz", "nz"},       {"O", "o"},         {"o", "o"},
+    {"OV", "ov"},       {"ov", "ov"},       {"PL", "pl"},
+    {"pl", "pl"},       {"SH32", "sh32"},   {"sh32", "sh32"},
+    {"SMALL", "small"}, {"small", "small"}, {"SE", "se"},
+    {"se", "se"},       {"SMI", "smi"},     {"smi", "smi"},
+    {"SNZ", "snz"},     {"snz", "snz"},     {"SO", "so"},
+    {"so", "so"},       {"SPL", "spl"},     {"spl", "spl"},
+    {"SZ", "sz"},       {"sz", "sz"},       {"TRUE", "true"},
+    {"true", "true"},   {"Z", "z"},         {"z", "z"},
+    {"nsz", "snz"},     {"NSZ", "snz"},     {"t", "true"},
+    {"T", "true"},
 };
 
 const std::set<Condition> ConditionClassSets[] = {
-    {Condition::NotZero, Condition::True, Condition::Zero},
     {Condition::Carry,
      Condition::ExtendedNotZero,
      Condition::ExtendedZero,
+     Condition::False,
      Condition::Negative,
      Condition::NotCarry,
      Condition::NotCarry10,
      Condition::NotCarry11,
-     Condition::NotCarry12,
-     Condition::NotCarry13,
-     Condition::NotCarry14,
+     Condition::NotCarry4,
      Condition::NotCarry5,
      Condition::NotCarry6,
      Condition::NotCarry7,
@@ -87,23 +83,60 @@ const std::set<Condition> ConditionClassSets[] = {
      Condition::NotZero,
      Condition::Overflow,
      Condition::PositiveOrNull,
+     Condition::SourceEven,
      Condition::SourceNegative,
      Condition::SourceNotZero,
+     Condition::SourceOdd,
      Condition::SourcePositiveOrNull,
      Condition::SourceZero,
      Condition::True,
      Condition::Zero},
-    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::False,
-     Condition::NotZero, Condition::SourceNegative, Condition::SourceNotZero,
-     Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True,
+    {Condition::Carry,
+     Condition::ExtendedNotZero,
+     Condition::ExtendedZero,
+     Condition::Negative,
+     Condition::NotCarry,
+     Condition::NotCarry10,
+     Condition::NotCarry11,
+     Condition::NotCarry4,
+     Condition::NotCarry5,
+     Condition::NotCarry6,
+     Condition::NotCarry7,
+     Condition::NotCarry8,
+     Condition::NotCarry9,
+     Condition::NotOverflow,
+     Condition::NotZero,
+     Condition::Overflow,
+     Condition::PositiveOrNull,
+     Condition::SourceEven,
+     Condition::SourceNegative,
+     Condition::SourceNotZero,
+     Condition::SourceOdd,
+     Condition::SourcePositiveOrNull,
+     Condition::SourceZero,
+     Condition::True,
      Condition::Zero},
+    {Condition::False, Condition::SourceEven, Condition::SourceNegative,
+     Condition::SourceNotZero, Condition::SourceOdd,
+     Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True},
+    {Condition::SourceEven, Condition::SourceNegative, Condition::SourceNotZero,
+     Condition::SourceOdd, Condition::SourcePositiveOrNull,
+     Condition::SourceZero, Condition::True},
     {Condition::PositiveOrNull},
     {Condition::GreaterOrEqualUnsigned},
     {Condition::Zero},
+    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::False,
+     Condition::Maximum, Condition::Negative, Condition::NotMaximum,
+     Condition::NotZero, Condition::PositiveOrNull, Condition::SourceEven,
+     Condition::SourceNegative, Condition::SourceNotZero, Condition::SourceOdd,
+     Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True,
+     Condition::Zero},
     {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::Maximum,
-     Condition::NotMaximum, Condition::NotZero, Condition::SourceNegative,
-     Condition::SourceNotZero, Condition::SourcePositiveOrNull,
-     Condition::SourceZero, Condition::True, Condition::Zero},
+     Condition::Negative, Condition::NotMaximum, Condition::NotZero,
+     Condition::PositiveOrNull, Condition::SourceEven,
+     Condition::SourceNegative, Condition::SourceNotZero, Condition::SourceOdd,
+     Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True,
+     Condition::Zero},
     {Condition::False, Condition::SourceNegative, Condition::SourceNotZero,
      Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True},
     {Condition::SourceNegative, Condition::SourceNotZero,
@@ -138,30 +171,87 @@ const std::set<Condition> ConditionClassSets[] = {
      Condition::True,
      Condition::Zero},
     {Condition::False},
-    {Condition::Even, Condition::ExtendedNotZero, Condition::ExtendedZero,
-     Condition::Negative, Condition::NotZero, Condition::Odd,
-     Condition::PositiveOrNull, Condition::SourceEven,
+    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::False,
+     Condition::Negative, Condition::NotShift32, Condition::NotZero,
+     Condition::PositiveOrNull, Condition::Shift32, Condition::SourceEven,
      Condition::SourceNegative, Condition::SourceNotZero, Condition::SourceOdd,
      Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True,
      Condition::Zero},
     {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::Negative,
-     Condition::NotZero, Condition::PositiveOrNull, Condition::SourceNegative,
-     Condition::SourceNotZero, Condition::SourcePositiveOrNull,
-     Condition::SourceZero, Condition::True, Condition::Zero},
-    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::NotZero,
+     Condition::NotShift32, Condition::NotZero, Condition::PositiveOrNull,
+     Condition::Shift32, Condition::SourceEven, Condition::SourceNegative,
+     Condition::SourceNotZero, Condition::SourceOdd,
+     Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True,
      Condition::Zero},
-    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::Large,
-     Condition::NotZero, Condition::Small, Condition::SourceNegative,
-     Condition::SourceNotZero, Condition::SourcePositiveOrNull,
-     Condition::SourceZero, Condition::True, Condition::Zero},
-    {},
-    {Condition::NotZero},
-    {Condition::Even, Condition::ExtendedNotZero, Condition::ExtendedZero,
-     Condition::Negative, Condition::NotShift32, Condition::NotZero,
-     Condition::Odd, Condition::PositiveOrNull, Condition::Shift32,
+    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::False,
+     Condition::Negative, Condition::NotZero, Condition::PositiveOrNull,
      Condition::SourceEven, Condition::SourceNegative, Condition::SourceNotZero,
      Condition::SourceOdd, Condition::SourcePositiveOrNull,
      Condition::SourceZero, Condition::True, Condition::Zero},
+    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::Negative,
+     Condition::NotZero, Condition::PositiveOrNull, Condition::SourceEven,
+     Condition::SourceNegative, Condition::SourceNotZero, Condition::SourceOdd,
+     Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True,
+     Condition::Zero},
+    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::NotZero,
+     Condition::Zero},
+    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::False,
+     Condition::Large, Condition::Negative, Condition::NotZero,
+     Condition::PositiveOrNull, Condition::Small, Condition::SourceEven,
+     Condition::SourceNegative, Condition::SourceNotZero, Condition::SourceOdd,
+     Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True,
+     Condition::Zero},
+    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::Large,
+     Condition::Negative, Condition::NotZero, Condition::PositiveOrNull,
+     Condition::Small, Condition::SourceEven, Condition::SourceNegative,
+     Condition::SourceNotZero, Condition::SourceOdd,
+     Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True,
+     Condition::Zero},
+    {},
+    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::False,
+     Condition::Negative, Condition::NotShift32, Condition::NotZero,
+     Condition::PositiveOrNull, Condition::Shift32, Condition::SourceEven,
+     Condition::SourceNegative, Condition::SourceNotZero, Condition::SourceOdd,
+     Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True,
+     Condition::Zero},
+    {Condition::ExtendedNotZero, Condition::ExtendedZero, Condition::Negative,
+     Condition::NotShift32, Condition::NotZero, Condition::PositiveOrNull,
+     Condition::Shift32, Condition::SourceEven, Condition::SourceNegative,
+     Condition::SourceNotZero, Condition::SourceOdd,
+     Condition::SourcePositiveOrNull, Condition::SourceZero, Condition::True,
+     Condition::Zero},
+    {Condition::Carry,
+     Condition::Equal,
+     Condition::ExtendedGreaterThanSigned,
+     Condition::ExtendedGreaterThanUnsigned,
+     Condition::ExtendedLessOrEqualSigned,
+     Condition::ExtendedLessOrEqualUnsigned,
+     Condition::ExtendedNotZero,
+     Condition::ExtendedZero,
+     Condition::False,
+     Condition::GreaterOrEqualSigned,
+     Condition::GreaterOrEqualUnsigned,
+     Condition::GreaterThanSigned,
+     Condition::GreaterThanUnsigned,
+     Condition::LessOrEqualSigned,
+     Condition::LessOrEqualUnsigned,
+     Condition::LessThanSigned,
+     Condition::LessThanUnsigned,
+     Condition::Negative,
+     Condition::NotCarry,
+     Condition::NotEqual,
+     Condition::NotOverflow,
+     Condition::NotZero,
+     Condition::Overflow,
+     Condition::PositiveOrNull,
+     Condition::SourceEven,
+     Condition::SourceNegative,
+     Condition::SourceNotZero,
+     Condition::SourceOdd,
+     Condition::SourcePositiveOrNull,
+     Condition::SourceZero,
+     Condition::True,
+     Condition::Zero},
     {Condition::Carry,
      Condition::Equal,
      Condition::ExtendedGreaterThanSigned,
@@ -185,8 +275,10 @@ const std::set<Condition> ConditionClassSets[] = {
      Condition::NotZero,
      Condition::Overflow,
      Condition::PositiveOrNull,
+     Condition::SourceEven,
      Condition::SourceNegative,
      Condition::SourceNotZero,
+     Condition::SourceOdd,
      Condition::SourcePositiveOrNull,
      Condition::SourceZero,
      Condition::True,
@@ -199,173 +291,167 @@ const std::set<Condition> ConditionClassSets[] = {
 
 const int64_t ConditionEncodings[NR_CONDITION_CLASSES][NR_CONDITIONS] = {
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2,
+        20, 0, 0, 0, 0,  0,  0,  5,  4,  0,  0,  0,  0,  0,  0, 0,
+        0,  0, 0, 0, 9,  21, 30, 31, 24, 25, 26, 27, 28, 29, 0, 0,
+        11, 0, 3, 0, 10, 8,  0,  0,  6,  15, 13, 7,  14, 12, 1, 2,
     },
     {
-        20, 0, 0, 0, 0,  0,  0,  5,  4,  0,  0,  0,  0,  0,  0,  0, 0,
-        0,  0, 0, 9, 21, 27, 28, 29, 30, 31, 22, 23, 24, 25, 26, 0, 0,
-        19, 0, 3, 0, 18, 8,  0,  0,  0,  15, 13, 0,  14, 12, 1,  2,
+        20, 0, 0, 0, 0,  0,  0,  5,  4,  0,  0,  0,  0,  0,  0, 0,
+        0,  0, 0, 0, 9,  21, 30, 31, 24, 25, 26, 27, 28, 29, 0, 0,
+        11, 0, 3, 0, 10, 8,  0,  0,  6,  15, 13, 7,  14, 12, 1, 2,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 5, 4, 0,  0,  0, 0,  0,  0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0, 0,
-        0, 0, 3, 0, 0, 0, 0, 0, 0, 15, 13, 0, 14, 12, 1, 2,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 6, 15, 13, 7, 14, 12, 1, 0,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 6, 15, 13, 7, 14, 12, 1, 0,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 5, 4, 0,  0,  0, 0,  0,  0, 0, 0,
-        0, 0, 8, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0, 9,
-        0, 0, 3, 0, 0, 0, 0, 0, 0, 15, 13, 0, 14, 12, 1, 2,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0, 0,
+        0, 0, 0, 0,  0, 0, 0, 5, 4, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 0, 10, 9, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 11,
+        0, 0, 3, 0,  0, 8, 0, 0, 6, 15, 13, 7, 14, 12, 1, 2,
+    },
+    {
+        0, 0, 0, 0,  0, 0, 0, 5, 4, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 0, 10, 9, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 11,
+        0, 0, 3, 0,  0, 8, 0, 0, 6, 15, 13, 7, 14, 12, 1, 2,
+    },
+    {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 13, 0, 14, 12, 1, 0,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 13, 0, 14, 12, 1, 0,
     },
     {
-        53, 6,  0, 61, 63, 60, 62, 11, 10, 0,  55, 53, 57, 59, 0,  56, 58,
-        54, 52, 0, 41, 52, 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  7,  0,
-        51, 0,  7, 0,  50, 40, 0,  0,  0,  47, 45, 0,  46, 44, 33, 6,
+        53, 6,  0,  61, 63, 60, 62, 11, 10, 0,  55, 53, 57, 59, 0,  56,
+        58, 54, 52, 0,  41, 52, 0,  0,  0,  0,  0,  0,  0,  0,  7,  0,
+        51, 0,  7,  0,  50, 40, 0,  0,  0,  47, 45, 0,  46, 44, 33, 6,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     },
     {
-        0, 0, 24, 0,  0, 0, 0, 5, 4,  0,  0,  0,  0,  0,  0, 0, 0,
-        0, 0, 0,  9,  0, 0, 0, 0, 0,  0,  0,  0,  0,  0,  0, 0, 0,
-        0, 0, 3,  25, 0, 8, 0, 0, 30, 15, 13, 31, 14, 12, 1, 2,
+        0, 0,  0, 0, 0, 0, 0,  5, 4, 0,  0,  0, 0,  0,  0, 0,
+        0, 0,  0, 0, 9, 0, 0,  0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 10, 3, 0, 0, 8, 11, 0, 6, 15, 13, 7, 14, 12, 1, 2,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 5, 4, 0,  0,  0, 0,  0,  0, 0, 0,
-        0, 0, 0, 9, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0, 0,
-        0, 0, 3, 0, 0, 8, 0, 0, 0, 15, 13, 0, 14, 12, 1, 2,
+        0, 0,  0, 0, 0, 0, 0,  5, 4, 0,  0,  0, 0,  0,  0, 0,
+        0, 0,  0, 0, 9, 0, 0,  0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 10, 3, 0, 0, 8, 11, 0, 6, 15, 13, 7, 14, 12, 1, 2,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 11, 10, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 5, 4, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 0, 0, 9, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 3, 0, 0, 8, 0, 0, 6, 15, 13, 7, 14, 12, 1, 2,
+    },
+    {
+        0, 0, 0, 0, 0, 0, 0, 5, 4, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 0, 0, 9, 0, 0, 0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 0, 3, 0, 0, 8, 0, 0, 6, 15, 13, 7, 14, 12, 1, 2,
+    },
+    {
+        0, 0, 0, 0, 0, 0, 0, 11, 10, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0, 0, 0, 0, 0, 0,
         0, 0, 7, 0, 0, 0, 0, 0,  0,  0, 0, 0, 0, 0, 0, 6,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 5,  4, 0,  0,  0, 0,  0,  31, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0,  0, 0,
-        0, 0, 3, 0, 0, 0, 0, 30, 0, 15, 13, 0, 14, 12, 1,  2,
+        0, 0, 0, 0, 0, 0, 0, 5,  4, 0,  0,  0, 0,  0,  11, 0,
+        0, 0, 0, 0, 9, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0,  0,
+        0, 0, 3, 0, 0, 8, 0, 10, 6, 15, 13, 7, 14, 12, 1,  2,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 5,  4, 0,  0,  0, 0,  0,  11, 0,
+        0, 0, 0, 0, 9, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0,  0,
+        0, 0, 3, 0, 0, 8, 0, 10, 6, 15, 13, 7, 14, 12, 1,  2,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     },
     {
-        0, 0,  24, 0,  0, 0, 0,  5, 4,  0,  0,  0,  0,  0,  0, 0, 0,
-        0, 0,  0,  9,  0, 0, 0,  0, 0,  0,  0,  0,  0,  0,  0, 0, 0,
-        0, 28, 3,  25, 0, 8, 29, 0, 30, 15, 13, 31, 14, 12, 1, 2,
+        0, 0,  0, 0, 0, 0, 0,  5, 4, 0,  0,  0, 0,  0,  0, 0,
+        0, 0,  0, 0, 9, 0, 0,  0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 10, 3, 0, 0, 8, 11, 0, 6, 15, 13, 7, 14, 12, 1, 2,
     },
     {
-        21, 2,  0, 29, 31, 28, 30, 5, 4, 0,  23, 21, 25, 27, 0, 24, 26,
-        22, 20, 0, 9,  20, 0,  0,  0, 0, 0,  0,  0,  0,  0,  0, 3,  0,
-        19, 0,  3, 0,  18, 8,  0,  0, 0, 15, 13, 0,  14, 12, 1, 2,
+        0, 0,  0, 0, 0, 0, 0,  5, 4, 0,  0,  0, 0,  0,  0, 0,
+        0, 0,  0, 0, 9, 0, 0,  0, 0, 0,  0,  0, 0,  0,  0, 0,
+        0, 10, 3, 0, 0, 8, 11, 0, 6, 15, 13, 7, 14, 12, 1, 2,
     },
     {
-        0, 6, 0, 0, 0, 0, 0, 11, 10, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0, 0, 0, 0, 0, 7, 0,
+        21, 2,  0,  29, 31, 28, 30, 5, 4, 0,  23, 21, 25, 27, 0, 24,
+        26, 22, 20, 0,  9,  20, 0,  0, 0, 0,  0,  0,  0,  0,  3, 0,
+        11, 0,  3,  0,  10, 8,  0,  0, 6, 15, 13, 7,  14, 12, 1, 2,
+    },
+    {
+        21, 2,  0,  29, 31, 28, 30, 5, 4, 0,  23, 21, 25, 27, 0, 24,
+        26, 22, 20, 0,  9,  20, 0,  0, 0, 0,  0,  0,  0,  0,  3, 0,
+        11, 0,  3,  0,  10, 8,  0,  0, 6, 15, 13, 7,  14, 12, 1, 2,
+    },
+    {
+        0, 6, 0, 0, 0, 0, 0, 11, 10, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0,  0,  0, 0, 0, 0, 0, 7, 0,
         0, 0, 7, 0, 0, 0, 0, 0,  0,  0, 0, 0, 0, 0, 0, 6,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
     },
     {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
     },
 };
 const int64_t
     ConditionDecodings[NR_CONDITION_CLASSES][DPUAsmCondition::nrEncodingValue] =
         {
-            {Condition::NR_CONDITIONS, Condition::True,
-             Condition::Zero,          Condition::NotZero,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS},
-            {Condition::NR_CONDITIONS,
+            {Condition::False,
              Condition::True,
              Condition::Zero,
              Condition::NotZero,
              Condition::ExtendedZero,
              Condition::ExtendedNotZero,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
+             Condition::SourceEven,
+             Condition::SourceOdd,
              Condition::PositiveOrNull,
              Condition::Negative,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
+             Condition::Overflow,
+             Condition::NotOverflow,
              Condition::SourceZero,
              Condition::SourceNotZero,
              Condition::SourcePositiveOrNull,
              Condition::SourceNegative,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
-             Condition::Overflow,
-             Condition::NotOverflow,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
              Condition::Carry,
              Condition::NotCarry,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NotCarry4,
              Condition::NotCarry5,
              Condition::NotCarry6,
              Condition::NotCarry7,
@@ -373,9 +459,70 @@ const int64_t
              Condition::NotCarry9,
              Condition::NotCarry10,
              Condition::NotCarry11,
-             Condition::NotCarry12,
-             Condition::NotCarry13,
-             Condition::NotCarry14,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS},
+            {Condition::NR_CONDITIONS,
+             Condition::True,
+             Condition::Zero,
+             Condition::NotZero,
+             Condition::ExtendedZero,
+             Condition::ExtendedNotZero,
+             Condition::SourceEven,
+             Condition::SourceOdd,
+             Condition::PositiveOrNull,
+             Condition::Negative,
+             Condition::Overflow,
+             Condition::NotOverflow,
+             Condition::SourceZero,
+             Condition::SourceNotZero,
+             Condition::SourcePositiveOrNull,
+             Condition::SourceNegative,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::Carry,
+             Condition::NotCarry,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NotCarry4,
+             Condition::NotCarry5,
+             Condition::NotCarry6,
+             Condition::NotCarry7,
+             Condition::NotCarry8,
+             Condition::NotCarry9,
+             Condition::NotCarry10,
+             Condition::NotCarry11,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
@@ -410,12 +557,12 @@ const int64_t
              Condition::NR_CONDITIONS},
             {Condition::False,
              Condition::True,
-             Condition::Zero,
-             Condition::NotZero,
-             Condition::ExtendedZero,
-             Condition::ExtendedNotZero,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::SourceEven,
+             Condition::SourceOdd,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
@@ -472,6 +619,38 @@ const int64_t
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS},
+            {Condition::NR_CONDITIONS,        Condition::True,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::SourceEven,           Condition::SourceOdd,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::SourceZero,           Condition::SourceNotZero,
+             Condition::SourcePositiveOrNull, Condition::SourceNegative,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,        Condition::NR_CONDITIONS},
             {Condition::PositiveOrNull, Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,  Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,  Condition::NR_CONDITIONS,
@@ -568,18 +747,82 @@ const int64_t
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS},
+            {Condition::False,
+             Condition::True,
+             Condition::Zero,
+             Condition::NotZero,
+             Condition::ExtendedZero,
+             Condition::ExtendedNotZero,
+             Condition::SourceEven,
+             Condition::SourceOdd,
+             Condition::PositiveOrNull,
+             Condition::Negative,
+             Condition::Maximum,
+             Condition::NotMaximum,
+             Condition::SourceZero,
+             Condition::SourceNotZero,
+             Condition::SourcePositiveOrNull,
+             Condition::SourceNegative,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS},
             {Condition::NR_CONDITIONS,
              Condition::True,
              Condition::Zero,
              Condition::NotZero,
              Condition::ExtendedZero,
              Condition::ExtendedNotZero,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
+             Condition::SourceEven,
+             Condition::SourceOdd,
+             Condition::PositiveOrNull,
+             Condition::Negative,
              Condition::Maximum,
              Condition::NotMaximum,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
              Condition::SourceZero,
              Condition::SourceNotZero,
              Condition::SourcePositiveOrNull,
@@ -830,12 +1073,12 @@ const int64_t
              Condition::NotZero,
              Condition::ExtendedZero,
              Condition::ExtendedNotZero,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
+             Condition::SourceEven,
+             Condition::SourceOdd,
              Condition::PositiveOrNull,
              Condition::Negative,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
+             Condition::NotShift32,
+             Condition::Shift32,
              Condition::SourceZero,
              Condition::SourceNotZero,
              Condition::SourcePositiveOrNull,
@@ -848,14 +1091,14 @@ const int64_t
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
-             Condition::Even,
-             Condition::Odd,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
-             Condition::SourceEven,
-             Condition::SourceOdd,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
@@ -894,8 +1137,136 @@ const int64_t
              Condition::NotZero,
              Condition::ExtendedZero,
              Condition::ExtendedNotZero,
+             Condition::SourceEven,
+             Condition::SourceOdd,
+             Condition::PositiveOrNull,
+             Condition::Negative,
+             Condition::NotShift32,
+             Condition::Shift32,
+             Condition::SourceZero,
+             Condition::SourceNotZero,
+             Condition::SourcePositiveOrNull,
+             Condition::SourceNegative,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS},
+            {Condition::False,
+             Condition::True,
+             Condition::Zero,
+             Condition::NotZero,
+             Condition::ExtendedZero,
+             Condition::ExtendedNotZero,
+             Condition::SourceEven,
+             Condition::SourceOdd,
+             Condition::PositiveOrNull,
+             Condition::Negative,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::SourceZero,
+             Condition::SourceNotZero,
+             Condition::SourcePositiveOrNull,
+             Condition::SourceNegative,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS},
+            {Condition::NR_CONDITIONS,
+             Condition::True,
+             Condition::Zero,
+             Condition::NotZero,
+             Condition::ExtendedZero,
+             Condition::ExtendedNotZero,
+             Condition::SourceEven,
+             Condition::SourceOdd,
              Condition::PositiveOrNull,
              Condition::Negative,
              Condition::NR_CONDITIONS,
@@ -984,18 +1355,18 @@ const int64_t
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS},
-            {Condition::NR_CONDITIONS,
+            {Condition::False,
              Condition::True,
              Condition::Zero,
              Condition::NotZero,
              Condition::ExtendedZero,
              Condition::ExtendedNotZero,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
+             Condition::SourceEven,
+             Condition::SourceOdd,
+             Condition::PositiveOrNull,
+             Condition::Negative,
+             Condition::Small,
+             Condition::Large,
              Condition::SourceZero,
              Condition::SourceNotZero,
              Condition::SourcePositiveOrNull,
@@ -1014,8 +1385,72 @@ const int64_t
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS},
+            {Condition::NR_CONDITIONS,
+             Condition::True,
+             Condition::Zero,
+             Condition::NotZero,
+             Condition::ExtendedZero,
+             Condition::ExtendedNotZero,
+             Condition::SourceEven,
+             Condition::SourceOdd,
+             Condition::PositiveOrNull,
+             Condition::Negative,
              Condition::Small,
              Condition::Large,
+             Condition::SourceZero,
+             Condition::SourceNotZero,
+             Condition::SourcePositiveOrNull,
+             Condition::SourceNegative,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
@@ -1080,50 +1515,18 @@ const int64_t
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS},
-            {Condition::NotZero,       Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS, Condition::NR_CONDITIONS},
-            {Condition::NR_CONDITIONS,
+            {Condition::False,
              Condition::True,
              Condition::Zero,
              Condition::NotZero,
              Condition::ExtendedZero,
              Condition::ExtendedNotZero,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
+             Condition::SourceEven,
+             Condition::SourceOdd,
              Condition::PositiveOrNull,
              Condition::Negative,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
+             Condition::NotShift32,
+             Condition::Shift32,
              Condition::SourceZero,
              Condition::SourceNotZero,
              Condition::SourcePositiveOrNull,
@@ -1136,14 +1539,14 @@ const int64_t
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
-             Condition::Even,
-             Condition::Odd,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
-             Condition::NotShift32,
-             Condition::Shift32,
-             Condition::SourceEven,
-             Condition::SourceOdd,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
@@ -1182,20 +1585,148 @@ const int64_t
              Condition::NotZero,
              Condition::ExtendedZero,
              Condition::ExtendedNotZero,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
+             Condition::SourceEven,
+             Condition::SourceOdd,
              Condition::PositiveOrNull,
              Condition::Negative,
-             Condition::NR_CONDITIONS,
-             Condition::NR_CONDITIONS,
+             Condition::NotShift32,
+             Condition::Shift32,
              Condition::SourceZero,
              Condition::SourceNotZero,
              Condition::SourcePositiveOrNull,
              Condition::SourceNegative,
              Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS},
+            {Condition::False,
+             Condition::True,
+             Condition::Zero,
+             Condition::NotZero,
+             Condition::ExtendedZero,
+             Condition::ExtendedNotZero,
+             Condition::SourceEven,
+             Condition::SourceOdd,
+             Condition::PositiveOrNull,
+             Condition::Negative,
              Condition::Overflow,
              Condition::NotOverflow,
+             Condition::SourceZero,
+             Condition::SourceNotZero,
+             Condition::SourcePositiveOrNull,
+             Condition::SourceNegative,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::LessThanUnsigned,
+             Condition::GreaterOrEqualUnsigned,
+             Condition::LessThanSigned,
+             Condition::GreaterOrEqualSigned,
+             Condition::LessOrEqualSigned,
+             Condition::GreaterThanSigned,
+             Condition::LessOrEqualUnsigned,
+             Condition::GreaterThanUnsigned,
+             Condition::ExtendedLessOrEqualSigned,
+             Condition::ExtendedGreaterThanSigned,
+             Condition::ExtendedLessOrEqualUnsigned,
+             Condition::ExtendedGreaterThanUnsigned,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS},
+            {Condition::NR_CONDITIONS,
+             Condition::True,
+             Condition::Zero,
+             Condition::NotZero,
+             Condition::ExtendedZero,
+             Condition::ExtendedNotZero,
+             Condition::SourceEven,
+             Condition::SourceOdd,
+             Condition::PositiveOrNull,
+             Condition::Negative,
+             Condition::Overflow,
+             Condition::NotOverflow,
+             Condition::SourceZero,
+             Condition::SourceNotZero,
+             Condition::SourcePositiveOrNull,
+             Condition::SourceNegative,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
+             Condition::NR_CONDITIONS,
              Condition::LessThanUnsigned,
              Condition::GreaterOrEqualUnsigned,
              Condition::LessThanSigned,
@@ -1387,19 +1918,17 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   default:
     llvm_unreachable("unknown instruction");
   case DPU::SUBC_Urrrc:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::NANDrric:
-    return ConditionClass::Log_setCC;
-  case DPU::ANDzrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Log_nzCC;
   case DPU::XORzrrci:
     return ConditionClass::Log_nzCC;
   case DPU::MUL_SH_SLzrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::OR_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::NAND_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::SUB_Srirci:
     return ConditionClass::Sub_nzCC;
   case DPU::AND_Urrrci:
@@ -1408,116 +1937,82 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Log_nzCC;
   case DPU::LSR1Xrrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::ORNrrif:
-    return ConditionClass::FalseCC;
-  case DPU::CMPB4zrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_UL_UH_Urrrc:
-    return ConditionClass::Log_setCC;
   case DPU::LSR1zrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::SUBCrirci:
     return ConditionClass::Sub_nzCC;
-  case DPU::NXORrrif:
-    return ConditionClass::FalseCC;
   case DPU::MUL_SH_ULrrrci:
     return ConditionClass::Mul_nzCC;
-  case DPU::NORzric:
-    return ConditionClass::Log_setCC;
   case DPU::NAND_Srrici:
     return ConditionClass::Log_nzCC;
   case DPU::LSLXrrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::CLOrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::CLO_Srrci:
     return ConditionClass::Count_nzCC;
-  case DPU::ROLzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_SH_ULzrrc:
-    return ConditionClass::Log_setCC;
   case DPU::NOR_Urrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::LSR1Xzric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::CLSrrci:
     return ConditionClass::Count_nzCC;
   case DPU::LSRzrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
+  case DPU::BYTESWAP_Srrci:
+    return ConditionClass::Log_nzCC;
   case DPU::ASRrrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSLzrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::AND_Srrici:
     return ConditionClass::Log_nzCC;
   case DPU::SUB_Srirc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::ORN_Srrici:
     return ConditionClass::Log_nzCC;
-  case DPU::CLO_Urrc:
-    return ConditionClass::Log_setCC;
   case DPU::LSLXzrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::AND_Urrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::ADDCzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::NXORzrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::NOR_Urrrci:
     return ConditionClass::Log_nzCC;
   case DPU::ROLrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR1_Urrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::LSL1rrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SATS_Urrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSL1rric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MUL_SH_UH_Srrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::ROR_Srrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::CLOzrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MUL_SL_SHrrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::SUBrrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::ROL_Srric:
-    return ConditionClass::Log_setCC;
-  case DPU::CMPB4_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::CLO_Urrci:
     return ConditionClass::Count_nzCC;
   case DPU::SUBrirci:
     return ConditionClass::Sub_nzCC;
-  case DPU::CLZ_Urrc:
-    return ConditionClass::Log_setCC;
-  case DPU::CLZrrc:
-    return ConditionClass::Log_setCC;
   case DPU::ORNrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::HASH_Srrrci:
     return ConditionClass::Log_nzCC;
   case DPU::NANDrrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::CAO_Srrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ASR_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR1rrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ROLrrici:
-    return ConditionClass::Imm_shift_nzCC;
-  case DPU::CLZ_Srrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ADD_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Add_nzCC;
   case DPU::ORNrrrci:
     return ConditionClass::Log_nzCC;
   case DPU::RSUBC_Srrrci:
@@ -1525,47 +2020,31 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::LSL1zrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::ANDN_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::NORrrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSL_Srrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::EXTUHzrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::EXTSHzrci:
     return ConditionClass::Log_nzCC;
-  case DPU::HASH_Urrif:
-    return ConditionClass::FalseCC;
-  case DPU::MUL_UH_ULzrrc:
-    return ConditionClass::Log_setCC;
   case DPU::ASR_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ADDC_Urrici:
     return ConditionClass::Add_nzCC;
-  case DPU::CLR_RUNrici:
-    return ConditionClass::BootCC;
   case DPU::ORrrici:
     return ConditionClass::Log_nzCC;
-  case DPU::ADDzric:
-    return ConditionClass::Log_setCC;
   case DPU::LSLX_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::CMPB4rrrci:
     return ConditionClass::Log_nzCC;
-  case DPU::EXTSB_Srrc:
-    return ConditionClass::Log_setCC;
   case DPU::MOVE_Urrci:
     return ConditionClass::Log_nzCC;
   case DPU::NANDzrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSL1_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
-  case DPU::MUL_SH_SHrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MUL_SL_SH_Srrrci:
     return ConditionClass::Mul_nzCC;
-  case DPU::XORzric:
-    return ConditionClass::Log_setCC;
   case DPU::RSUB_Srrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::NAND_Srrrci:
@@ -1574,26 +2053,20 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Shift_nzCC;
   case DPU::ORNzrici:
     return ConditionClass::Log_nzCC;
-  case DPU::TIME_CFG_Srrci:
-    return ConditionClass::TrueCC;
   case DPU::EXTSHrrci:
     return ConditionClass::Log_nzCC;
   case DPU::NXOR_Srrici:
     return ConditionClass::Log_nzCC;
-  case DPU::MUL_SL_SHrrrc:
-    return ConditionClass::Log_setCC;
   case DPU::MUL_UL_UL_Urrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::ANDzrici:
     return ConditionClass::Log_nzCC;
   case DPU::ASR_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSRX_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ASRzrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::MUL_UL_UHzrrc:
-    return ConditionClass::Log_setCC;
   case DPU::SUBC_Urirf:
     return ConditionClass::FalseCC;
   case DPU::EXTUBrrci:
@@ -1601,83 +2074,59 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::SUBC_Srirci:
     return ConditionClass::Sub_nzCC;
   case DPU::ROL_ADD_Urrrici:
-    return ConditionClass::Div_nzCC;
-  case DPU::CMPB4rrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::BootCC;
   case DPU::ADDC_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Add_nzCC;
   case DPU::MUL_SH_UL_Srrrci:
     return ConditionClass::Mul_nzCC;
-  case DPU::MUL_SH_SH_Srrrc:
-    return ConditionClass::Log_setCC;
   case DPU::LSL_SUBrrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::CLOrrci:
     return ConditionClass::Count_nzCC;
-  case DPU::ASRzric:
-    return ConditionClass::Log_setCC;
-  case DPU::SUBzirc:
-    return ConditionClass::Sub_setCC;
   case DPU::LSR1_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::CLZrrci:
     return ConditionClass::Count_nzCC;
   case DPU::ROL_Srrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::LSRXzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::LSRXzric:
-    return ConditionClass::Log_setCC;
   case DPU::EXTSBrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSRX_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::CLZ_Srrci:
     return ConditionClass::Count_nzCC;
   case DPU::LSRXrrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBC_Srirc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::NXOR_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::BOOTrici:
-    return ConditionClass::BootCC;
+    return ConditionClass::Boot_nzCC;
   case DPU::RORrrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::NOTrci:
-    return ConditionClass::Log_nzCC;
   case DPU::CMPB4zrrci:
     return ConditionClass::Log_nzCC;
-  case DPU::HASH_Urric:
-    return ConditionClass::Log_setCC;
   case DPU::LSR1X_Urrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::LSL1Xrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MOVErici:
     return ConditionClass::Log_nzCC;
-  case DPU::CLS_Srrc:
-    return ConditionClass::Log_setCC;
-  case DPU::ORN_Srrif:
-    return ConditionClass::FalseCC;
   case DPU::RORrrici:
-    return ConditionClass::Imm_shift_nzCC;
-  case DPU::MUL_SH_SLzrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::XOR_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSRX_Urrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::LSR1Xzrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::NAND_Urrif:
-    return ConditionClass::FalseCC;
+  case DPU::BITSWAPzrci:
+    return ConditionClass::Log_nzCC;
   case DPU::ASR_Urrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::CLSzrci:
     return ConditionClass::Count_nzCC;
-  case DPU::LSR1Xzrrc:
-    return ConditionClass::Log_setCC;
   case DPU::NXORrrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSR_Srrrci:
@@ -1688,22 +2137,12 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Count_nzCC;
   case DPU::MUL_UH_UHrrrci:
     return ConditionClass::Mul_nzCC;
-  case DPU::MUL_SL_SLrrrc:
-    return ConditionClass::Log_setCC;
   case DPU::LSR_Urric:
-    return ConditionClass::Log_setCC;
-  case DPU::SUBzric:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::AND_Srric:
-    return ConditionClass::Log_setCC;
-  case DPU::ORzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_SL_ULrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSL1zrici:
-    return ConditionClass::Imm_shift_nzCC;
-  case DPU::EXTUH_Urrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBzirci:
     return ConditionClass::Sub_nzCC;
   case DPU::SUBCzirci:
@@ -1711,31 +2150,27 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::ADDCzrif:
     return ConditionClass::FalseCC;
   case DPU::XOR_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ORrric:
-    return ConditionClass::Log_setCC;
-  case DPU::NANDzric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSL_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR1X_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::AND_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSL1X_Urrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::ADDzrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::NXORzrici:
     return ConditionClass::Log_nzCC;
   case DPU::ADDC_Urrrci:
     return ConditionClass::Add_nzCC;
   case DPU::LSL_ADD_Srrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::ADDC_Srrrci:
     return ConditionClass::Add_nzCC;
   case DPU::RORrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MUL_UL_ULzrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::MUL_SH_UHzrrci:
@@ -1744,70 +2179,46 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Count_nzCC;
   case DPU::NOTrrci:
     return ConditionClass::Log_nzCC;
-  case DPU::NANDzrrc:
-    return ConditionClass::Log_setCC;
   case DPU::ROL_ADDzrrici:
-    return ConditionClass::Div_nzCC;
-  case DPU::MUL_STEPrrrici:
     return ConditionClass::BootCC;
+  case DPU::MUL_STEPrrrici:
+    return ConditionClass::LogCC;
   case DPU::MUL_UH_UHzrrci:
     return ConditionClass::Mul_nzCC;
-  case DPU::XORrrif:
-    return ConditionClass::FalseCC;
   case DPU::LSL1X_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::NAND_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::EXTSB_Srrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSR1X_Srrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::HASHrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ORN_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSLX_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MUL_UH_UL_Urrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::LSRXrrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_SL_SL_Srrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::SATS_Urrc:
-    return ConditionClass::Log_setCC;
-  case DPU::ORrrif:
-    return ConditionClass::FalseCC;
-  case DPU::MUL_SL_ULzrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR1Xrrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ADDzrrci:
     return ConditionClass::Add_nzCC;
   case DPU::LSR_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MUL_SH_SH_Srrrci:
     return ConditionClass::Mul_nzCC;
-  case DPU::EXTSH_Srrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_UL_ULzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::SATSzrc:
-    return ConditionClass::Log_setCC;
   case DPU::AND_Srrrci:
     return ConditionClass::Log_nzCC;
-  case DPU::HASHzric:
-    return ConditionClass::Log_setCC;
   case DPU::LSLrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ORNrrici:
     return ConditionClass::Log_nzCC;
   case DPU::LSR1rrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::LSR1rrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::NOR_Srrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::CLS_Urrci:
     return ConditionClass::Count_nzCC;
   case DPU::EXTUH_Urrci:
@@ -1816,112 +2227,78 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Log_nzCC;
   case DPU::SUB_Srrif:
     return ConditionClass::FalseCC;
-  case DPU::EXTUB_Urrc:
-    return ConditionClass::Log_setCC;
   case DPU::ADDC_Srrici:
     return ConditionClass::Add_nzCC;
-  case DPU::XOR_Srrif:
-    return ConditionClass::FalseCC;
   case DPU::LSL_SUB_Srrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::SUBrirc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::MUL_SH_SL_Srrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::SUBCrric:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::NANDrrrci:
     return ConditionClass::Log_nzCC;
-  case DPU::HASHrrrc:
-    return ConditionClass::Log_setCC;
   case DPU::OR_Srrrci:
     return ConditionClass::Log_nzCC;
-  case DPU::SUBCzric:
-    return ConditionClass::Ext_sub_setCC;
   case DPU::ORN_Srrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSR1_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUB_Urirc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::SUBCzrici:
     return ConditionClass::Sub_nzCC;
-  case DPU::LSLXzric:
-    return ConditionClass::Log_setCC;
   case DPU::SUBC_Urric:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::ADD_Urrif:
     return ConditionClass::FalseCC;
   case DPU::NANDrrici:
     return ConditionClass::Log_nzCC;
-  case DPU::ANDzric:
-    return ConditionClass::Log_setCC;
-  case DPU::ACQUIRErici:
-    return ConditionClass::AcquireCC;
   case DPU::ANDN_Urrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::SUBCzrrc:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSR1X_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ADDC_Srrif:
     return ConditionClass::FalseCC;
-  case DPU::EXTUHrrc:
-    return ConditionClass::Log_setCC;
   case DPU::RSUBCrrrc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::SUB_Urrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::RORrric:
-    return ConditionClass::Log_setCC;
-  case DPU::HASHrrif:
-    return ConditionClass::FalseCC;
-  case DPU::ANDN_Srrif:
-    return ConditionClass::FalseCC;
-  case DPU::RSUBzrrc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ROR_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSRrrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::ASRrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MOVDrrci:
     return ConditionClass::True_falseCC;
-  case DPU::LSLzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::TIME_Urci:
-    return ConditionClass::TrueCC;
-  case DPU::MUL_SH_UHzrrc:
-    return ConditionClass::Log_setCC;
+  case DPU::BOOT_STOPici:
+    return ConditionClass::Boot_nzCC;
   case DPU::NXOR_Urrrci:
     return ConditionClass::Log_nzCC;
-  case DPU::MUL_UH_ULrrrc:
-    return ConditionClass::Log_setCC;
   case DPU::ASR_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSLX_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::HASHrrici:
     return ConditionClass::Log_nzCC;
   case DPU::CLS_Srrci:
     return ConditionClass::Count_nzCC;
-  case DPU::NANDrrif:
-    return ConditionClass::FalseCC;
   case DPU::ORN_Urrici:
     return ConditionClass::Log_nzCC;
   case DPU::SUBC_Urirc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::LSL1_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ADDC_Urric:
-    return ConditionClass::Log_setCC;
-  case DPU::OR_Urrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Add_nzCC;
   case DPU::LSR1X_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSRX_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::CMPB4_Urrrci:
     return ConditionClass::Log_nzCC;
   case DPU::ANDNzrici:
@@ -1933,67 +2310,57 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::MOVE_Urici:
     return ConditionClass::Log_nzCC;
   case DPU::LSL_ADDzrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::RSUBCzrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::LSR1X_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBCrrrci:
     return ConditionClass::Sub_nzCC;
-  case DPU::LSL1zrrc:
-    return ConditionClass::Log_setCC;
   case DPU::NAND_Urrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSL_SUB_Urrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::ROL_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSL1X_Urrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::HASH_Srrif:
-    return ConditionClass::FalseCC;
   case DPU::OR_Urrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_SL_UHrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::SUBC_Urrici:
     return ConditionClass::Sub_nzCC;
   case DPU::ADDC_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Add_nzCC;
   case DPU::MUL_SL_UHzrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::ORN_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::MOVE_Srrci:
     return ConditionClass::Log_nzCC;
-  case DPU::HASH_Srrrc:
-    return ConditionClass::Log_setCC;
   case DPU::SUB_Urrrc:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::ROL_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
+  case DPU::BITSWAPrrci:
+    return ConditionClass::Log_nzCC;
   case DPU::SUB_Srirf:
     return ConditionClass::FalseCC;
   case DPU::ROL_ADDrrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::SUBCzrif:
     return ConditionClass::FalseCC;
-  case DPU::ANDNzrif:
-    return ConditionClass::FalseCC;
+  case DPU::BYTESWAPrrci:
+    return ConditionClass::Log_nzCC;
   case DPU::LSR1_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR_ADD_Srrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::OR_Urrici:
     return ConditionClass::Log_nzCC;
-  case DPU::HASH_Urrrc:
-    return ConditionClass::Log_setCC;
   case DPU::LSR_Srric:
-    return ConditionClass::Log_setCC;
-  case DPU::NORrrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSL_ADDrrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::LSL_Urrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::ANDzrrci:
@@ -2002,20 +2369,12 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Mul_nzCC;
   case DPU::MOVE_Srici:
     return ConditionClass::Log_nzCC;
-  case DPU::LSRzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::NXORzric:
-    return ConditionClass::Log_setCC;
-  case DPU::RORzric:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_UL_ULrrrc:
-    return ConditionClass::Log_setCC;
   case DPU::LSR1_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ANDrrrci:
     return ConditionClass::Log_nzCC;
   case DPU::NOR_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::XOR_Urrrci:
     return ConditionClass::Log_nzCC;
   case DPU::AND_Urrici:
@@ -2029,73 +2388,43 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::MUL_SL_UH_Srrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::XORrrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::LSL1Xzrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ADD_Srric:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_UL_UL_Urrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::NAND_Srrif:
-    return ConditionClass::FalseCC;
-  case DPU::ANDNzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::ORzrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Add_nzCC;
+  case DPU::BYTESWAPzrci:
+    return ConditionClass::Log_nzCC;
   case DPU::LSRX_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::EXTUHzrci:
     return ConditionClass::Log_nzCC;
   case DPU::SUB_Urirf:
     return ConditionClass::FalseCC;
   case DPU::DIV_STEPrrrici:
-    return ConditionClass::DivCC;
-  case DPU::EXTSHrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::BootCC;
   case DPU::ORzrici:
     return ConditionClass::Log_nzCC;
   case DPU::CAO_Srrci:
     return ConditionClass::Count_nzCC;
   case DPU::LSRXzrici:
-    return ConditionClass::Imm_shift_nzCC;
-  case DPU::ADDCzric:
-    return ConditionClass::Log_setCC;
-  case DPU::NORzrif:
-    return ConditionClass::FalseCC;
-  case DPU::READ_RUNrici:
-    return ConditionClass::BootCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSL_Urrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::LSR1zrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR1X_Urric:
-    return ConditionClass::Log_setCC;
-  case DPU::TIME_CFGzrci:
-    return ConditionClass::TrueCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSLrrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSRXrric:
-    return ConditionClass::Log_setCC;
-  case DPU::TIMErci:
-    return ConditionClass::TrueCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSLX_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ANDNrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::MUL_SH_UHrrrci:
     return ConditionClass::Mul_nzCC;
-  case DPU::HASH_Srric:
-    return ConditionClass::Log_setCC;
-  case DPU::EXTSHzrc:
-    return ConditionClass::Log_setCC;
-  case DPU::ORNzric:
-    return ConditionClass::Log_setCC;
   case DPU::LSL1X_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MUL_SL_SHzrrci:
     return ConditionClass::Mul_nzCC;
-  case DPU::NXOR_Urrif:
-    return ConditionClass::FalseCC;
   case DPU::ORN_Urrrci:
     return ConditionClass::Log_nzCC;
   case DPU::ANDN_Urrici:
@@ -2103,47 +2432,43 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::SUBC_Srirf:
     return ConditionClass::FalseCC;
   case DPU::SUBCrrrc:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::ADDCrrrci:
     return ConditionClass::Add_nzCC;
-  case DPU::MUL_SL_SLzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_SH_ULrrrc:
-    return ConditionClass::Log_setCC;
+  case DPU::RESUME_STOPici:
+    return ConditionClass::Boot_nzCC;
   case DPU::NAND_Urric:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_UH_UHrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::OR_Urrrci:
     return ConditionClass::Log_nzCC;
   case DPU::HASHzrrci:
     return ConditionClass::Log_nzCC;
   case DPU::NORrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ORzrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSR1X_Srrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::NXORrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSRXzrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::RSUB_Urrrc:
-    return ConditionClass::Sub_setCC;
-  case DPU::MUL_SL_UH_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::ORNzrrci:
     return ConditionClass::Log_nzCC;
   case DPU::NOR_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ADDC_Urrif:
     return ConditionClass::FalseCC;
   case DPU::ADD_Urrici:
     return ConditionClass::Add_nzCC;
   case DPU::SWAPDrrci:
     return ConditionClass::True_falseCC;
+  case DPU::BYTESWAP_Urrci:
+    return ConditionClass::Log_nzCC;
   case DPU::RSUBC_Urrrc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::XOR_Srrici:
     return ConditionClass::Log_nzCC;
   case DPU::LSL1Xrrrci:
@@ -2155,15 +2480,13 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::NORzrrci:
     return ConditionClass::Log_nzCC;
   case DPU::SUBCrirc:
-    return ConditionClass::Sub_setCC;
-  case DPU::LSLzric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::LSR_ADDrrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::LSR1Xrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ROLrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::XOR_Urrici:
     return ConditionClass::Log_nzCC;
   case DPU::SUBCrirf:
@@ -2172,48 +2495,28 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Sub_nzCC;
   case DPU::XORrrrci:
     return ConditionClass::Log_nzCC;
-  case DPU::MUL_SH_SL_Srrrc:
-    return ConditionClass::Log_setCC;
   case DPU::LSR1Xrric:
-    return ConditionClass::Log_setCC;
-  case DPU::NXORzrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::EXTUBzrci:
     return ConditionClass::Log_nzCC;
   case DPU::SUBrric:
-    return ConditionClass::Ext_sub_setCC;
-  case DPU::CLZzrc:
-    return ConditionClass::Log_setCC;
-  case DPU::ORNzrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::LSL1Xzrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::MUL_SH_SLrrrc:
-    return ConditionClass::Log_setCC;
   case DPU::EXTUHrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSR_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBC_Srrrc:
-    return ConditionClass::Ext_sub_setCC;
-  case DPU::RSUBCzrrc:
-    return ConditionClass::Sub_setCC;
-  case DPU::CLSrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_SH_UH_Srrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::CAOrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Sub_nzCC;
+  case DPU::NOTzrci:
+    return ConditionClass::Log_nzCC;
   case DPU::ROL_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ASR_Srrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::LSLXzrrc:
-    return ConditionClass::Log_setCC;
   case DPU::CLZ_Urrci:
     return ConditionClass::Count_nzCC;
-  case DPU::ORNzrrc:
-    return ConditionClass::Log_setCC;
   case DPU::RSUBzrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::ANDrrici:
@@ -2221,19 +2524,17 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::HASHrrrci:
     return ConditionClass::Log_nzCC;
   case DPU::NXOR_Srric:
-    return ConditionClass::Log_setCC;
-  case DPU::XORzrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSL1_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MUL_SH_SHzrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::LSL1X_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MUL_SL_ULrrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::LSLrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBzirf:
     return ConditionClass::FalseCC;
   case DPU::MUL_SL_SL_Srrrci:
@@ -2241,73 +2542,57 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::SATSrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSLXzrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR1_Srric:
-    return ConditionClass::Log_setCC;
-  case DPU::EXTSBrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::XOR_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ADDCrrici:
     return ConditionClass::Add_nzCC;
   case DPU::SUBC_Srrici:
     return ConditionClass::Sub_nzCC;
   case DPU::SUBC_Srrif:
     return ConditionClass::FalseCC;
-  case DPU::ANDN_Urrif:
-    return ConditionClass::FalseCC;
-  case DPU::CLSzrc:
-    return ConditionClass::Log_setCC;
   case DPU::ADDCzrrci:
     return ConditionClass::Add_nzCC;
   case DPU::LSL1_Urric:
-    return ConditionClass::Log_setCC;
-  case DPU::EXTUBrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SATS_Srrci:
     return ConditionClass::Log_nzCC;
+  case DPU::GET_FLAGSrci:
+    return ConditionClass::LogCC;
   case DPU::LSRX_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSL1_Srrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::CAOzrc:
-    return ConditionClass::Log_setCC;
   case DPU::NOR_Urrici:
     return ConditionClass::Log_nzCC;
   case DPU::EXTSBzrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSR_ADDzrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::MUL_UL_UHzrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::ROL_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
-  case DPU::CLS_Urrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBCrrif:
     return ConditionClass::FalseCC;
   case DPU::MUL_SH_ULzrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::AND_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSLX_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR_Urrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_SH_UHrrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::ANDNzric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::RSUBrrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::LSL1X_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::RSUBC_Urrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::LSLXrrici:
-    return ConditionClass::Imm_shift_nzCC;
-  case DPU::SATS_Srrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::HASH_Urrici:
     return ConditionClass::Log_nzCC;
   case DPU::LSRX_Srrrci:
@@ -2316,92 +2601,68 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Sub_nzCC;
   case DPU::OR_Srrici:
     return ConditionClass::Log_nzCC;
-  case DPU::MUL_UH_UL_Urrrc:
-    return ConditionClass::Log_setCC;
   case DPU::ANDNrrici:
     return ConditionClass::Log_nzCC;
   case DPU::ANDN_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSLzrici:
-    return ConditionClass::Imm_shift_nzCC;
-  case DPU::MUL_UH_UHzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::TIME_Srci:
-    return ConditionClass::TrueCC;
-  case DPU::CAO_Urrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::RORzrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ROR_Urrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR_ADD_Urrrici:
-    return ConditionClass::Div_nzCC;
-  case DPU::ROLzric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::BootCC;
   case DPU::OR_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ADDCrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Add_nzCC;
   case DPU::SUB_Srrrc:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::MUL_SL_UL_Srrrci:
     return ConditionClass::Mul_nzCC;
-  case DPU::CMPB4_Srrrc:
-    return ConditionClass::Log_setCC;
   case DPU::ADD_Srrrci:
     return ConditionClass::Add_nzCC;
-  case DPU::TIME_CFGrrci:
-    return ConditionClass::TrueCC;
   case DPU::MUL_UL_UHrrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::ROR_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::EXTSH_Srrci:
     return ConditionClass::Log_nzCC;
-  case DPU::ANDzrrc:
-    return ConditionClass::Log_setCC;
   case DPU::SUBC_Urrif:
     return ConditionClass::FalseCC;
   case DPU::RESUMErici:
-    return ConditionClass::BootCC;
-  case DPU::LSL1zric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Boot_nzCC;
   case DPU::NXOR_Urric:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_SL_SH_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ADDrrrci:
     return ConditionClass::Add_nzCC;
   case DPU::ROR_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSLrrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::LSL1X_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ADD_Srrif:
     return ConditionClass::FalseCC;
   case DPU::LSLXrric:
-    return ConditionClass::Log_setCC;
-  case DPU::ANDrrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ROLzrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSLXrrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::LSRX_Urric:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_SH_UL_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBC_Urrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::LSLX_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBCzrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::ANDN_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ORN_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::XOR_Srrrci:
     return ConditionClass::Log_nzCC;
   case DPU::NOR_Srrrci:
@@ -2409,77 +2670,59 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::SUBrrici:
     return ConditionClass::Sub_nzCC;
   case DPU::SUB_Urric:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::LSL1Xrric:
-    return ConditionClass::Log_setCC;
-  case DPU::OR_Srrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Shift_nzCC;
+  case DPU::BITSWAP_Urrci:
+    return ConditionClass::Log_nzCC;
   case DPU::HASH_Urrrci:
     return ConditionClass::Log_nzCC;
   case DPU::MUL_SH_SHrrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::LSL1rrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ORN_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::RSUBC_Srrrc:
-    return ConditionClass::Sub_setCC;
-  case DPU::AND_Srrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::ADDC_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Add_nzCC;
   case DPU::NXOR_Urrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::ANDNrrif:
-    return ConditionClass::FalseCC;
-  case DPU::XOR_Urrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ASRzrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::NXORrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSRrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBC_Urirci:
     return ConditionClass::Sub_nzCC;
   case DPU::LSR1Xzrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ANDrrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::TIMEzci:
-    return ConditionClass::TrueCC;
-  case DPU::NANDzrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ADDrrici:
     return ConditionClass::Add_nzCC;
-  case DPU::XORzrif:
-    return ConditionClass::FalseCC;
   case DPU::ADDCrrif:
     return ConditionClass::FalseCC;
-  case DPU::MUL_UL_UHrrrc:
-    return ConditionClass::Log_setCC;
   case DPU::SUBzrici:
     return ConditionClass::Sub_nzCC;
   case DPU::ANDN_Urrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSR1rric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::NEGrrci:
     return ConditionClass::Sub_nzCC;
-  case DPU::HASHzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::LSL1Xzric:
-    return ConditionClass::Log_setCC;
-  case DPU::NOR_Urrif:
-    return ConditionClass::FalseCC;
   case DPU::SUBCrrici:
     return ConditionClass::Sub_nzCC;
   case DPU::CLOzrci:
     return ConditionClass::Count_nzCC;
   case DPU::ASRrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUB_Srrrci:
     return ConditionClass::Sub_nzCC;
+  case DPU::BITSWAP_Srrci:
+    return ConditionClass::Log_nzCC;
   case DPU::NXOR_Srrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSR_Urrrci:
@@ -2491,17 +2734,13 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::CMPB4_Srrrci:
     return ConditionClass::Log_nzCC;
   case DPU::RSUBrrrc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::STOPci:
-    return ConditionClass::BootCC;
-  case DPU::RELEASErici:
-    return ConditionClass::ReleaseCC;
-  case DPU::EXTUBzrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Boot_nzCC;
   case DPU::LSRrrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::NORrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ADDCzrici:
     return ConditionClass::Add_nzCC;
   case DPU::CAO_Urrci:
@@ -2509,51 +2748,43 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::RSUBCrrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::ADD_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Add_nzCC;
   case DPU::RSUB_Srrrc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::MUL_UL_UH_Urrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::MUL_SH_SLrrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::ASR_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ADD_Urrrci:
     return ConditionClass::Add_nzCC;
-  case DPU::LSRzric:
-    return ConditionClass::Log_setCC;
   case DPU::MUL_UL_ULrrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::XORzrici:
     return ConditionClass::Log_nzCC;
   case DPU::NOR_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::NORzrici:
     return ConditionClass::Log_nzCC;
   case DPU::NXOR_Urrici:
     return ConditionClass::Log_nzCC;
   case DPU::ANDNrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ORNrric:
-    return ConditionClass::Log_setCC;
-  case DPU::NXOR_Srrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Log_nzCC;
   case DPU::LSL_ADD_Urrrici:
-    return ConditionClass::Div_nzCC;
-  case DPU::CLO_Srrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::BootCC;
   case DPU::ADDrrif:
     return ConditionClass::FalseCC;
   case DPU::ANDN_Srrrci:
     return ConditionClass::Log_nzCC;
-  case DPU::SATSrrc:
-    return ConditionClass::Log_setCC;
   case DPU::LSL_Srrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::ROL_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSL1Xzrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBrrif:
     return ConditionClass::FalseCC;
   case DPU::MOVErrci:
@@ -2561,153 +2792,119 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::LSR1_Srrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::OR_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ANDNzrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSL1Xrrici:
-    return ConditionClass::Imm_shift_nzCC;
-  case DPU::TIME_CFG_Urrci:
-    return ConditionClass::TrueCC;
-  case DPU::MUL_SH_SHzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::RORzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::ORN_Urrif:
-    return ConditionClass::FalseCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSL1_Srrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ASR_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBzrif:
     return ConditionClass::FalseCC;
   case DPU::ADD_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Add_nzCC;
   case DPU::SUB_Urrici:
     return ConditionClass::Sub_nzCC;
   case DPU::ROR_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::MUL_SL_UHrrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::NAND_Urrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::XORrrici:
     return ConditionClass::Log_nzCC;
-  case DPU::ASRzrrc:
-    return ConditionClass::Log_setCC;
   case DPU::MUL_SL_SLrrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::LSL1_Urrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::SUBrirf:
     return ConditionClass::FalseCC;
-  case DPU::HASHzrif:
-    return ConditionClass::FalseCC;
   case DPU::ANDNrrrci:
     return ConditionClass::Log_nzCC;
-  case DPU::ORzric:
-    return ConditionClass::Log_setCC;
   case DPU::NXORzrrci:
     return ConditionClass::Log_nzCC;
   case DPU::ROLzrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::LSL_SUBzrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::ADDCrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Add_nzCC;
   case DPU::NOR_Srrici:
     return ConditionClass::Log_nzCC;
   case DPU::SUB_Urrif:
     return ConditionClass::FalseCC;
   case DPU::SUBC_Srric:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::ADDrrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::NORzrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Add_nzCC;
   case DPU::HASH_Srrici:
     return ConditionClass::Log_nzCC;
   case DPU::LSL_Srrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSL1rrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::MUL_SL_UHzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_SL_SHzrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::LSR1zric:
-    return ConditionClass::Log_setCC;
   case DPU::LSRzrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::LSLX_Srrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::SUBzrrc:
-    return ConditionClass::Ext_sub_setCC;
   case DPU::LSL_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ADDzrici:
     return ConditionClass::Add_nzCC;
   case DPU::LSRrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::NORrrici:
     return ConditionClass::Log_nzCC;
   case DPU::MUL_SL_ULzrrci:
     return ConditionClass::Mul_nzCC;
-  case DPU::EXTSBzrc:
-    return ConditionClass::Log_setCC;
   case DPU::MUL_UH_ULzrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::SUB_Srric:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::LSL_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ROR_Srrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::EXTUB_Urrci:
     return ConditionClass::Log_nzCC;
   case DPU::XOR_Urric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ADDzrif:
     return ConditionClass::FalseCC;
   case DPU::ANDrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::ADDrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Add_nzCC;
   case DPU::HASHzrici:
     return ConditionClass::Log_nzCC;
   case DPU::ORrrrc:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::NANDzrici:
     return ConditionClass::Log_nzCC;
   case DPU::SUBrrrc:
-    return ConditionClass::Ext_sub_setCC;
+    return ConditionClass::Sub_nzCC;
   case DPU::ORrrrci:
     return ConditionClass::Log_nzCC;
   case DPU::LSL1X_Srrrci:
     return ConditionClass::Shift_nzCC;
-  case DPU::MUL_SL_UL_Srrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::MUL_UH_UH_Urrrc:
-    return ConditionClass::Log_setCC;
-  case DPU::AND_Urrif:
-    return ConditionClass::FalseCC;
   case DPU::LSRXrrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::LSL1_Srric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::SUBzrrci:
     return ConditionClass::Sub_nzCC;
   case DPU::LSR1zrici:
-    return ConditionClass::Imm_shift_nzCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::LSR1_Urric:
-    return ConditionClass::Log_setCC;
-  case DPU::SUBCzirc:
-    return ConditionClass::Sub_setCC;
+    return ConditionClass::Shift_nzCC;
   case DPU::ROL_ADD_Srrrici:
-    return ConditionClass::Div_nzCC;
+    return ConditionClass::BootCC;
   case DPU::RORzrrci:
     return ConditionClass::Shift_nzCC;
   case DPU::XORrric:
-    return ConditionClass::Log_setCC;
+    return ConditionClass::Log_nzCC;
   case DPU::MUL_UH_UH_Urrrci:
     return ConditionClass::Mul_nzCC;
   case DPU::RSUB_Urrrci:
