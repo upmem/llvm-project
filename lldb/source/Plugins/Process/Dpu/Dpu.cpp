@@ -80,11 +80,14 @@ bool Dpu::SetPrintfSequenceAddrs(const uint32_t _open_print_sequence_addr,
                                  const uint32_t _printf_buffer_address,
                                  const uint32_t _printf_buffer_size,
                                  const uint32_t _printf_buffer_var_addr) {
+  // The _open_print_sequence function starts with some instructions to acquire
+  // a lock Currently the sequence is 4 instruction long
+  // TODO: ideally the sequence should be 2 instruction long, and we will need
+  // to change the following code. It may be more maintainable to fetch the
+  // function size and use the last instruction (ie. the return instruction)
+  // instead of what we are currently doing.
   open_print_sequence_addr =
-      _open_print_sequence_addr +
-      sizeof(dpuinstruction_t); // we add sizeof(dpuinstruction_t) to avoid to
-                                // be on the 'acquire' which could makes us loop
-                                // forever
+      _open_print_sequence_addr + 4 * sizeof(dpuinstruction_t);
   close_print_sequence_addr = _close_print_sequence_addr;
   printf_buffer_address = _printf_buffer_address;
   printf_buffer_size = _printf_buffer_size;
@@ -181,7 +184,7 @@ bool Dpu::Boot() {
   dpuinstruction_t first_instruction;
   ReadIRAM(0, (void *)(&first_instruction), sizeof(dpuinstruction_t));
 
-  const dpuinstruction_t breakpoint_instruction = 0x00007e6320000000;
+  const dpuinstruction_t breakpoint_instruction = 0x00003c634fc08000;
   WriteIRAMUntraced(0, (const void *)(&breakpoint_instruction),
                     sizeof(dpuinstruction_t));
 
@@ -789,7 +792,8 @@ lldb::StateType Dpu::GetThreadState(uint32_t thread_index,
       uint64_t prev_instruction;
       if (ReadIRAM(thread_pc - sizeof(dpuinstruction_t), &prev_instruction,
                    sizeof(dpuinstruction_t))) {
-        if (prev_instruction == 0x7e6320100000) { // '0x7e6320100000': fault 1
+        if (prev_instruction ==
+            0x00003c634fc08001) { // '0x00003c634fc08001': fault 1
           description = "fault 1 (" + bkp_fault_description[1] + ")";
           stop_reason = eStopReasonException;
           return eStateCrashed;
