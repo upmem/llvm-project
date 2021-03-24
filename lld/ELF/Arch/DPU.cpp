@@ -50,22 +50,21 @@ RelExpr DPU::getRelExpr(const RelType Type, const Symbol &S,
   case R_DPU_32:
   case R_DPU_64:
   case R_DPU_PC:
+  case R_DPU_IMM4:
   case R_DPU_IMM5:
+  case R_DPU_IMM5_RB:
+  case R_DPU_IMM5_RB_INV:
+  case R_DPU_IMM8:
   case R_DPU_IMM8_DMA:
-  case R_DPU_IMM24_PC:
-  case R_DPU_IMM27_PC:
-  case R_DPU_IMM28_PC_OPC8:
   case R_DPU_IMM8_STR:
-  case R_DPU_IMM12_STR:
+  case R_DPU_IMM12:
+  case R_DPU_IMM14_STR:
   case R_DPU_IMM16_STR:
-  case R_DPU_IMM16_ATM:
+  case R_DPU_IMM22:
+  case R_DPU_IMM22_RB:
   case R_DPU_IMM24:
-  case R_DPU_IMM24_RB:
-  case R_DPU_IMM27:
-  case R_DPU_IMM28:
   case R_DPU_IMM32:
   case R_DPU_IMM32_ZERO_RB:
-  case R_DPU_IMM17_24:
   case R_DPU_IMM32_DUS_RB:
     return R_ABS;
   }
@@ -121,95 +120,58 @@ void DPU::relocate(uint8_t *loc, const Relocation &rel, const uint64_t val) cons
     write64<E>(loc, val);
     return;
   case R_DPU_16:
-  case R_DPU_PC:
     write16<E>(loc, (uint16_t)val);
     return;
-  case R_DPU_IMM8_DMA:
-    *(loc + 3) = (uint8_t)val;
-    return;
+  case R_DPU_PC:
+    Data |= (((val >> 0) & 0x3fffl) << 0);
+    break;
+  case R_DPU_IMM4:
+    Data |= (((val >> 0) & 15) << 14);
+    break;
   case R_DPU_IMM5:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0x1l) << 28);
+    Data |= (((val >> 0) & 15) << 14) | (((val >> 4) & 1) << 28);
     break;
-  case R_DPU_IMM24_PC:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0xfl) << 16);
+  case R_DPU_IMM5_RB:
+    Data |= (((val >> 0) & 15) << 14) | (((val >> 4) & 1) << 24);
     break;
-  case R_DPU_IMM27_PC:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0xfl) << 16) |
-            (((val >> 8) & 0x7l) << 39);
+  case R_DPU_IMM5_RB_INV:
+    Data |= ((((~val) >> 0) & 15) << 14) | ((((~val) >> 4) & 1) << 24);
     break;
-  case R_DPU_IMM28_PC_OPC8:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0xfl) << 16) |
-            (((val >> 8) & 0x7l) << 39) | (((val >> 11) & 0x1l) << 44);
+  case R_DPU_IMM8:
+    Data |= (((val >> 0) & 15) << 14) | (((val >> 4) & 15) << 28);
+    break;
+  case R_DPU_IMM8_DMA:
+    Data |= (((val >> 0) & 0xffl) << 6);
     break;
   case R_DPU_IMM8_STR:
-    Data |= (((val >> 0) & 0xfl) << 16) | (((val >> 4) & 0xfl) << 0);
+    Data |= (((val >> 0) & 1) << 23) | (((val >> 1) & 7) << 39) | (((val >> 4) & 15) << 28);
     break;
-  case R_DPU_IMM12_STR:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0x7l) << 39) |
-            (((val >> 7) & 0x1l) << 24) | (((val >> 8) & 0x1l) << 15) |
-            (((val >> 9) & 0x1l) << 14) | (((val >> 10) & 0x1l) << 13) |
-            (((val >> 11) & 0x1l) << 12);
+  case R_DPU_IMM12:
+    Data |= (((val >> 0) & 15) << 14) | (((val >> 4) & 7) << 28) | (((val >> 7) & 1) << 24) | (((val >> 8) & 7) << 39) | (((val >> 11) & 1) << 31);
+    break;
+  case R_DPU_IMM14_STR:
+    Data |= (((val >> 8) & 63) << 0) | (((val >> 0) & 255) << 14);
     break;
   case R_DPU_IMM16_STR:
-    Data |= (((val >> 0) & 0xfl) << 16) | (((val >> 4) & 0xfffl) << 0);
+    Data |= (((val >> 0) & 1) << 23) | (((val >> 1) & 7) << 39) | (((val >> 4) & 15) << 28) | (((val >> 8) & 255) << 6);
     break;
-  case R_DPU_IMM16_ATM:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0xfl) << 16) |
-            (((val >> 8) & 0x1fl) << 26) | (((val >> 13) & 0x7l) << 39);
+  case R_DPU_IMM22:
+    Data |= (((val >> 8) & 16383) << 0) | (((val >> 0) & 15) << 14) | (((val >> 4) & 15) << 18);
+    break;
+  case R_DPU_IMM22_RB:
+    Data |= (((val >> 0) & 15) << 14) | (((val >> 4) & 7) << 28) | (((val >> 7) & 1) << 13) | (((val >> 8) & 0x1fff) << 0) | (((val >> 21) & 1) << 31);
     break;
   case R_DPU_IMM24:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0xfl) << 16) |
-            (((val >> 8) & 0x1l) << 15) | (((val >> 9) & 0x1l) << 14) |
-            (((val >> 10) & 0x1l) << 13) | (((val >> 11) & 0x1l) << 12) |
-            (((val >> 12) & 0xfffl) << 0);
-    break;
-  case R_DPU_IMM24_RB:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0x7l) << 39) |
-            (((val >> 7) & 0x1l) << 24) | (((val >> 8) & 0x1l) << 15) |
-            (((val >> 9) & 0x1l) << 14) | (((val >> 10) & 0x1l) << 13) |
-            (((val >> 11) & 0x1l) << 12) | (((val >> 12) & 0xfffl) << 0);
-    break;
-  case R_DPU_IMM27:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0xfl) << 16) |
-            (((val >> 8) & 0x1l) << 15) | (((val >> 9) & 0x1l) << 14) |
-            (((val >> 10) & 0x1l) << 13) | (((val >> 11) & 0x1l) << 12) |
-            (((val >> 12) & 0xfffl) << 0) | (((val >> 24) & 0x7l) << 39);
-    break;
-  case R_DPU_IMM28:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0xfl) << 16) |
-            (((val >> 8) & 0x1l) << 15) | (((val >> 9) & 0x1l) << 14) |
-            (((val >> 10) & 0x1l) << 13) | (((val >> 11) & 0x1l) << 12) |
-            (((val >> 12) & 0xfffl) << 0) | (((val >> 24) & 0x7l) << 39) |
-            (((val >> 27) & 0x1l) << 44);
+    Data |= (((val >> 0) & 15) << 14) | (((val >> 4) & 7) << 28) | (((val >> 7) & 1) << 24) | (((val >> 8) & 0x3fff) << 0) | (((val >> 22) & 1) << 22) | (((val >> 23) & 1) << 31);
     break;
   case R_DPU_IMM32:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0xfl) << 16) |
-            (((val >> 8) & 0x1l) << 15) | (((val >> 9) & 0x1l) << 14) |
-            (((val >> 10) & 0x1l) << 13) | (((val >> 11) & 0x1l) << 12) |
-            (((val >> 12) & 0xfffl) << 0) | (((val >> 24) & 0xffl) << 24);
+    Data |= (((val >> 8) & 16383) << 0) | (((val >> 0) & 15) << 14) | (((val >> 22) & 1023) << 18) | (((val >> 4) & 15) << 28);
     break;
   case R_DPU_IMM32_ZERO_RB:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0x7l) << 34) |
-            (((val >> 7) & 0x1l) << 39) | (((val >> 8) & 0x1l) << 15) |
-            (((val >> 9) & 0x1l) << 14) | (((val >> 10) & 0x1l) << 13) |
-            (((val >> 11) & 0x1l) << 12) | (((val >> 12) & 0xfffl) << 0) |
-            (((val >> 24) & 0xffl) << 24);
-    break;
-  case R_DPU_IMM17_24:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0xfl) << 16) |
-            (((val >> 8) & 0x1l) << 15) | (((val >> 9) & 0x1l) << 14) |
-            (((val >> 10) & 0x1l) << 13) | (((val >> 11) & 0x1l) << 12) |
-            (((val >> 12) & 0x1fl) << 0) | (((val >> 16) & 0x1l) << 5) |
-            (((val >> 16) & 0x1l) << 6) | (((val >> 16) & 0x1l) << 7) |
-            (((val >> 16) & 0x1l) << 8) | (((val >> 16) & 0x1l) << 9) |
-            (((val >> 16) & 0x1l) << 10) | (((val >> 16) & 0x1l) << 11);
+    Data |= (((val >> 8) & 16383) << 0) | (((val >> 0) & 15) << 14) | (((val >> 22) & 1023) << 18) | (((val >> 4) & 7) << 34) | (((val >> 7) & 1) << 39);
     break;
   case R_DPU_IMM32_DUS_RB:
-    Data |= (((val >> 0) & 0xfl) << 20) | (((val >> 4) & 0x7l) << 34) |
-            (((val >> 7) & 0x1l) << 44) | (((val >> 8) & 0x1l) << 15) |
-            (((val >> 9) & 0x1l) << 14) | (((val >> 10) & 0x1l) << 13) |
-            (((val >> 11) & 0x1l) << 12) | (((val >> 12) & 0xfffl) << 0) |
-            (((val >> 24) & 0xffl) << 24);
+    Data |= (((val >> 8) & 16383) << 0) | (((val >> 0) & 15) << 14) | (((val >> 22) & 1023) << 18) | (((val >> 4) & 7) << 34) | (((val >> 7) & 1) << 44);
     break;
   default:
     error(getErrorLocation(loc) + "unrecognized reloc " + Twine(Type));
