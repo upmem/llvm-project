@@ -203,8 +203,8 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
     dpu_first_instruction = process_dpu.ReadMemory(dpu_first_instruction_addr,
                                                    8, error)
     process_dpu.WriteMemory(dpu_first_instruction_addr,
-                            bytearray([0x00, 0x00, 0x00, 0x20,
-                                       0x63, 0x7e, 0x00, 0x00]), error)
+                            bytearray([0x00, 0x80, 0xc0, 0x4f,
+                                       0x63, 0x3c, 0x00, 0x00]), error)
     process_dpu.Detach()
     debugger.DeleteTarget(target_dpu)
     debugger.SetSelectedTarget(target)
@@ -220,7 +220,6 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
                                         dpu_first_instruction, error)
 
     return target_dpu
-
 
 def dpu_attach(debugger, command, result, internal_dict):
     '''
