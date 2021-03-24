@@ -50,53 +50,50 @@ unsigned int DPUELFObjectWriter::getRelocType(MCContext &Ctx,
   case DPU::FIXUP_DPU_PC:
     Type = ELF::R_DPU_PC;
     break;
+  case DPU::FIXUP_DPU_IMM4:
+    Type = ELF::R_DPU_IMM4;
+    break;
   case DPU::FIXUP_DPU_IMM5:
     Type = ELF::R_DPU_IMM5;
+    break;
+  case DPU::FIXUP_DPU_IMM5_RB:
+    Type = ELF::R_DPU_IMM5_RB;
+    break;
+  case DPU::FIXUP_DPU_IMM5_RB_INV:
+    Type = ELF::R_DPU_IMM5_RB_INV;
+    break;
+  case DPU::FIXUP_DPU_IMM8:
+    Type = ELF::R_DPU_IMM8;
     break;
   case DPU::FIXUP_DPU_IMM8_DMA:
     Type = ELF::R_DPU_IMM8_DMA;
     break;
-  case DPU::FIXUP_DPU_IMM24_PC:
-    Type = ELF::R_DPU_IMM24_PC;
-    break;
-  case DPU::FIXUP_DPU_IMM27_PC:
-    Type = ELF::R_DPU_IMM27_PC;
-    break;
-  case DPU::FIXUP_DPU_IMM28_PC_OPC8:
-    Type = ELF::R_DPU_IMM28_PC_OPC8;
-    break;
   case DPU::FIXUP_DPU_IMM8_STR:
     Type = ELF::R_DPU_IMM8_STR;
     break;
-  case DPU::FIXUP_DPU_IMM12_STR:
-    Type = ELF::R_DPU_IMM12_STR;
+  case DPU::FIXUP_DPU_IMM12:
+    Type = ELF::R_DPU_IMM12;
+    break;
+  case DPU::FIXUP_DPU_IMM14_STR:
+    Type = ELF::R_DPU_IMM14_STR;
     break;
   case DPU::FIXUP_DPU_IMM16_STR:
     Type = ELF::R_DPU_IMM16_STR;
     break;
-  case DPU::FIXUP_DPU_IMM16_ATM:
-    Type = ELF::R_DPU_IMM16_ATM;
+  case DPU::FIXUP_DPU_IMM22:
+    Type = ELF::R_DPU_IMM22;
+    break;
+  case DPU::FIXUP_DPU_IMM22_RB:
+    Type = ELF::R_DPU_IMM22_RB;
     break;
   case DPU::FIXUP_DPU_IMM24:
     Type = ELF::R_DPU_IMM24;
-    break;
-  case DPU::FIXUP_DPU_IMM24_RB:
-    Type = ELF::R_DPU_IMM24_RB;
-    break;
-  case DPU::FIXUP_DPU_IMM27:
-    Type = ELF::R_DPU_IMM27;
-    break;
-  case DPU::FIXUP_DPU_IMM28:
-    Type = ELF::R_DPU_IMM28;
     break;
   case DPU::FIXUP_DPU_IMM32:
     Type = ELF::R_DPU_IMM32;
     break;
   case DPU::FIXUP_DPU_IMM32_ZERO_RB:
     Type = ELF::R_DPU_IMM32_ZERO_RB;
-    break;
-  case DPU::FIXUP_DPU_IMM17_24:
-    Type = ELF::R_DPU_IMM17_24;
     break;
   case DPU::FIXUP_DPU_IMM32_DUS_RB:
     Type = ELF::R_DPU_IMM32_DUS_RB;

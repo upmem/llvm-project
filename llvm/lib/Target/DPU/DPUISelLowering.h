@@ -160,11 +160,6 @@ enum {
   SEQREAD_GET,
   SEQREAD_GET_CST,
 
-  LHU_BIG,
-  LHS_BIG,
-  LW_BIG,
-  LD_BIG,
-
   TEST_NODE
 };
 }

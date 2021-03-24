@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "DPUMCCodeEmitter.h"
+#include "llvm/MC/MCInst.h"
 #include "llvm/Support/raw_ostream.h"
 
 #define DEBUG_TYPE "mccodeemitter"
@@ -95,6 +96,26 @@ DPUMCCodeEmitter::getConditionEncoding(const MCInst &MI, unsigned OpNo,
 
   return static_cast<unsigned int>(
       DPUAsmCondition::getEncoding(Cond, CondClass));
+}
+
+unsigned
+DPUMCCodeEmitter::getInvImmEncoding(const MCInst &MI, unsigned OpNo,
+                                       SmallVectorImpl<MCFixup> &Fixups,
+                                       const MCSubtargetInfo &STI) const {
+  const MCOperand &MCOp = MI.getOperand(OpNo);
+
+  if (MCOp.isImm()) {
+    return ~static_cast<unsigned>(MCOp.getImm());
+  }
+
+  const MCExpr *Expr = MCOp.getExpr();
+  int64_t Res;
+
+  if (Expr->evaluateAsAbsolute(Res)) {
+    return ~static_cast<unsigned int>(Res);
+  }
+
+  return getExprOpValue(Expr, MI.getOpcode(), OpNo, Fixups, STI);
 }
 
 #include "DPUGenMCCodeEmitter.inc"

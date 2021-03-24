@@ -122,9 +122,8 @@ public:
   OperandMatchResultTy parseAnyImmediate(OperandVector &Operands);
   OperandMatchResultTy parseAnyEndianness(OperandVector &Operands);
 
-  OperandMatchResultTy parseAnyConditionAsAcquire_cc(OperandVector &Operands) {
-    return parseAnyCondition(Operands,
-                             DPUAsmCondition::ConditionClass::AcquireCC);
+  OperandMatchResultTy parseAnyConditionAsAdd_cc(OperandVector &Operands) {
+    return parseAnyCondition(Operands, DPUAsmCondition::ConditionClass::AddCC);
   }
   OperandMatchResultTy parseAnyConditionAsAdd_nz_cc(OperandVector &Operands) {
     return parseAnyCondition(Operands,
@@ -132,6 +131,9 @@ public:
   }
   OperandMatchResultTy parseAnyConditionAsBoot_cc(OperandVector &Operands) {
     return parseAnyCondition(Operands, DPUAsmCondition::ConditionClass::BootCC);
+  }
+  OperandMatchResultTy parseAnyConditionAsBoot_nz_cc(OperandVector &Operands) {
+    return parseAnyCondition(Operands, DPUAsmCondition::ConditionClass::Boot_nzCC);
   }
   OperandMatchResultTy
   parseAnyConditionAsConst_cc_ge0(OperandVector &Operands) {
@@ -188,9 +190,9 @@ public:
   OperandMatchResultTy parseAnyConditionAsNo_cc(OperandVector &Operands) {
     return parseAnyCondition(Operands, DPUAsmCondition::ConditionClass::NoCC);
   }
-  OperandMatchResultTy parseAnyConditionAsRelease_cc(OperandVector &Operands) {
+  OperandMatchResultTy parseAnyConditionAsShift_cc(OperandVector &Operands) {
     return parseAnyCondition(Operands,
-                             DPUAsmCondition::ConditionClass::ReleaseCC);
+                             DPUAsmCondition::ConditionClass::ShiftCC);
   }
   OperandMatchResultTy parseAnyConditionAsShift_nz_cc(OperandVector &Operands) {
     return parseAnyCondition(Operands,
@@ -211,6 +213,12 @@ public:
   parseAnyConditionAsTrue_false_cc(OperandVector &Operands) {
     return parseAnyCondition(Operands,
                              DPUAsmCondition::ConditionClass::True_falseCC);
+  }
+
+  // Todo temp
+  OperandMatchResultTy
+  parseAnyConditionAsLog_cc(OperandVector &Operands){
+    return parseAnyCondition(Operands, DPUAsmCondition::ConditionClass::LogCC);
   }
 
 private:
@@ -416,8 +424,8 @@ public:
            DPUAsmCondition::isInConditionClass(getCond(), CondClassID);
   }
 
-  bool isAcquire_cc() const {
-    return isConditionOfClass(DPUAsmCondition::ConditionClass::AcquireCC);
+  bool isAdd_cc() const {
+    return isConditionOfClass(DPUAsmCondition::ConditionClass::AddCC);
   }
   bool isAdd_nz_cc() const {
     return isConditionOfClass(DPUAsmCondition::ConditionClass::Add_nzCC);
@@ -425,14 +433,17 @@ public:
   bool isBoot_cc() const {
     return isConditionOfClass(DPUAsmCondition::ConditionClass::BootCC);
   }
+  bool isBoot_nz_cc() const {
+    return isConditionOfClass(DPUAsmCondition::ConditionClass::Boot_nzCC);
+  }
   bool isConst_cc_ge0() const {
-    return isConditionOfClass(DPUAsmCondition::ConditionClass::AcquireCC);
+    return isConditionOfClass(DPUAsmCondition::ConditionClass::BootCC);
   }
   bool isConst_cc_geu() const {
-    return isConditionOfClass(DPUAsmCondition::ConditionClass::AcquireCC);
+    return isConditionOfClass(DPUAsmCondition::ConditionClass::BootCC);
   }
   bool isConst_cc_zero() const {
-    return isConditionOfClass(DPUAsmCondition::ConditionClass::AcquireCC);
+    return isConditionOfClass(DPUAsmCondition::ConditionClass::BootCC);
   }
   bool isCount_nz_cc() const {
     return isConditionOfClass(DPUAsmCondition::ConditionClass::Count_nzCC);
@@ -464,8 +475,8 @@ public:
   bool isNo_cc() const {
     return isConditionOfClass(DPUAsmCondition::ConditionClass::NoCC);
   }
-  bool isRelease_cc() const {
-    return isConditionOfClass(DPUAsmCondition::ConditionClass::ReleaseCC);
+  bool isShift_cc() const {
+    return isConditionOfClass(DPUAsmCondition::ConditionClass::ShiftCC);
   }
   bool isShift_nz_cc() const {
     return isConditionOfClass(DPUAsmCondition::ConditionClass::Shift_nzCC);
@@ -482,6 +493,13 @@ public:
   bool isTrue_false_cc() const {
     return isConditionOfClass(DPUAsmCondition::ConditionClass::True_falseCC);
   }
+
+  // Temp add this
+  bool isLog_cc() const {
+    return isConditionOfClass(DPUAsmCondition::ConditionClass::LogCC);
+  }
+
+
 
   bool isConstantImm() const {
     int64_t Res;
@@ -790,8 +808,8 @@ bool DPUAsmParser::isConditionKind(unsigned Kind,
   switch ((MatchClassKind)Kind) {
   default:
     return false;
-  case MCK_Acquire_cc:
-    CondClass = DPUAsmCondition::ConditionClass::AcquireCC;
+  case MCK_Add_cc:
+    CondClass = DPUAsmCondition::ConditionClass::AddCC;
     break;
   case MCK_Add_nz_cc:
     CondClass = DPUAsmCondition::ConditionClass::Add_nzCC;
@@ -838,8 +856,8 @@ bool DPUAsmParser::isConditionKind(unsigned Kind,
   case MCK_No_cc:
     CondClass = DPUAsmCondition::ConditionClass::NoCC;
     break;
-  case MCK_Release_cc:
-    CondClass = DPUAsmCondition::ConditionClass::ReleaseCC;
+  case MCK_Shift_cc:
+    CondClass = DPUAsmCondition::ConditionClass::ShiftCC;
     break;
   case MCK_Shift_nz_cc:
     CondClass = DPUAsmCondition::ConditionClass::Shift_nzCC;
