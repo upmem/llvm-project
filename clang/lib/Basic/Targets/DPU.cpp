@@ -35,7 +35,6 @@ void DPUTargetInfo::getTargetDefines(const LangOptions &Opts,
   DefineStd(Builder, "DPU", Opts);
   Builder.defineMacro("__ELF__");
   Builder.defineMacro("NR_THREADS", Twine(DPU_NR_THREADS));
-  Builder.defineMacro("NR_ATOMIC_BITS", Twine(DPU_NR_ATOMIC_BITS));
 }
 
 ArrayRef<Builtin::Info> DPUTargetInfo::getTargetBuiltins() const {
