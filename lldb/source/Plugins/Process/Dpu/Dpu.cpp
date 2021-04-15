@@ -184,7 +184,7 @@ bool Dpu::Boot() {
   dpuinstruction_t first_instruction;
   ReadIRAM(0, (void *)(&first_instruction), sizeof(dpuinstruction_t));
 
-  const dpuinstruction_t breakpoint_instruction = 0x00003c634fc08000;
+  const dpuinstruction_t breakpoint_instruction = 0x000035319e008000;
   WriteIRAMUntraced(0, (const void *)(&breakpoint_instruction),
                     sizeof(dpuinstruction_t));
 
@@ -799,7 +799,7 @@ lldb::StateType Dpu::GetThreadState(uint32_t thread_index,
       if (ReadIRAM(thread_pc - sizeof(dpuinstruction_t), &prev_instruction,
                    sizeof(dpuinstruction_t))) {
         if (prev_instruction ==
-            0x00003c634fc08001) { // '0x00003c634fc08001': fault 1
+            0x000035319e008001) { // '0x000035319e008001': fault 1
           description = "fault 1 (" + bkp_fault_description[1] + ")";
           stop_reason = eStopReasonException;
           return eStateCrashed;
