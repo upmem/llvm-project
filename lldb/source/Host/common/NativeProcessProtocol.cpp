@@ -524,8 +524,8 @@ NativeProcessProtocol::GetSoftwareBreakpointTrapOpcode(size_t size_hint) {
   static const uint8_t g_mips64el_opcode[] = {0x0d, 0x00, 0x00, 0x00};
   static const uint8_t g_s390x_opcode[] = {0x00, 0x01};
   static const uint8_t g_ppc64le_opcode[] = {0x08, 0x00, 0xe0, 0x7f}; // trap
-  static const uint8_t g_dpu_opcode[] = {0x00, 0x80, 0xc0, 0x4f,
-                                         0x63, 0x3c, 0x00, 0x00};
+  static const uint8_t g_dpu_opcode[] = {0x00, 0x80, 0x00, 0x9e,
+                                         0x31, 0x35, 0x00, 0x00};
 
   switch (GetArchitecture().GetMachine()) {
   case llvm::Triple::aarch64:
