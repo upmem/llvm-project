@@ -41,14 +41,37 @@ unsigned int DPUELFObjectWriter::getRelocType(MCContext &Ctx,
     Type = ELF::R_DPU_16;
     break;
   case MCFixupKind ::FK_Data_4:
-  case DPU::FIXUP_DPU_32:
     Type = ELF::R_DPU_32;
     break;
   case MCFixupKind ::FK_Data_8:
     Type = ELF::R_DPU_64;
     break;
-  case DPU::FIXUP_DPU_PC:
-    Type = ELF::R_DPU_PC;
+  case DPU::FIXUP_DPU_IMM12:
+    Type = ELF::R_DPU_IMM12;
+    break;
+  case DPU::FIXUP_DPU_IMM13_STR:
+    Type = ELF::R_DPU_IMM13_STR;
+    break;
+  case DPU::FIXUP_DPU_IMM16_STR:
+    Type = ELF::R_DPU_IMM16_STR;
+    break;
+  case DPU::FIXUP_DPU_IMM22:
+    Type = ELF::R_DPU_IMM22;
+    break;
+  case DPU::FIXUP_DPU_IMM22_RB:
+    Type = ELF::R_DPU_IMM22_RB;
+    break;
+  case DPU::FIXUP_DPU_IMM24:
+    Type = ELF::R_DPU_IMM24;
+    break;
+  case DPU::FIXUP_DPU_IMM32:
+    Type = ELF::R_DPU_IMM32;
+    break;
+  case DPU::FIXUP_DPU_IMM32_DUS_RB:
+    Type = ELF::R_DPU_IMM32_DUS_RB;
+    break;
+  case DPU::FIXUP_DPU_IMM32_ZERO_RB:
+    Type = ELF::R_DPU_IMM32_ZERO_RB;
     break;
   case DPU::FIXUP_DPU_IMM4:
     Type = ELF::R_DPU_IMM4;
@@ -71,32 +94,8 @@ unsigned int DPUELFObjectWriter::getRelocType(MCContext &Ctx,
   case DPU::FIXUP_DPU_IMM8_STR:
     Type = ELF::R_DPU_IMM8_STR;
     break;
-  case DPU::FIXUP_DPU_IMM12:
-    Type = ELF::R_DPU_IMM12;
-    break;
-  case DPU::FIXUP_DPU_IMM14_STR:
-    Type = ELF::R_DPU_IMM14_STR;
-    break;
-  case DPU::FIXUP_DPU_IMM16_STR:
-    Type = ELF::R_DPU_IMM16_STR;
-    break;
-  case DPU::FIXUP_DPU_IMM22:
-    Type = ELF::R_DPU_IMM22;
-    break;
-  case DPU::FIXUP_DPU_IMM22_RB:
-    Type = ELF::R_DPU_IMM22_RB;
-    break;
-  case DPU::FIXUP_DPU_IMM24:
-    Type = ELF::R_DPU_IMM24;
-    break;
-  case DPU::FIXUP_DPU_IMM32:
-    Type = ELF::R_DPU_IMM32;
-    break;
-  case DPU::FIXUP_DPU_IMM32_ZERO_RB:
-    Type = ELF::R_DPU_IMM32_ZERO_RB;
-    break;
-  case DPU::FIXUP_DPU_IMM32_DUS_RB:
-    Type = ELF::R_DPU_IMM32_DUS_RB;
+  case DPU::FIXUP_DPU_PC:
+    Type = ELF::R_DPU_PC;
     break;
   default:
     llvm_unreachable("Invalid fixup kind!");
