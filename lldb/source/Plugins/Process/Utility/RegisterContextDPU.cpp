@@ -224,5 +224,5 @@ bool RegisterContextDPU::PCIsInstructionReturn(lldb::addr_t pc) {
   Status error;
   uint64_t instruction;
   m_thread.GetProcess()->ReadMemory(pc, &instruction, 8, error);
-  return instruction == 0x3c5f0e800000ULL; // 0x0x3c5f0e800000 => 'jump r23'
+  return instruction == 0x362f86000000ULL; // 0x362f86000000 => 'jump r23'
 }
