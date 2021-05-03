@@ -209,7 +209,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
   unsigned int LastOpc, SecondLastOpc;
   enum OpPrototype OpPrototype;
   unsigned int OpJumpOpc, OpNullJumpOpc;
-  bool ImmCanBeEncodedOn8Bits, ImmCanBeEncodedOn11Bits;
+  bool ImmCanBeEncodedOn8Bits, ImmCanBeEncodedOn12Bits;
   std::set<ISD::CondCode> usableConditions;
   std::set<ISD::CondCode> usableConditionsTranslatableToSourceConditions;
 
@@ -615,7 +615,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
   usableConditionsTranslatableToSourceConditions = sourceConditionsSet;
 
   ImmCanBeEncodedOn8Bits = true;
-  ImmCanBeEncodedOn11Bits = true;
+  ImmCanBeEncodedOn12Bits = true;
 
   if ((OpPrototype == OprriLimited) || (OpPrototype == OprirLimited)) {
     MachineOperand &immOperand = SecondLastInst->getOperand(2);
@@ -627,7 +627,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
 
     int64_t immOpValue = immOperand.getImm();
     ImmCanBeEncodedOn8Bits = canEncodeImmediateOnNBitsSigned(immOpValue, 8);
-    ImmCanBeEncodedOn11Bits = canEncodeImmediateOnNBitsSigned(immOpValue, 11);
+    ImmCanBeEncodedOn12Bits = canEncodeImmediateOnNBitsSigned(immOpValue, 12);
   } else if (OpPrototype == OpriLimited) {
     MachineOperand &immOperand = SecondLastInst->getOperand(1);
     if (!immOperand.isImm()) {
@@ -639,7 +639,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
 
     int64_t immOpValue = immOperand.getImm();
     ImmCanBeEncodedOn8Bits = canEncodeImmediateOnNBitsSigned(immOpValue, 8);
-    ImmCanBeEncodedOn11Bits = canEncodeImmediateOnNBitsSigned(immOpValue, 11);
+    ImmCanBeEncodedOn12Bits = canEncodeImmediateOnNBitsSigned(immOpValue, 12);
   }
 
   switch (LastOpc) {
@@ -744,11 +744,11 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
     MachineInstrBuilder ComboInst;
 
     if (LastInst->getOperand(1).isKill() && !isSourceCondition) {
-      if (!ImmCanBeEncodedOn11Bits) {
+      if (!ImmCanBeEncodedOn12Bits) {
         LLVM_DEBUG(
             dbgs()
             << "KO: LastOpc == DPU::Jcci && (LastInst->getOperand(1).isKill() "
-               "&& !isSourceCondition) && (!ImmCanBeEncodedOn11Bits)\n");
+               "&& !isSourceCondition) && (!ImmCanBeEncodedOn12Bits)\n");
         return false;
       }
       // todo: this is not optimal. One register has been allocated but not used
@@ -761,7 +761,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
         LLVM_DEBUG(
             dbgs()
             << "KO: LastOpc == DPU::Jcci && !(LastInst->getOperand(1).isKill() "
-               "&& !isSourceCondition) && (!ImmCanBeEncodedOn11Bits)\n");
+               "&& !isSourceCondition) && (!ImmCanBeEncodedOn8Bits)\n");
         return false;
       }
       ComboInst =

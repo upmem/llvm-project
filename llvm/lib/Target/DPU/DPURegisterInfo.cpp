@@ -134,7 +134,7 @@ void DPURegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     Offset += MI.getOperand(FIOperandNum + 1).getImm();
 
     unsigned StoreRegInst;
-    if (!isInt<12>(Offset) && isStoreImmInst(Opcode, StoreRegInst)) {
+    if (!isInt<13>(Offset) && isStoreImmInst(Opcode, StoreRegInst)) {
       unsigned ScratchReg = MRI.createVirtualRegister(&DPU::GP_REGRegClass);
 
       BuildMI(*MI.getParent(), II, DL, TII->get(DPU::MOVEri), ScratchReg)

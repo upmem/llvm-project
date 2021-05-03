@@ -1134,8 +1134,8 @@ static bool canEncodeImmediateOnNBitsSigned(int64_t value, uint32_t bits) {
 }
 
 bool DPUTargetLowering::isLegalICmpImmediate(int64_t value) const {
-  // Jcc handles 11-bit signed immediates
-  return canEncodeImmediateOnNBitsSigned(value, 11);
+  // Jcc handles 12-bit signed immediates
+  return canEncodeImmediateOnNBitsSigned(value, 12);
 }
 
 bool DPUTargetLowering::isLegalAddressingMode(const DataLayout &DL,
