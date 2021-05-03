@@ -184,7 +184,6 @@ def ACQUIRE2ci: DPUInstruction {
 	let Inst{21-18} = cc{3-0};
 	let Inst{47-22} = 0b00110100101100011000011100;
 }
->>>>>>> c72557cc1591... dpu: llvm: update after changes in the v1.5 DPU ISA
 
 def ADDrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
