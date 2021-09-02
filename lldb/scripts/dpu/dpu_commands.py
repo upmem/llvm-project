@@ -303,13 +303,6 @@ def dpu_attach(debugger, command, result, internal_dict):
             lldb_server_dpu_env["UPMEM_LLDB_NR_TASKLETS"] = \
                 str(nr_tasklets.GetIntegerValue())
 
-    subprocess.Popen(['lldb-server-dpu',
-                      'gdbserver',
-                      '--attach',
-                      str(pid),
-                      ':2066'],
-                     env=lldb_server_dpu_env)
-
     if program_path is not None and not os.path.exists(program_path):
         program_path = None
     target_dpu = \
@@ -318,6 +311,17 @@ def dpu_attach(debugger, command, result, internal_dict):
     if not(target_dpu.IsValid()):
         print("Could not create dpu target")
         return None
+
+    storage = target_dpu.FindFirstGlobalVariable("error_storage")
+    if storage.IsValid():
+        lldb_server_dpu_env["UPMEM_LLDB_ERROR_STORE_ADDR"] = str(storage.location)
+
+    subprocess.Popen(['lldb-server-dpu',
+                      'gdbserver',
+                      '--attach',
+                      str(pid),
+                      ':2066'],
+                     env=lldb_server_dpu_env)
 
     listener = debugger.GetListener()
     error = lldb.SBError()
