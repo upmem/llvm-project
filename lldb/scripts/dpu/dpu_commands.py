@@ -312,6 +312,11 @@ def dpu_attach(debugger, command, result, internal_dict):
         print("Could not create dpu target")
         return None
 
+    # Get the address of the error_storage variable.
+    # As we need to send this address *before* the lldb server has started we cannot send it as a
+    # normal lldb GDBRemote packet. Instead, we set an environment variable with the value that we
+    # have looked up from the loaded bianry. If we cannot find one, then this environment variable
+    # remains unset, and we cannot detach and re-attach within different processes.
     storage = target_dpu.FindFirstGlobalVariable("error_storage")
     if storage.IsValid():
         lldb_server_dpu_env["UPMEM_LLDB_ERROR_STORE_ADDR"] = str(storage.location)

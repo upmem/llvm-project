@@ -61,7 +61,7 @@ Dpu::Dpu(DpuRank *rank, dpu_t *dpu, FILE *stdout_file_, bool valid)
     : m_rank(rank), m_dpu(dpu), printf_enable(false),
       printf_buffer_last_idx((uint32_t)LLDB_INVALID_ADDRESS),
       printf_buffer_var_addr((uint32_t)LLDB_INVALID_ADDRESS),
-      error_store_addr((uint32_t)LLDB_INVALID_ADDRESS), m_valid(valid) {
+      error_store_addr((uint32_t)0 /*nullptr*/), m_valid(valid) {
   nr_threads = m_rank->GetNrThreads();
   nr_reg_per_thread = rank->GetDesc()->hw.dpu.nr_of_work_registers_per_thread;
 
