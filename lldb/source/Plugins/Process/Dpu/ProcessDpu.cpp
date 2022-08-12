@@ -214,9 +214,19 @@ ProcessDpu::Factory::Attach(
     dpu->SetNrThreads(::strtoll(nr_tasklets_ptr, NULL, 10));
 
   char *error_store_addr_ptr = std::getenv("UPMEM_LLDB_ERROR_STORE_ADDR");
-
-  if (error_store_addr_ptr != NULL)
-    dpu->SetErrorStoreAddr(::strtol(error_store_addr_ptr, NULL, 16));
+  if (error_store_addr_ptr != NULL) {
+    // Decode the error store address ptr string to an integer, and set the
+    // error store address to this value. Note that this is a hex number, due to
+    // how LLDB returns the string value of a pointers location.
+    if (!dpu->SetErrorStoreAddr(::strtol(error_store_addr_ptr, NULL, 16)))
+      return Status("Decoded (%s) to a null pointer as the error store address",
+                    error_store_addr_ptr)
+          .ToError();
+  } else {
+    return Status("Recieved null pointer from UPMEM_LLDB_ERROR_STORE_ADDR "
+                  "environment variable (not set?)")
+        .ToError();
+  }
 
   success = rank->SaveContext();
   if (!success)
