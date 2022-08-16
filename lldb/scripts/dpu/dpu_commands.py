@@ -321,7 +321,7 @@ def dpu_attach(debugger, command, result, internal_dict):
     storage = target_dpu.FindFirstGlobalVariable("error_storage")
     if storage.IsValid():
         lldb_server_dpu_env["UPMEM_LLDB_ERROR_STORE_ADDR"] = str(storage.location)
-    else
+    else:
         print("Could not find valid storage location for `error_storage` variable in `target_dpu`")
         return None
 
