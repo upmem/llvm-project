@@ -15923,6 +15923,128 @@ def ORN_Urrrci: DPUInstruction {
 	let Inst{47-44} = 0b1001;
 }
 
+def PMAXSWrrr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let AsmString        = "pmaxsw $rc, $ra, $rb";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{16-0} = 0b00000000000000000;
+	let Inst{19-17} = rb{2-0};
+	let Inst{31-20} = 0b000000000001;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
+}
+
+def PMAXSWrrrci: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
+	let AsmString        = "pmaxsw $rc, $ra, $rb, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
+	let Inst{15-0} = pc{15-0};
+	let Inst{16} = 0b0;
+	let Inst{19-17} = rb{2-0};
+	let Inst{23-20} = 0b0001;
+	let Inst{27-24} = cc{3-0};
+	let Inst{31-28} = 0b0000;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
+}
+
+def PMAXSWzrr: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let AsmString        = "pmaxsw $zero, $ra, $rb";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rb; bits<5> ra;
+	let Inst{16-0} = 0b00000000000000000;
+	let Inst{19-17} = rb{2-0};
+	let Inst{31-20} = 0b000000000001;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b001111000;
+}
+
+def PMAXSWzrrci: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
+	let AsmString        = "pmaxsw $zero, $ra, $rb, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
+	let Inst{15-0} = pc{15-0};
+	let Inst{16} = 0b0;
+	let Inst{19-17} = rb{2-0};
+	let Inst{23-20} = 0b0001;
+	let Inst{27-24} = cc{3-0};
+	let Inst{31-28} = 0b0000;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b001111000;
+}
+
+def PMAXSW_Srrr: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let AsmString        = "pmaxsw.s $dc, $ra, $rb";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{16-0} = 0b00000000000000000;
+	let Inst{19-17} = rb{2-0};
+	let Inst{31-20} = 0b000000000001;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def PMAXSW_Srrrci: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
+	let AsmString        = "pmaxsw.s $dc, $ra, $rb, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
+	let Inst{15-0} = pc{15-0};
+	let Inst{16} = 0b0;
+	let Inst{19-17} = rb{2-0};
+	let Inst{23-20} = 0b0001;
+	let Inst{27-24} = cc{3-0};
+	let Inst{31-28} = 0b0000;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
 def READ_RUNrici: DPUInstruction {
 	let OutOperandList   = (outs);
 	let InOperandList    = (ins SimpleRegOrCst:$ra, s8_imm:$imm, boot_cc:$cc, pc16:$pc);
