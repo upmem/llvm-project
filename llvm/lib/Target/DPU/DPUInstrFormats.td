@@ -15932,7 +15932,7 @@ def PMAXSWrrr: DPUInstruction {
 	bits<5> rb; bits<5> ra; bits<5> rc;
 	let Inst{16-0} = 0b00000000000000000;
 	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000001;
+	let Inst{31-20} = 0b001000000000;
 	let Inst{33-32} = rb{4-3};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
@@ -15954,9 +15954,9 @@ def PMAXSWrrrci: DPUInstruction {
 	let Inst{15-0} = pc{15-0};
 	let Inst{16} = 0b0;
 	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
+	let Inst{23-20} = 0b0000;
 	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
+	let Inst{31-28} = 0b0010;
 	let Inst{33-32} = rb{4-3};
 	let Inst{38-34} = ra{4-0};
 	let Inst{41-39} = rc{2-0};
@@ -15974,7 +15974,7 @@ def PMAXSWzrr: DPUInstruction {
 	bits<5> rb; bits<5> ra;
 	let Inst{16-0} = 0b00000000000000000;
 	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000001;
+	let Inst{31-20} = 0b001000000000;
 	let Inst{33-32} = rb{4-3};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
@@ -15993,9 +15993,9 @@ def PMAXSWzrrci: DPUInstruction {
 	let Inst{15-0} = pc{15-0};
 	let Inst{16} = 0b0;
 	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
+	let Inst{23-20} = 0b0000;
 	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
+	let Inst{31-28} = 0b0010;
 	let Inst{33-32} = rb{4-3};
 	let Inst{38-34} = ra{4-0};
 	let Inst{47-39} = 0b001111000;
@@ -16010,7 +16010,7 @@ def PMAXSW_Srrr: DPUInstruction {
 	bits<5> rb; bits<5> ra; bits<5> dc;
 	let Inst{16-0} = 0b00000000000000000;
 	let Inst{19-17} = rb{2-0};
-	let Inst{31-20} = 0b000000000001;
+	let Inst{31-20} = 0b001000000000;
 	let Inst{33-32} = rb{4-3};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
@@ -16033,9 +16033,9 @@ def PMAXSW_Srrrci: DPUInstruction {
 	let Inst{15-0} = pc{15-0};
 	let Inst{16} = 0b0;
 	let Inst{19-17} = rb{2-0};
-	let Inst{23-20} = 0b0001;
+	let Inst{23-20} = 0b0000;
 	let Inst{27-24} = cc{3-0};
-	let Inst{31-28} = 0b0000;
+	let Inst{31-28} = 0b0010;
 	let Inst{33-32} = rb{4-3};
 	let Inst{38-34} = ra{4-0};
 	let Inst{39} = 0b1;
