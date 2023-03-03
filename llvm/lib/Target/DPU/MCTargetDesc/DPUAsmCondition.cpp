@@ -1712,6 +1712,8 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Sub_nzCC;
   case DPU::SUBCzirci:
     return ConditionClass::Sub_nzCC;
+  case DPU::MULPO_Srrrci:
+    return ConditionClass::TrueCC;
   case DPU::ADDCzrif:
     return ConditionClass::FalseCC;
   case DPU::XOR_Srrrc:
@@ -1744,6 +1746,8 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Mul_nzCC;
   case DPU::MUL_SH_UHzrrci:
     return ConditionClass::Mul_nzCC;
+  case DPU::MULPOzrrci:
+    return ConditionClass::TrueCC;
   case DPU::CAOrrci:
     return ConditionClass::Count_nzCC;
   case DPU::NOTrrci:
@@ -2188,6 +2192,8 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Log_nzCC;
   case DPU::SUBrric:
     return ConditionClass::Ext_sub_setCC;
+  case DPU::MULPOrrrci:
+    return ConditionClass::TrueCC;
   case DPU::CLZzrc:
     return ConditionClass::Log_setCC;
   case DPU::ORNzrif:

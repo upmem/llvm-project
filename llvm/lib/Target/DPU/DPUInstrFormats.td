@@ -13243,6 +13243,128 @@ def MUL_UL_UL_Urrrci: DPUInstruction {
 	let Inst{47-46} = 0b01;
 }
 
+def MULPOrrr: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let AsmString        = "mulpo $rc, $ra, $rb";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rb; bits<5> ra; bits<5> rc;
+	let Inst{16-0} = 0b00000000000000000;
+	let Inst{19-17} = rb{2-0};
+	let Inst{31-20} = 0b001000000001;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
+}
+
+def MULPOrrrci: DPUInstruction {
+	let OutOperandList   = (outs SimpleReg:$rc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
+	let AsmString        = "mulpo $rc, $ra, $rb, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc; bits<5> rc;
+	let Inst{15-0} = pc{15-0};
+	let Inst{16} = 0b0;
+	let Inst{19-17} = rb{2-0};
+	let Inst{23-20} = 0b0001;
+	let Inst{27-24} = cc{3-0};
+	let Inst{31-28} = 0b0010;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{41-39} = rc{2-0};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = rc{4-3};
+	let Inst{47-46} = 0b00;
+}
+
+def MULPOzrr: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let AsmString        = "mulpo $zero, $ra, $rb";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rb; bits<5> ra;
+	let Inst{16-0} = 0b00000000000000000;
+	let Inst{19-17} = rb{2-0};
+	let Inst{31-20} = 0b001000000001;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b001111000;
+}
+
+def MULPOzrrci: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
+	let AsmString        = "mulpo $zero, $ra, $rb, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<16> pc; bits<5> rb; bits<4> cc; bits<5> ra;
+	let Inst{15-0} = pc{15-0};
+	let Inst{16} = 0b0;
+	let Inst{19-17} = rb{2-0};
+	let Inst{23-20} = 0b0001;
+	let Inst{27-24} = cc{3-0};
+	let Inst{31-28} = 0b0010;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b001111000;
+}
+
+def MULPO_Srrr: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let AsmString        = "mulpo.s $dc, $ra, $rb";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	bits<5> rb; bits<5> ra; bits<5> dc;
+	let Inst{16-0} = 0b00000000000000000;
+	let Inst{19-17} = rb{2-0};
+	let Inst{31-20} = 0b001000000001;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
+def MULPO_Srrrci: DPUInstruction {
+	let OutOperandList   = (outs DoubleReg:$dc);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
+	let AsmString        = "mulpo.s $dc, $ra, $rb, $cc, $pc";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isCompare        = 1;
+	let isTerminator     = 1;
+	bits<5> dc; bits<5> rb; bits<5> ra; bits<16> pc; bits<4> cc;
+	let Inst{15-0} = pc{15-0};
+	let Inst{16} = 0b0;
+	let Inst{19-17} = rb{2-0};
+	let Inst{23-20} = 0b0001;
+	let Inst{27-24} = cc{3-0};
+	let Inst{31-28} = 0b0010;
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{39} = 0b1;
+	let Inst{41-40} = dc{2-1};
+	let Inst{43-42} = 0b11;
+	let Inst{45-44} = dc{4-3};
+	let Inst{47-46} = 0b01;
+}
+
 def NANDrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
 	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$imm);
