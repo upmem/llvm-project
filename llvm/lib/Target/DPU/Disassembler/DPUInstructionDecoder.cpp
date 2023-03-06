@@ -6103,7 +6103,7 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           return MCDisassembler::Fail;
         }
         if (((((Insn >> 28) & 0xfL)) & (0x3L)) == (0x2L)) {
-          if (((((Insn >> 20) & 0xfL)) & (0xfL)) == (0x1L)) {
+          if (((((Insn >> 20) & 0xfL)) & (0xfL)) == (0x2L)) {
             if ((((((Insn >> 44) & 0x3L)) != (0x3L)) &&
                  ((((Insn >> 46) & 0x1L)) == (0x1L))) &&
                 ((((Insn >> 39) & 0x1L)) == (0x1L))) {
