@@ -13245,7 +13245,7 @@ def MUL_UL_UL_Urrrci: DPUInstruction {
 
 def MULPOrrr: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let InOperandList    = (ins SimpleReg:$ra, SimpleReg:$rb);
 	let AsmString        = "mulpo $rc, $ra, $rb";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -13263,7 +13263,7 @@ def MULPOrrr: DPUInstruction {
 
 def MULPOrrrci: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
 	let AsmString        = "mulpo $rc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -13287,7 +13287,7 @@ def MULPOrrrci: DPUInstruction {
 
 def MULPOzrr: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$ra, SimpleReg:$rb);
 	let AsmString        = "mulpo $zero, $ra, $rb";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -13302,7 +13302,7 @@ def MULPOzrr: DPUInstruction {
 
 def MULPOzrrci: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleReg:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
 	let AsmString        = "mulpo $zero, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -13323,7 +13323,7 @@ def MULPOzrrci: DPUInstruction {
 
 def MULPO_Srrr: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let InOperandList    = (ins SimpleReg:$ra, SimpleReg:$rb);
 	let AsmString        = "mulpo.s $dc, $ra, $rb";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -13342,7 +13342,7 @@ def MULPO_Srrr: DPUInstruction {
 
 def MULPO_Srrrci: DPUInstruction {
 	let OutOperandList   = (outs DoubleReg:$dc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
+	let InOperandList    = (ins SimpleReg:$ra, SimpleReg:$rb, true_cc:$cc, pc16:$pc);
 	let AsmString        = "mulpo.s $dc, $ra, $rb, $cc, $pc";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
