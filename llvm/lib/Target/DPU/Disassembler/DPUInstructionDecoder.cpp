@@ -1322,6 +1322,14 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
           DAsm.Decode_immDma(MI, (((Insn >> 24) & 255) << 0));
           return MCDisassembler::Success;
         }
+        if (((((Insn >> 0) & 0xffffL)) & (0xffffL)) == (0x3L)) {
+          MI.setOpcode(DPU::LDMA_STRIDErri);
+          DAsm.Decode_ra(MI, (((Insn >> 34) & 31) << 0));
+          DAsm.Decode_rb(MI,
+                         (((Insn >> 17) & 7) << 0) | (((Insn >> 32) & 3) << 3));
+          DAsm.Decode_immDma(MI, (((Insn >> 24) & 255) << 0));
+          return MCDisassembler::Success;
+        }
         if (((((Insn >> 0) & 0xffffL)) & (0xffffL)) == (0x1L)) {
           MI.setOpcode(DPU::LDMAIrri);
           DAsm.Decode_ra(MI, (((Insn >> 34) & 31) << 0));

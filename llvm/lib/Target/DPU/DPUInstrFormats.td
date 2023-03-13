@@ -6116,6 +6116,23 @@ def LDMArri: DPUInstruction {
 	let Inst{47-39} = 0b011100000;
 }
 
+def LDMA_STRIDErri: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, u8_imm:$immDma);
+	let AsmString        = "ldma_stride $ra, $rb, $immDma";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let hasSideEffects   = 1;
+	bits<5> rb; bits<8> immDma; bits<5> ra;
+	let Inst{16-0} = 0b00000000000000011;
+	let Inst{19-17} = rb{2-0};
+	let Inst{23-20} = 0b0000;
+	let Inst{31-24} = immDma{7-0};
+	let Inst{33-32} = rb{4-3};
+	let Inst{38-34} = ra{4-0};
+	let Inst{47-39} = 0b011100000;
+}
+
 def LDMAIrri: DPUInstruction {
 	let OutOperandList   = (outs);
 	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, u8_imm:$immDma);

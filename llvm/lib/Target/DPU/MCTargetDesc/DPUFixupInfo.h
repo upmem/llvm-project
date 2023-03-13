@@ -2672,6 +2672,13 @@ static inline DPU::Fixups findFixupForOperand(unsigned OpNum,
     case 2:
       return DPU::Fixups::FIXUP_DPU_IMM28;
     }
+  case DPU::LDMA_STRIDErri:
+    switch (OpNum) {
+    default:
+      llvm_unreachable("invalid operand number");
+    case 2:
+      return DPU::Fixups::FIXUP_DPU_IMM8_DMA;
+    }
   case DPU::ACQUIRErici:
     switch (OpNum) {
     default:
