@@ -6116,13 +6116,12 @@ def LDMArri: DPUInstruction {
 	let Inst{47-39} = 0b011100000;
 }
 
-def LDMA_STRIDErri: DPUInstruction {
+def LDMA_STRIDErr: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, u8_imm:$immDma);
-	let AsmString        = "ldma_stride $ra, $rb, $immDma";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let AsmString        = "ldma_stride $ra, $rb";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	let hasSideEffects   = 1;
 	bits<5> rb; bits<8> immDma; bits<5> ra;
 	let Inst{16-0} = 0b00000000000000011;
 	let Inst{19-17} = rb{2-0};
@@ -18510,13 +18509,12 @@ def SDMArri: DPUInstruction {
 	let Inst{47-39} = 0b011100000;
 }
 
-def SDMA_STRIDErri: DPUInstruction {
+def SDMA_STRIDErr: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb, u8_imm:$immDma);
-	let AsmString        = "sdma_stride $ra, $rb, $immDma";
+	let InOperandList    = (ins SimpleRegOrCst:$ra, SimpleReg:$rb);
+	let AsmString        = "sdma_stride $ra, $rb";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
-	let hasSideEffects   = 1;
 	bits<5> rb; bits<8> immDma; bits<5> ra;
 	let Inst{16-0} = 0b00000000000000100;
 	let Inst{19-17} = rb{2-0};
