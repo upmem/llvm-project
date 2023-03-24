@@ -107,25 +107,27 @@ def boot_nz_cc      : ConditionClassOperand<"Boot_nz_cc">;
 def const_cc_ge0    : ConditionClassOperand<"Const_cc_ge0">;
 def const_cc_geu    : ConditionClassOperand<"Const_cc_geu">;
 def const_cc_zero   : ConditionClassOperand<"Const_cc_zero">;
+def count_cc        : ConditionClassOperand<"Count_cc">;
 def count_nz_cc     : ConditionClassOperand<"Count_nz_cc">;
 def div_cc          : ConditionClassOperand<"Div_cc">;
 def div_nz_cc       : ConditionClassOperand<"Div_nz_cc">;
 def ext_sub_set_cc  : ConditionClassOperand<"Ext_sub_set_cc">;
 def false_cc        : ConditionClassOperand<"False_cc">;
+def imm_shift_cc    : ConditionClassOperand<"Imm_shift_cc">;
 def imm_shift_nz_cc : ConditionClassOperand<"Imm_shift_nz_cc">;
+def log_cc          : ConditionClassOperand<"Log_cc">;
 def log_nz_cc       : ConditionClassOperand<"Log_nz_cc">;
 def log_set_cc      : ConditionClassOperand<"Log_set_cc">;
+def mul_cc          : ConditionClassOperand<"Mul_cc">;
 def mul_nz_cc       : ConditionClassOperand<"Mul_nz_cc">;
 def no_cc           : ConditionClassOperand<"No_cc">;
 def shift_cc        : ConditionClassOperand<"Shift_cc">;
 def shift_nz_cc     : ConditionClassOperand<"Shift_nz_cc">;
+def sub_cc          : ConditionClassOperand<"Sub_cc">;
 def sub_nz_cc       : ConditionClassOperand<"Sub_nz_cc">;
 def sub_set_cc      : ConditionClassOperand<"Sub_set_cc">;
 def true_cc         : ConditionClassOperand<"True_cc">;
 def true_false_cc   : ConditionClassOperand<"True_false_cc">;
-
-// Temporarily add this, even though I don't think it's correct.
-def log_cc		  	: ConditionClassOperand<"Log_cc">;
 
 def ACODEri: DPUInstruction {
 	let OutOperandList   = (outs);

@@ -1067,7 +1067,7 @@ const int64_t
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS,
              Condition::NR_CONDITIONS, Condition::NR_CONDITIONS},
-            {Condition::NR_CONDITIONS,
+            {Condition::False,
              Condition::True,
              Condition::Zero,
              Condition::NotZero,
