@@ -98,10 +98,9 @@ DPUMCCodeEmitter::getConditionEncoding(const MCInst &MI, unsigned OpNo,
       DPUAsmCondition::getEncoding(Cond, CondClass));
 }
 
-unsigned
-DPUMCCodeEmitter::getInvImmEncoding(const MCInst &MI, unsigned OpNo,
-                                       SmallVectorImpl<MCFixup> &Fixups,
-                                       const MCSubtargetInfo &STI) const {
+unsigned DPUMCCodeEmitter::getInvImmEncoding(const MCInst &MI, unsigned OpNo,
+                                             SmallVectorImpl<MCFixup> &Fixups,
+                                             const MCSubtargetInfo &STI) const {
   const MCOperand &MCOp = MI.getOperand(OpNo);
 
   if (MCOp.isImm()) {

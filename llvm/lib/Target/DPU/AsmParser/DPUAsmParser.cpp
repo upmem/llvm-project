@@ -96,14 +96,15 @@ public:
     parser.addAliasForDirective(".hword", ".2byte");
     parser.addAliasForDirective(".word", ".4byte");
     parser.addAliasForDirective(".dword", ".8byte");
-    setAvailableFeatures(ComputeAvailableFeatures(SubtargetInfo.getFeatureBits()));
+    setAvailableFeatures(
+        ComputeAvailableFeatures(SubtargetInfo.getFeatureBits()));
     MCAsmParserExtension::Initialize(parser);
   }
 
   bool ParseRegister(unsigned &RegNo, SMLoc &StartLoc, SMLoc &EndLoc) override;
 
-  OperandMatchResultTy
-  tryParseRegister(unsigned &RegNo, SMLoc &StartLoc, SMLoc &EndLoc) override;
+  OperandMatchResultTy tryParseRegister(unsigned &RegNo, SMLoc &StartLoc,
+                                        SMLoc &EndLoc) override;
 
   bool ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
                         SMLoc NameLoc, OperandVector &Operands) override;
@@ -133,7 +134,8 @@ public:
     return parseAnyCondition(Operands, DPUAsmCondition::ConditionClass::BootCC);
   }
   OperandMatchResultTy parseAnyConditionAsBoot_nz_cc(OperandVector &Operands) {
-    return parseAnyCondition(Operands, DPUAsmCondition::ConditionClass::Boot_nzCC);
+    return parseAnyCondition(Operands,
+                             DPUAsmCondition::ConditionClass::Boot_nzCC);
   }
   OperandMatchResultTy
   parseAnyConditionAsConst_cc_ge0(OperandVector &Operands) {
@@ -414,7 +416,9 @@ public:
     return DPUMCRegisterClasses[RegClassID].contains(RegNum);
   }
 
-  bool isZERO_REG_AsmReg() const { return isRegOfClass(DPU::ZERO_REGRegClassID); }
+  bool isZERO_REG_AsmReg() const {
+    return isRegOfClass(DPU::ZERO_REGRegClassID);
+  }
   bool isGP_REG_AsmReg() const { return isRegOfClass(DPU::GP_REGRegClassID); }
   bool isGP64_REG_AsmReg() const {
     return isRegOfClass(DPU::GP64_REGRegClassID);
@@ -579,8 +583,9 @@ bool DPUAsmParser::ParseRegister(unsigned &RegNo, SMLoc &StartLoc,
   return tryParseRegister(RegNo, StartLoc, EndLoc) != MatchOperand_Success;
 }
 
-OperandMatchResultTy
-DPUAsmParser::tryParseRegister(unsigned &RegNo, SMLoc &StartLoc, SMLoc &EndLoc) {
+OperandMatchResultTy DPUAsmParser::tryParseRegister(unsigned &RegNo,
+                                                    SMLoc &StartLoc,
+                                                    SMLoc &EndLoc) {
   LLVM_DEBUG(dbgs() << "tryParseRegister\n");
   // todo
   llvm_unreachable("tryParseRegister");
