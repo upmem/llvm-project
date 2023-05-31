@@ -1997,6 +1997,8 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Count_nzCC;
   case DPU::SUBrirci:
     return ConditionClass::Sub_nzCC;
+  case DPU::MAIL1ric:
+    return ConditionClass::LogCC;
   case DPU::ORNrrrc:
     return ConditionClass::Log_nzCC;
   case DPU::NANDrrrc:
@@ -2396,7 +2398,7 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
   case DPU::SUB_Urirf:
     return ConditionClass::FalseCC;
   case DPU::DIV_STEPrrrici:
-    return ConditionClass::BootCC;
+    return ConditionClass::LogCC;
   case DPU::ORzrici:
     return ConditionClass::Log_nzCC;
   case DPU::CAO_Srrci:
@@ -2475,6 +2477,8 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Sub_nzCC;
   case DPU::LSR_ADDrrrici:
     return ConditionClass::BootCC;
+  case DPU::MAIL2ic:
+    return ConditionClass::LogCC;
   case DPU::LSR1Xrrrc:
     return ConditionClass::Shift_nzCC;
   case DPU::ROLrrrc:
@@ -2515,6 +2519,8 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Log_nzCC;
   case DPU::NXOR_Srric:
     return ConditionClass::Log_nzCC;
+  case DPU::UCODE2ic:
+    return ConditionClass::LogCC;
   case DPU::LSL1_Urrrc:
     return ConditionClass::Shift_nzCC;
   case DPU::MUL_SH_SHzrrci:
@@ -2563,6 +2569,8 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Mul_nzCC;
   case DPU::ROL_Urrici:
     return ConditionClass::Shift_nzCC;
+  case DPU::MERGErrric:
+    return ConditionClass::LogCC;
   case DPU::SUBCrrif:
     return ConditionClass::FalseCC;
   case DPU::MUL_SH_ULzrrci:
@@ -2687,6 +2695,8 @@ ConditionClass findConditionClassForInstruction(unsigned InstOpcode) {
     return ConditionClass::Log_nzCC;
   case DPU::ADDrrici:
     return ConditionClass::Add_nzCC;
+  case DPU::UCODE1ric:
+    return ConditionClass::LogCC;
   case DPU::ADDCrrif:
     return ConditionClass::FalseCC;
   case DPU::SUBzrici:
