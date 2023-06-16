@@ -40,7 +40,7 @@ enum Condition {
   NotCarry = 21,
   NotCarry10 = 22,
   NotCarry11 = 23,
-  NotCarry4 = 24,
+  NotCarry12 = 24,
   NotCarry5 = 25,
   NotCarry6 = 26,
   NotCarry7 = 27,
