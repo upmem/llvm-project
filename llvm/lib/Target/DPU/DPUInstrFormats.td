@@ -3840,9 +3840,9 @@ def DIV_STEPrrri: DPUInstruction {
 	let Inst{32-28} = db{4-0};
 	let Inst{37-33} = ra{4-0};
 	let Inst{38} = shift{4};
-	let Inst{43-39} = 0b01011;
+	let Inst{43-39} = 0b01001;
 	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b00;
+	let Inst{47-46} = 0b01;
 }
 
 def DIV_STEPrrrici: DPUInstruction {
@@ -3863,9 +3863,9 @@ def DIV_STEPrrrici: DPUInstruction {
 	let Inst{32-28} = db{4-0};
 	let Inst{37-33} = ra{4-0};
 	let Inst{38} = shift{4};
-	let Inst{43-39} = 0b01011;
+	let Inst{43-39} = 0b01001;
 	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b00;
+	let Inst{47-46} = 0b01;
 }
 
 def ENTER_FAULT: DPUInstruction {
@@ -9224,7 +9224,7 @@ def MERGErrric: DPUInstruction {
 	let Inst{37-33} = ra{4-0};
 	let Inst{43-38} = 0b011100;
 	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b00;
+	let Inst{47-46} = 0b01;
 }
 
 def MOVDrr: DPUInstruction {
@@ -9240,7 +9240,7 @@ def MOVDrr: DPUInstruction {
 	let Inst{32-28} = db{4-0};
 	let Inst{43-33} = 0b01001011000;
 	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b00;
+	let Inst{47-46} = 0b01;
 }
 
 def MOVDrrci: DPUInstruction {
@@ -9261,7 +9261,7 @@ def MOVDrrci: DPUInstruction {
 	let Inst{32-28} = db{4-0};
 	let Inst{43-33} = 0b01001011000;
 	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b00;
+	let Inst{47-46} = 0b01;
 }
 
 def MOVEri: DPUInstruction {
@@ -10395,7 +10395,7 @@ def MUL_STEPrrri: DPUInstruction {
 	let Inst{38} = shift{4};
 	let Inst{43-39} = 0b01000;
 	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b00;
+	let Inst{47-46} = 0b01;
 }
 
 def MUL_STEPrrrici: DPUInstruction {
@@ -10418,7 +10418,7 @@ def MUL_STEPrrrici: DPUInstruction {
 	let Inst{38} = shift{4};
 	let Inst{43-39} = 0b01000;
 	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b00;
+	let Inst{47-46} = 0b01;
 }
 
 def MUL_UH_UHrrr: DPUInstruction {
@@ -13149,6 +13149,21 @@ def RESUME_MASKri: DPUInstruction {
 	let Inst{37-33} = ra{4-0};
 	let Inst{39-38} = imm{23-22};
 	let Inst{47-40} = 0b00110100;
+}
+
+def RETr: DPUInstruction {
+	let OutOperandList   = (outs);
+	let InOperandList    = (ins SimpleRegOrCst:$ra);
+	let AsmString        = "ret $ra";
+	let Pattern          = [];
+	let isAsCheapAsAMove = 1;
+	let isBranch         = 1;
+	let isBarrier        = 1;
+	let isTerminator     = 1;
+	bits<5> ra;
+	let Inst{32-0} = 0b110000110000000000100000000000000;
+	let Inst{37-33} = ra{4-0};
+	let Inst{47-38} = 0b0011011000;
 }
 
 def RETI: DPUInstruction {
@@ -16707,7 +16722,7 @@ def SWAPDrr: DPUInstruction {
 	let Inst{32-28} = db{4-0};
 	let Inst{43-33} = 0b01000011000;
 	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b00;
+	let Inst{47-46} = 0b01;
 }
 
 def SWAPDrrci: DPUInstruction {
@@ -16728,7 +16743,7 @@ def SWAPDrrci: DPUInstruction {
 	let Inst{32-28} = db{4-0};
 	let Inst{43-33} = 0b01000011000;
 	let Inst{45-44} = dc{4-3};
-	let Inst{47-46} = 0b00;
+	let Inst{47-46} = 0b01;
 }
 
 def TELLri: DPUInstruction {
