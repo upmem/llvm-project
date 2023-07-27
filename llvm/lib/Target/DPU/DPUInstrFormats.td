@@ -2845,7 +2845,7 @@ def BYTESWAP_Urrci: DPUInstruction {
 
 def CALLri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins s24_imm:$off);
+	let InOperandList    = (ins s12_imm:$off);
 	let AsmString        = "call $rc, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -2883,7 +2883,7 @@ def CALLrr: DPUInstruction {
 
 def CALLrri: DPUInstruction {
 	let OutOperandList   = (outs SimpleReg:$rc);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off);
 	let AsmString        = "call $rc, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -2923,7 +2923,7 @@ def CALLrrr: DPUInstruction {
 
 def CALLzri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins ZeroRegister:$zero, SimpleRegOrCst:$ra, s12_imm:$off);
 	let AsmString        = "call $zero, $ra, $off";
 	let Pattern          = [];
 	let isAsCheapAsAMove = 1;
@@ -4840,9 +4840,9 @@ def JUMPr: DPUInstruction {
 
 def JUMPri: DPUInstruction {
 	let OutOperandList   = (outs);
-	let InOperandList    = (ins SimpleRegOrCst:$ra, s24_imm:$off);
+	let InOperandList    = (ins SimpleRegOrCst:$ra, s12_imm:$off);
 	let AsmString        = "jump $ra, $off";
-	let Pattern          = [(brind (add SimpleRegOrCst:$ra, s24_imm:$off))];
+	let Pattern          = [(brind (add SimpleRegOrCst:$ra, s12_imm:$off))];
 	let isAsCheapAsAMove = 1;
 	let isBranch         = 1;
 	let isBarrier        = 1;
