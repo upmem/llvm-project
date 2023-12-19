@@ -252,6 +252,7 @@ class LinkerScript final {
     MemoryRegion *memRegion = nullptr;
     MemoryRegion *lmaRegion = nullptr;
     uint64_t lmaOffset = 0;
+    bool inOverlay = false;
   };
 
   llvm::DenseMap<StringRef, OutputSection *> nameToOutputSection;
