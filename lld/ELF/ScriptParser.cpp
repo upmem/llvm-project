@@ -512,19 +512,10 @@ std::vector<BaseCommand *> ScriptParser::readOverlay() {
   // VA and LMA expressions are optional, though for simplicity of
   // implementation we assume they are not. That is what OVERLAY was designed
   // for first of all: to allow sections with overlapping VAs at different LMAs.
-  Expr addrExpr;
-  bool hasAddrExpr = false;
-  if (peek() != ":") {
-      addrExpr = readExpr();
-      hasAddrExpr = true;
-  }
+  Expr addrExpr = readExpr();
   expect(":");
-  Expr lmaExpr;
-  bool hasLmaExpr = false;
-  if (consume("AT")) {
-      lmaExpr = readParenExpr();
-      hasLmaExpr = true;
-  }
+  expect("AT");
+  Expr lmaExpr = readParenExpr();
   expect("{");
 
   std::vector<BaseCommand *> v;
@@ -533,37 +524,17 @@ std::vector<BaseCommand *> ScriptParser::readOverlay() {
     // VA is the same for all sections. The LMAs are consecutive in memory
     // starting from the base load address specified.
     OutputSection *os = readOverlaySectionDescription();
-    if (hasAddrExpr)
-        os->addrExpr = addrExpr;
-    if (hasLmaExpr) {
-        if (prev)
-          os->lmaExpr = [=] { return prev->getLMA() + prev->size; };
-        else
-          os->lmaExpr = lmaExpr;
-    }
+    os->addrExpr = addrExpr;
+    if (prev)
+      os->lmaExpr = [=] { return prev->getLMA() + prev->size; };
+    else
+      os->lmaExpr = lmaExpr;
     v.push_back(os);
     prev = os;
     // TODO : make sure os->name is sanitized ("." -> "_") before being used in symbols
     v.push_back(make<SymbolAssignment>(saver.save("__load_start_" + os->name), os->lmaExpr, getCurrentLocation()));
     Expr load_stop = [=] { return os->getLMA() + prev->size; };
     v.push_back(make<SymbolAssignment>(saver.save("__load_stop_" + os->name), load_stop, getCurrentLocation()));
-  }
-  if (consume(">")) {
-      std::string memoryRegionName = std::string(next());
-      for (BaseCommand *cmd: v) {
-          OutputSection *os = dyn_cast<OutputSection>(cmd);
-          os->memoryRegionName = memoryRegionName;
-      }
-  }
-
-  if (consume("AT")) {
-      expect(">");
-      std::string lmaRegionName = std::string(next());
-      if (hasLmaExpr) error("overlay can't have both LMA and a load region");
-      for (BaseCommand *cmd: v) {
-          OutputSection *os = dyn_cast<OutputSection>(cmd);
-          os->lmaRegionName = lmaRegionName;
-      }
   }
 
 
@@ -575,11 +546,7 @@ std::vector<BaseCommand *> ScriptParser::readOverlay() {
     uint64_t max = 0;
     for (BaseCommand *cmd : v)
       max = std::max(max, cast<OutputSection>(cmd)->size);
-    if (hasAddrExpr) {
-        return addrExpr().getValue() + max;
-    } else {
-        return max; // FIXME This should probably be added to dot
-    }
+    return addrExpr().getValue() + max;
   };
   v.push_back(make<SymbolAssignment>(".", moveDot, getCurrentLocation()));
   return v;
