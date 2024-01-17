@@ -526,14 +526,14 @@ std::vector<BaseCommand *> ScriptParser::readOverlay() {
     OutputSection *os = readOverlaySectionDescription();
     os->addrExpr = addrExpr;
     if (prev)
-      os->lmaExpr = [=] { return prev->getLMA() + prev->size; };
+      os->lmaExpr = [=] { return prev->size? prev->getLMA() + prev->size : prev->lmaExpr(); };
     else
       os->lmaExpr = lmaExpr;
     v.push_back(os);
     prev = os;
     // TODO : make sure os->name is sanitized ("." -> "_") before being used in symbols
     v.push_back(make<SymbolAssignment>(saver.save("__load_start_" + os->name), os->lmaExpr, getCurrentLocation()));
-    Expr load_stop = [=] { return os->getLMA() + prev->size; };
+    Expr load_stop = [=] { return os->size? os->getLMA() + os->size : os->lmaExpr(); };
     v.push_back(make<SymbolAssignment>(saver.save("__load_stop_" + os->name), load_stop, getCurrentLocation()));
   }
 
