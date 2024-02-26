@@ -1,8 +1,36 @@
+import os
 import re
 import sys
 import subprocess
-import os
+import time
+
+import psutil
+
 import lldb
+
+SUB_LLDB_PROCESS_PORT = 2066
+SUB_LLDB_PROCESS_MAX_RETRY = 10
+
+def wait_until_port_open(port):
+    for i in range(SUB_LLDB_PROCESS_MAX_RETRY):
+        conn = psutil.net_connections()
+
+        port_is_open = False
+        for c in conn:
+            if (c.laddr.port == port
+                and c.status == 'LISTEN'):
+                port_is_open = True
+                break
+
+        if port_is_open:
+            # print("Port is open")
+            return True
+        else:
+            slack_time = pow(2, i) * 0.25
+            # print("Attempt ", i, " failed. Retry in ", slack_time, " seconds.")
+            time.sleep(slack_time)
+
+    return False
 
 
 def check_target(target):
@@ -325,13 +353,19 @@ def dpu_attach(debugger, command, result, internal_dict):
                       'gdbserver',
                       '--attach',
                       str(pid),
-                      ':2066'],
+                      ':' + str(SUB_LLDB_PROCESS_PORT)],
                      env=lldb_server_dpu_env)
+
+    # The creation and initialization of the process above could take quite some time.
+    # We wait here for the communication channel to be created.
+    if not(wait_until_port_open(SUB_LLDB_PROCESS_PORT)):
+        print("lldb-server-dpu did not succesfully open communication channel.")
+        return None
 
     listener = debugger.GetListener()
     error = lldb.SBError()
     process_dpu = target_dpu.ConnectRemote(listener,
-                                           "connect://localhost:2066",
+                                           "connect://localhost:" + str(SUB_LLDB_PROCESS_PORT),
                                            "gdb-remote",
                                            error)
     if not(process_dpu.IsValid()):
