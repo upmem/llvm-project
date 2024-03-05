@@ -71,7 +71,6 @@ Dpu::Dpu(DpuRank *rank, dpu_t *dpu, FILE *stdout_file_, bool valid)
 }
 
 Dpu::~Dpu() {
-  fclose(stdout_file);
   delete m_context;
 }
 

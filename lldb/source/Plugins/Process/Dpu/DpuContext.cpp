@@ -59,8 +59,8 @@ DpuContext::DpuContext(dpu_t *dpu, struct dpu_context_t *context,
 DpuContext::~DpuContext() {
   dpu_free_dpu_context(m_context);
   delete m_context;
-  delete running_threads;
-  delete last_resume_threads;
+  delete[] running_threads;
+  delete[] last_resume_threads;
 }
 
 struct dpu_context_t *DpuContext::Get() {

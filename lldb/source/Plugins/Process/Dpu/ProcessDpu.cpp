@@ -287,6 +287,10 @@ void ProcessDpu::Terminate() {
 // Public Instance Methods
 // -----------------------------------------------------------------------------
 
+ProcessDpu::~ProcessDpu() {
+  delete m_rank;
+}
+
 ProcessDpu::ProcessDpu(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
                        const ArchSpec &arch, MainLoop &mainloop, DpuRank *rank,
                        Dpu *dpu)
