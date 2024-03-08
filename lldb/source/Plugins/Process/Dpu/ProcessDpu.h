@@ -152,6 +152,8 @@ public:
                        const uint32_t print_buffer_var_addr,
                        Status &error) override;
 
+  ~ProcessDpu();
+
 private:
   ProcessDpu(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
              const ArchSpec &arch, MainLoop &mainloop, dpu::DpuRank *rank,

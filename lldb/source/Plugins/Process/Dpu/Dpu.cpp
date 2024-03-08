@@ -71,7 +71,6 @@ Dpu::Dpu(DpuRank *rank, dpu_t *dpu, FILE *stdout_file_, bool valid)
 }
 
 Dpu::~Dpu() {
-  fclose(stdout_file);
   delete m_context;
 }
 
@@ -768,9 +767,9 @@ lldb::StateType Dpu::GetThreadState(uint32_t thread_index,
   bool bkp_fault = context->bkp_fault;
   bool dma_fault = context->dma_fault;
   bool mem_fault = context->mem_fault;
-  uint32_t bkp_fault_thread_index = context->bkp_fault_thread_index;
-  uint32_t dma_fault_thread_index = context->dma_fault_thread_index;
-  uint32_t mem_fault_thread_index = context->mem_fault_thread_index;
+  dpu_thread_t bkp_fault_thread_index = context->bkp_fault_thread_index;
+  dpu_thread_t dma_fault_thread_index = context->dma_fault_thread_index;
+  dpu_thread_t mem_fault_thread_index = context->mem_fault_thread_index;
   uint32_t bkp_fault_id = context->bkp_fault_id;
   if (bkp_fault && bkp_fault_thread_index == thread_index) {
     if (bkp_fault_id == 0) {

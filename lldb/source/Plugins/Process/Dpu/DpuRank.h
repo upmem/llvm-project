@@ -38,6 +38,7 @@ namespace dpu {
 class DpuRank {
 public:
   DpuRank();
+  ~DpuRank();
   bool Open(char *profile, FILE *stdout_fd, bool valid = true);
   bool IsValid();
   bool Reset();
