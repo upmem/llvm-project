@@ -50,17 +50,13 @@ DpuContext::DpuContext(dpu_t *dpu, struct dpu_context_t *context,
   }
   running_threads[0] = 0;
   last_resume_threads[0] = 0;
-
-  m_context->bkp_fault = false;
-  m_context->dma_fault = false;
-  m_context->mem_fault = false;
 }
 
 DpuContext::~DpuContext() {
   dpu_free_dpu_context(m_context);
   delete m_context;
-  delete[] running_threads;
-  delete[] last_resume_threads;
+  delete running_threads;
+  delete last_resume_threads;
 }
 
 struct dpu_context_t *DpuContext::Get() {
@@ -85,6 +81,10 @@ void DpuContext::UpdateRunningThreads() {
 
 bool DpuContext::StopThreads(uint32_t error_store_addr) {
   ResetScheduling();
+
+  m_context->bkp_fault = false;
+  m_context->dma_fault = false;
+  m_context->mem_fault = false;
 
   int ret = DPU_OK;
   ret =
