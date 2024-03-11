@@ -490,14 +490,7 @@ def print_list(rank_list, result, command):
                 result)
 
 
-def dpu_list(debugger, command, result, internal_dict):
-    '''
-    usage: dpu_list [-v] [-r <rank_id>] [-s <status:IDLE|RUNNING|ERROR>]
-    options:
-    \t-v \tVerbose mode, print detail information for all DPUs
-    \t-r \tFilter DPUs of the specified rank_id
-    \t-s \tFilter DPUs of the specified status
-    '''
+def get_allocated_dpus(debugger):
     target = debugger.GetSelectedTarget()
     if not(check_target(target)):
         return None
@@ -558,8 +551,38 @@ def dpu_list(debugger, command, result, internal_dict):
                                                                  slice_id, dpu_id,
                                                                  dpu_status, program_path))
 
+    return result_list
+
+
+def dpu_list(debugger, command, result, internal_dict):
+    '''
+    usage: dpu_list [-v] [-r <rank_id>] [-s <status:IDLE|RUNNING|ERROR>]
+    options:
+    \t-v \tVerbose mode, print detail information for all DPUs
+    \t-r \tFilter DPUs of the specified rank_id
+    \t-s \tFilter DPUs of the specified status
+    '''
+    result_list = get_allocated_dpus(debugger)
+    if result_list is None:
+        return None
+
     print_list(result_list, result, command)
     return result_list
+
+
+def dpu_attach_first(debugger, command, result, internal_dict):
+    allocated_dpus = get_allocated_dpus(debugger)
+    if not allocated_dpus:
+        print("Could not find any dpu to attach to")
+        return None
+
+    first_rank_key = list(allocated_dpus.keys())[0]
+    dpu_addr, slice_id, dpu_id, status, program = allocated_dpus[first_rank_key][0]
+    new_cmd = ".".join(str(x) for x in [first_rank_key,
+                                        slice_id,
+                                        dpu_id])
+    print("Attaching to ", new_cmd)
+    return dpu_attach(debugger, new_cmd, result, internal_dict)
 
 
 def exec_ufi_identity(debugger, rank):
