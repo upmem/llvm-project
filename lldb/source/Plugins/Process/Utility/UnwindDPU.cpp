@@ -137,6 +137,22 @@ bool UnwindDPU::DoGetFrameInfoAtIndex(uint32_t frame_idx, lldb::addr_t &cfa,
   behaves_like_zeroth_frame = frame_idx == 0;
   cfa = m_frames[frame_idx]->cfa;
   pc = m_frames[frame_idx]->pc;
+
+  Status error;
+  lldb::addr_t overlay_start_address;
+  // FIXME : try and fetch symbol instead of trusting overlay_start_address will always be stored at the same address in the elf
+  if(m_thread.GetProcess()->ReadMemory(0x0000008, &overlay_start_address, 8, error) == 8) {
+    overlay_start_address <<= 3;
+    overlay_start_address += 0x80000000;
+    if (pc >= overlay_start_address && overlay_start_address != 0x80000000) {
+      uint32_t loaded_group_value;
+      // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
+      if(m_thread.GetProcess()->ReadMemory(0x0000010, &loaded_group_value, 4, error) == 4) {
+        pc += 0x00100000*(loaded_group_value+1);
+      }
+    }
+  }
+
   return true;
 }
 
