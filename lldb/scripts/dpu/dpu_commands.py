@@ -11,9 +11,14 @@ import lldb
 SUB_LLDB_PROCESS_PORT = 2066
 SUB_LLDB_PROCESS_MAX_RETRY = 10
 
-def wait_until_port_open(port):
+def wait_until_port_open(port, pid):
+    proc = psutil.Process(pid)
     for i in range(SUB_LLDB_PROCESS_MAX_RETRY):
-        conn = psutil.net_connections()
+        if proc.status() == psutil.STATUS_ZOMBIE:
+            print("lldb-server-dpu with pid", pid, "died.")
+            return False
+
+        conn = proc.connections()
 
         port_is_open = False
         for c in conn:
@@ -23,11 +28,11 @@ def wait_until_port_open(port):
                 break
 
         if port_is_open:
-            # print("Port is open")
+            print("lldb-server-dpu is ready for connection.")
             return True
         else:
             slack_time = pow(2, i) * 0.25
-            # print("Attempt ", i, " failed. Retry in ", slack_time, " seconds.")
+            print("Attempt", i, "failed. Retry in ", slack_time, " seconds.")
             time.sleep(slack_time)
 
     return False
@@ -349,16 +354,17 @@ def dpu_attach(debugger, command, result, internal_dict):
     if storage.IsValid():
         lldb_server_dpu_env["UPMEM_LLDB_ERROR_STORE_ADDR"] = str(storage.location)
 
-    subprocess.Popen(['lldb-server-dpu',
-                      'gdbserver',
-                      '--attach',
-                      str(pid),
-                      ':' + str(SUB_LLDB_PROCESS_PORT)],
-                     env=lldb_server_dpu_env)
+    sub_lldb = subprocess.Popen(['lldb-server-dpu',
+                                 'gdbserver',
+                                 '--attach',
+                                 str(pid),
+                                 ':' + str(SUB_LLDB_PROCESS_PORT)],
+                                env=lldb_server_dpu_env)
 
     # The creation and initialization of the process above could take quite some time.
     # We wait here for the communication channel to be created.
-    if not(wait_until_port_open(SUB_LLDB_PROCESS_PORT)):
+    print("Waiting for lldb-server-dpu with pid", sub_lldb.pid, "to finish initialization.")
+    if not(wait_until_port_open(SUB_LLDB_PROCESS_PORT, sub_lldb.pid)):
         print("lldb-server-dpu did not succesfully open communication channel.")
         return None
 
