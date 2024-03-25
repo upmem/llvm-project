@@ -182,8 +182,10 @@ def break_to_next_boot_and_get_dpus(debugger, target):
             get_nb_slices_and_nb_dpus_per_slice(rank, target)
         nb_dpu = nb_ci * nb_dpu_per_ci
         for each_dpu in range(0, nb_dpu):
-            dpu_list.append(int(str(rank.GetValueForExpressionPath(
-                "->dpus[" + str(each_dpu) + "]").GetAddress()), 16))
+            local_dpu = rank.GetValueForExpressionPath("->dpus[" + str(each_dpu) + "]")
+            _enabled = local_dpu.GetChildMemberWithName("enabled").GetValueAsUnsigned()
+            if _enabled == 1:
+                dpu_list.append(int(str(local_dpu.GetAddress()), 16))
     elif function_name == launch_dpu_function:
         dpu_list.append(frame.FindVariable("dpu").GetValueAsUnsigned())
 
