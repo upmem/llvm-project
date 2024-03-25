@@ -46,8 +46,8 @@ def check_target(target):
 
 
 def decompute_dpu_pid(pid):
-    rank_id = (pid / (100*100)) % 100
-    slice_id = (pid / 100) % 100
+    rank_id = (pid // (100*100)) % 100
+    slice_id = (pid // 100) % 100
     dpu_id = pid % 100
     return rank_id, slice_id, dpu_id
 
