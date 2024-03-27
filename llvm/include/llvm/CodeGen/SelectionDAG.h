@@ -472,6 +472,7 @@ public:
 
   /// Pop up a GraphViz/gv window with the DAG rendered using 'dot'.
   void viewGraph(const std::string &Title);
+  void viewGraph(const std::string function_name, const std::string block_name, const std::string &Title);
   void viewGraph();
 
 #ifndef NDEBUG

@@ -84,7 +84,24 @@ std::string DOTGraphTraits<ScheduleDAG*>::getNodeLabel(const SUnit *SU,
 void ScheduleDAG::viewGraph(const Twine &Name, const Twine &Title) {
   // This code is only for debugging!
 #ifndef NDEBUG
-  ViewGraph(this, Name, false, Title);
+  // ViewGraph(this, Name, false, Title);
+  std::string T = Title.str();
+  std::replace(T.begin(), T.end(), ' ', '_');
+  T += ".dot";
+  dumpDotGraphToFile(this, T, Title);
+#else
+  errs() << "ScheduleDAG::viewGraph is only available in debug builds on "
+         << "systems with Graphviz or gv!\n";
+#endif  // NDEBUG
+}
+
+void ScheduleDAG::viewGraph(const std::string function_name,
+			    const std::string block_name,
+			    const std::string &Title) {
+// This code is only for debugging!
+#ifndef NDEBUG
+  std::string filename = function_name + "_" + block_name + "_" + Title + ".dot";
+  dumpDotGraphToFile(this, filename, Title);
 #else
   errs() << "ScheduleDAG::viewGraph is only available in debug builds on "
          << "systems with Graphviz or gv!\n";

@@ -585,6 +585,7 @@ class TargetRegisterInfo;
 
     /// Pops up a GraphViz/gv window with the ScheduleDAG rendered using 'dot'.
     virtual void viewGraph(const Twine &Name, const Twine &Title);
+    virtual void viewGraph(const std::string function_name, const std::string block_name, const std::string &Title);
     virtual void viewGraph();
 
     virtual void dumpNode(const SUnit &SU) const = 0;

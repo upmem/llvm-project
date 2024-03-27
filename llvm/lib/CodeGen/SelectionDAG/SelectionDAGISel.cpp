@@ -785,7 +785,8 @@ void SelectionDAGISel::CodeGenAndEmitDAG() {
 #endif
 
   if (ViewDAGCombine1 && MatchFilterBB)
-    CurDAG->viewGraph("dag-combine1 input for " + BlockName);
+    // CurDAG->viewGraph("dag-combine1 input for " + BlockName);
+    CurDAG->viewGraph(MF->getName().str(), FuncInfo->MBB->getBasicBlock()->getName().str(), std::string("dag-combine1_input"));
 
   // Run the DAG combiner in pre-legalize mode.
   {
@@ -807,7 +808,8 @@ void SelectionDAGISel::CodeGenAndEmitDAG() {
   // Second step, hack on the DAG until it only uses operations and types that
   // the target supports.
   if (ViewLegalizeTypesDAGs && MatchFilterBB)
-    CurDAG->viewGraph("legalize-types input for " + BlockName);
+    // CurDAG->viewGraph("legalize-types input for " + BlockName);
+    CurDAG->viewGraph(MF->getName().str(), FuncInfo->MBB->getBasicBlock()->getName().str(), "legalize-types_input");
 
   bool Changed;
   {
@@ -831,7 +833,8 @@ void SelectionDAGISel::CodeGenAndEmitDAG() {
 
   if (Changed) {
     if (ViewDAGCombineLT && MatchFilterBB)
-      CurDAG->viewGraph("dag-combine-lt input for " + BlockName);
+      // CurDAG->viewGraph("dag-combine-lt input for " + BlockName);
+      CurDAG->viewGraph(MF->getName().str(), FuncInfo->MBB->getBasicBlock()->getName().str(), "dag-combine-lt_input");
 
     // Run the DAG combiner in post-type-legalize mode.
     {
@@ -885,7 +888,8 @@ void SelectionDAGISel::CodeGenAndEmitDAG() {
 #endif
 
     if (ViewDAGCombineLT && MatchFilterBB)
-      CurDAG->viewGraph("dag-combine-lv input for " + BlockName);
+      // CurDAG->viewGraph("dag-combine-lv input for " + BlockName);
+      CurDAG->viewGraph(MF->getName().str(), FuncInfo->MBB->getBasicBlock()->getName().str(), "dag-combine-lv_input");
 
     // Run the DAG combiner in post-type-legalize mode.
     {
@@ -906,7 +910,8 @@ void SelectionDAGISel::CodeGenAndEmitDAG() {
   }
 
   if (ViewLegalizeDAGs && MatchFilterBB)
-    CurDAG->viewGraph("legalize input for " + BlockName);
+    // CurDAG->viewGraph("legalize input for " + BlockName);
+    CurDAG->viewGraph(MF->getName().str(), FuncInfo->MBB->getBasicBlock()->getName().str(), "legalize_input");
 
   {
     NamedRegionTimer T("legalize", "DAG Legalization", GroupName,
@@ -925,7 +930,8 @@ void SelectionDAGISel::CodeGenAndEmitDAG() {
 #endif
 
   if (ViewDAGCombine2 && MatchFilterBB)
-    CurDAG->viewGraph("dag-combine2 input for " + BlockName);
+    // CurDAG->viewGraph("dag-combine2 input for " + BlockName);
+    CurDAG->viewGraph(MF->getName().str(), FuncInfo->MBB->getBasicBlock()->getName().str(), "dag-combine2_input");
 
   // Run the DAG combiner in post-legalize mode.
   {
@@ -948,7 +954,8 @@ void SelectionDAGISel::CodeGenAndEmitDAG() {
     ComputeLiveOutVRegInfo();
 
   if (ViewISelDAGs && MatchFilterBB)
-    CurDAG->viewGraph("isel input for " + BlockName);
+    // CurDAG->viewGraph("isel input for " + BlockName);
+    CurDAG->viewGraph(MF->getName().str(), FuncInfo->MBB->getBasicBlock()->getName().str(), "isel_input");
 
   // Third, instruction select all of the operations to machine code, adding the
   // code to the MachineBasicBlock.
@@ -964,7 +971,8 @@ void SelectionDAGISel::CodeGenAndEmitDAG() {
              CurDAG->dump());
 
   if (ViewSchedDAGs && MatchFilterBB)
-    CurDAG->viewGraph("scheduler input for " + BlockName);
+    // CurDAG->viewGraph("scheduler input for " + BlockName);
+    CurDAG->viewGraph(MF->getName().str(), FuncInfo->MBB->getBasicBlock()->getName().str(), "scheduler_input");
 
   // Schedule machine code.
   ScheduleDAGSDNodes *Scheduler = CreateScheduler();
@@ -975,7 +983,8 @@ void SelectionDAGISel::CodeGenAndEmitDAG() {
   }
 
   if (ViewSUnitDAGs && MatchFilterBB)
-    Scheduler->viewGraph();
+    // Scheduler->viewGraph();
+    Scheduler->viewGraph(MF->getName().str(), FuncInfo->MBB->getBasicBlock()->getName().str(), "scheduling_units");
 
   // Emit machine code to BB.  This can change 'BB' to the last block being
   // inserted into.

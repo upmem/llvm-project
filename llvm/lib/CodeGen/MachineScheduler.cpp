@@ -3892,7 +3892,11 @@ struct DOTGraphTraits<ScheduleDAGMI*> : public DefaultDOTGraphTraits {
 /// rendered using 'dot'.
 void ScheduleDAGMI::viewGraph(const Twine &Name, const Twine &Title) {
 #ifndef NDEBUG
-  ViewGraph(this, Name, false, Title);
+  // ViewGraph(this, Name, false, Title);
+  std::string T = Title.str();
+  std::replace(T.begin(), T.end(), ' ', '_');
+  T += ".dot";
+  dumpDotGraphToFile(this, T, Title);
 #else
   errs() << "ScheduleDAGMI::viewGraph is only available in debug builds on "
          << "systems with Graphviz or gv!\n";

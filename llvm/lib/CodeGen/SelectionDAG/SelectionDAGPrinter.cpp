@@ -150,8 +150,32 @@ std::string DOTGraphTraits<SelectionDAG*>::getNodeLabel(const SDNode *Node,
 void SelectionDAG::viewGraph(const std::string &Title) {
 // This code is only for debugging!
 #ifndef NDEBUG
-  ViewGraph(this, "dag." + getMachineFunction().getName(),
-            false, Title);
+  // ViewGraph(this, "dag." + getMachineFunction().getName(),
+  //           false, Title);
+
+  std::string T = Title;
+  std::replace(T.begin(), T.end(), ' ', '_');
+  T += ".dot";
+  dumpDotGraphToFile(this, T, Title);
+#else
+  errs() << "SelectionDAG::viewGraph is only available in debug builds on "
+         << "systems with Graphviz or gv!\n";
+#endif  // NDEBUG
+}
+
+void SelectionDAG::viewGraph(const std::string function_name,
+			     const std::string block_name,
+			     const std::string &Title) {
+// This code is only for debugging!
+#ifndef NDEBUG
+  // ViewGraph(this, "dag." + getMachineFunction().getName(),
+  //           false, Title);
+
+  // std::string T = Title;
+  // std::replace(T.begin(), T.end(), ' ', '_');
+  // T += ".dot";
+  std::string filename = function_name + "_" + block_name + "_" + Title + ".dot";
+  dumpDotGraphToFile(this, filename, Title);
 #else
   errs() << "SelectionDAG::viewGraph is only available in debug builds on "
          << "systems with Graphviz or gv!\n";
