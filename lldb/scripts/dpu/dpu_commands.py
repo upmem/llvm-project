@@ -594,12 +594,12 @@ def dpu_attach_first(debugger, command, result, internal_dict):
 
 
 def exec_ufi_identity(debugger, rank):
-    success, unused = get_value_from_command(
+    success, fct_return = get_value_from_command(
         debugger,
         "ufi_identity((dpu_rank_t *)"
         + rank.GetValue() + ", 0xff, lldb_dummy_results)",
         16)
-    return success
+    return success, fct_return
 
 
 def get_rank_from_pid(debugger, pid):
@@ -642,5 +642,14 @@ def dpu_detach(debugger, command, result, internal_dict):
     target.GetProcess().Detach()
     debugger.DeleteTarget(target)
     rank = get_rank_from_pid(debugger, pid)
-    if not exec_ufi_identity(debugger, rank):
+
+    fct_exec_success, fct_return = exec_ufi_identity(debugger, rank)
+
+    if not fct_exec_success:
         print("Could not execute ufi_identity during detach")
+        return None
+
+    if fct_return != 0:
+        print("ufi_identity fail with", fct_return, "during dpu_detach.")
+
+    return fct_return
