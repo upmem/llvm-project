@@ -240,8 +240,20 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
     process_dpu.WriteMemory(dpu_first_instruction_addr,
                             bytearray([0x00, 0x00, 0x00, 0x20,
                                        0x63, 0x7e, 0x00, 0x00]), error)
+    pid = process_dpu.GetProcessID()
     process_dpu.Detach()
     debugger.DeleteTarget(target_dpu)
+
+    rank = get_rank_from_pid(debugger, pid)
+    fct_exec_success, fct_return = exec_ufi_identity(debugger, rank)
+    if not fct_exec_success:
+        print("Could not execute ufi_identity during detach")
+        return None
+
+    if fct_return != 0:
+        print("ufi_identity fail with", fct_return, "during dpu_detach.")
+        return None
+
     debugger.SetSelectedTarget(target)
 
     target.GetProcess().GetSelectedThread().StepOutOfFrame(host_frame, error)
