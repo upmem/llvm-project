@@ -8,8 +8,8 @@ import psutil
 
 import lldb
 
-SUB_LLDB_PROCESS_PORT = 2066
-SUB_LLDB_PROCESS_MAX_RETRY = 10
+SUB_LLDB_PROCESS_PORT = int(os.environ.get("SUB_LLDB_PROCESS_PORT", 2066))
+SUB_LLDB_PROCESS_MAX_RETRY = int(os.environ.get("SUB_LLDB_PROCESS_MAX_RETRY", 10))
 
 def wait_until_port_open(port, pid):
     proc = psutil.Process(pid)
