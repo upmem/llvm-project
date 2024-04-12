@@ -1314,6 +1314,22 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
     }
     if ((((Insn >> 32) & 0x3L)) != (0x3L)) {
       if (((((Insn >> 39) & 0x1fL)) & (0x1fL)) == (0x0L)) {
+        if (((((Insn >> 0) & 0xffffL)) & (0xffffL)) == (0xdL)) {
+          MI.setOpcode(DPU::AIM_CFGOPVrri);
+          DAsm.Decode_ra(MI, (((Insn >> 34) & 31) << 0));
+          DAsm.Decode_rb(MI,
+                         (((Insn >> 17) & 7) << 0) | (((Insn >> 32) & 3) << 3));
+          DAsm.Decode_immDma(MI, (((Insn >> 24) & 255) << 0));
+          return MCDisassembler::Success;
+        }
+        if (((((Insn >> 0) & 0xffffL)) & (0xffffL)) == (0xcL)) {
+          MI.setOpcode(DPU::AIM_CFGRESrri);
+          DAsm.Decode_ra(MI, (((Insn >> 34) & 31) << 0));
+          DAsm.Decode_rb(MI,
+                         (((Insn >> 17) & 7) << 0) | (((Insn >> 32) & 3) << 3));
+          DAsm.Decode_immDma(MI, (((Insn >> 24) & 255) << 0));
+          return MCDisassembler::Success;
+        }
         if (((((Insn >> 0) & 0xffffL)) & (0xffffL)) == (0xeL)) {
           MI.setOpcode(DPU::AIM_MACBNKrri);
           DAsm.Decode_ra(MI, (((Insn >> 34) & 31) << 0));
@@ -1332,22 +1348,6 @@ MCDisassembler::DecodeStatus DPUInstructionDecoder::getInstruction(
         }
         if (((((Insn >> 0) & 0xffffL)) & (0xffffL)) == (0xfL)) {
           MI.setOpcode(DPU::AIM_MULBNKrri);
-          DAsm.Decode_ra(MI, (((Insn >> 34) & 31) << 0));
-          DAsm.Decode_rb(MI,
-                         (((Insn >> 17) & 7) << 0) | (((Insn >> 32) & 3) << 3));
-          DAsm.Decode_immDma(MI, (((Insn >> 24) & 255) << 0));
-          return MCDisassembler::Success;
-        }
-        if (((((Insn >> 0) & 0xffffL)) & (0xffffL)) == (0xcL)) {
-          MI.setOpcode(DPU::AIM_OPABNKrri);
-          DAsm.Decode_ra(MI, (((Insn >> 34) & 31) << 0));
-          DAsm.Decode_rb(MI,
-                         (((Insn >> 17) & 7) << 0) | (((Insn >> 32) & 3) << 3));
-          DAsm.Decode_immDma(MI, (((Insn >> 24) & 255) << 0));
-          return MCDisassembler::Success;
-        }
-        if (((((Insn >> 0) & 0xffffL)) & (0xffffL)) == (0xdL)) {
-          MI.setOpcode(DPU::AIM_OPBBNKrri);
           DAsm.Decode_ra(MI, (((Insn >> 34) & 31) << 0));
           DAsm.Decode_rb(MI,
                          (((Insn >> 17) & 7) << 0) | (((Insn >> 32) & 3) << 3));

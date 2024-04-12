@@ -913,6 +913,13 @@ static inline DPU::Fixups findFixupForOperand(unsigned OpNum,
     case 3:
       return DPU::Fixups::FIXUP_DPU_IMM5;
     }
+  case DPU::AIM_CFGOPVrri:
+    switch (OpNum) {
+    default:
+      llvm_unreachable("invalid operand number");
+    case 2:
+      return DPU::Fixups::FIXUP_DPU_IMM8_DMA;
+    }
   case DPU::ORrrici:
     switch (OpNum) {
     default:
@@ -3021,13 +3028,6 @@ static inline DPU::Fixups findFixupForOperand(unsigned OpNum,
     default:
       llvm_unreachable("invalid operand number");
     }
-  case DPU::AIM_OPBBNKrri:
-    switch (OpNum) {
-    default:
-      llvm_unreachable("invalid operand number");
-    case 2:
-      return DPU::Fixups::FIXUP_DPU_IMM8_DMA;
-    }
   case DPU::ADDSrri:
     switch (OpNum) {
     default:
@@ -3593,6 +3593,13 @@ static inline DPU::Fixups findFixupForOperand(unsigned OpNum,
       llvm_unreachable("invalid operand number");
     case 2:
       return DPU::Fixups::FIXUP_DPU_PC;
+    }
+  case DPU::AIM_CFGRESrri:
+    switch (OpNum) {
+    default:
+      llvm_unreachable("invalid operand number");
+    case 2:
+      return DPU::Fixups::FIXUP_DPU_IMM8_DMA;
     }
   case DPU::MUL_SH_SH_Srrr:
     switch (OpNum) {
@@ -4443,13 +4450,6 @@ static inline DPU::Fixups findFixupForOperand(unsigned OpNum,
       llvm_unreachable("invalid operand number");
     case 2:
       return DPU::Fixups::FIXUP_DPU_IMM5;
-    }
-  case DPU::AIM_OPABNKrri:
-    switch (OpNum) {
-    default:
-      llvm_unreachable("invalid operand number");
-    case 2:
-      return DPU::Fixups::FIXUP_DPU_IMM8_DMA;
     }
   case DPU::EXTUBzrci:
     switch (OpNum) {
