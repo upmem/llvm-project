@@ -26,9 +26,24 @@ using namespace llvm;
 
 void DPUSubtarget::anchor() {}
 
+DPUSubtarget &DPUSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS) {
+  IsV1A = false;
+  IsV1B = false;
+
+  // Determine default and user specified characteristics
+  std::string CPUName = std::string(CPU);
+
+  // Parse features string.
+  ParseSubtargetFeatures(CPUName, /*TuneCPU*/ CPUName, FS);
+
+  return *this;
+}
+
 DPUSubtarget::DPUSubtarget(const Triple &TT, const StringRef &CPU,
                            const StringRef &FS, const TargetMachine &TM)
-    : DPUGenSubtargetInfo(TT, CPU, CPU, FS), InstrInfo(), FrameLowering(*this),
-      TargetLowering(TM, *this), TSInfo() {}
+    : DPUGenSubtargetInfo(TT, CPU, CPU, FS),
+      InstrInfo(initializeSubtargetDependencies(CPU, FS)), FrameLowering(*this),
+      TargetLowering(TM, *this), TSInfo() {
+}
 
 bool DPUSubtarget::enableMachineScheduler() const { return true; }

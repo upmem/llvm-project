@@ -18,6 +18,13 @@ def FeatureDPUNoSugar : SubtargetFeature<"nosugar", "noSugar", "false", "Disable
 def FeatureDPUDisableMramCheck : SubtargetFeature<"disablemramcheck", "disableMramCheck", "false", "Disable the check of alignment of buffer of the transfer with the MRAM">;
 
 //===----------------------------------------------------------------------===//
+// DPU Subtarget features
+//===----------------------------------------------------------------------===//
+
+def FeatureDPUv1A : SubtargetFeature<"v1A", "IsV1A", "true", "this is v1A">;
+def FeatureDPUv1B : SubtargetFeature<"v1B", "IsV1B", "true", "this is v1B">;
+
+//===----------------------------------------------------------------------===//
 // Register File, Calling Conv, Instruction Descriptions
 //===----------------------------------------------------------------------===//
 
@@ -35,6 +42,9 @@ class Proc<string Name, list<SubtargetFeature> Features>
  : Processor<Name, NoItineraries, Features>;
 
 def : Proc<"generic", []>;
+
+def : Proc<"v1A", [FeatureDPUv1A]>;
+def : Proc<"v1B", [FeatureDPUv1B]>;
 
 //===----------------------------------------------------------------------===//
 // Declare the target which we are implementing

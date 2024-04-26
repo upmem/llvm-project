@@ -43,8 +43,9 @@ using namespace llvm;
 // opcodes. That way (see PrologEpilogInserter::replaceFrameIndices) we give an
 // opportunity to adjust the stack pointer upon function call, via
 // DPUFrameLowering::eliminateCallFramePseudoInstr.
-DPUInstrInfo::DPUInstrInfo()
-    : DPUGenInstrInfo(DPU::ADJCALLSTACKDOWN, DPU::ADJCALLSTACKUP), RI() {}
+DPUInstrInfo::DPUInstrInfo(DPUSubtarget &ST)
+  : DPUGenInstrInfo(DPU::ADJCALLSTACKDOWN, DPU::ADJCALLSTACKUP), RI(),
+    Subtarget(ST) {}
 
 void DPUInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                        MachineBasicBlock::iterator I,

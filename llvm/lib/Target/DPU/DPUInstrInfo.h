@@ -21,11 +21,13 @@
 #include "DPUGenInstrInfo.inc"
 
 namespace llvm {
+  class DPUSubtarget;
+
 class DPUInstrInfo : public DPUGenInstrInfo {
   const DPURegisterInfo RI;
-
+  const DPUSubtarget& Subtarget;
 public:
-  explicit DPUInstrInfo();
+  explicit DPUInstrInfo(DPUSubtarget &ST);
 
   const DPURegisterInfo &getRegisterInfo() const { return RI; }
 
