@@ -161,6 +161,7 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-T");
     CmdArgs.push_back(TCArgs.MakeArgString(sysroot + "/link/dpu.lds"));
 
+    constexpr unsigned int DPU_NR_THREADS = std::max(DPU_NR_THREADS_V1A, DPU_NR_THREADS_V1B);
 #define STR_BUFFER_SIZE 128
 #define NR_TASKLETS_FMT NR_TASKLETS "=%u"
 #define DEFAULT_STACK_SIZE_FMT "STACK_SIZE_DEFAULT=%u"
@@ -233,6 +234,38 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
                 stack_size[each_tasklet]);
       }
       CmdArgs.push_back(str_tasklet_size[each_tasklet]);
+    }
+
+    const llvm::Triple &TargetTriple = TC.getEffectiveTriple();
+    switch (TargetTriple.getSubArch()) {
+    case llvm::Triple::DPUSubArch_v1a: {
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_IRAM_SIZE="
+                                             + std::to_string(DPU_IRAM_SIZE_V1A)));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_WRAM_SIZE="
+                                             + std::to_string(DPU_WRAM_SIZE_V1A)));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_ATOMIC_SIZE="
+                                             + std::to_string(DPU_ATOMIC_SIZE_V1A)));
+      // There is an issue on ATOMIC HW buffer on v1A
+      // We intentionally scrap a bit of space to be safe
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_ATOMIC_DISPLACEMENT=200"));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_NR_THREADS="
+                                             + std::to_string(DPU_NR_THREADS_V1A)));
+      break;
+    }
+    case llvm::Triple::DPUSubArch_v1b: {
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_IRAM_SIZE="
+                                             + std::to_string(DPU_IRAM_SIZE_V1B)));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_WRAM_SIZE="
+                                             + std::to_string(DPU_WRAM_SIZE_V1B)));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_ATOMIC_SIZE="
+                                             + std::to_string(DPU_ATOMIC_SIZE_V1B)));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_ATOMIC_DISPLACEMENT=0"));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_NR_THREADS="
+                                             + std::to_string(DPU_NR_THREADS_V1B)));
+      break;
+    }
+    default:
+      break;
     }
   }
 
