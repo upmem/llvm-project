@@ -21,11 +21,6 @@ namespace clang {
 namespace driver {
 namespace toolchains {
 
-namespace dpu {
-void addDPUTargetOptions(const llvm::opt::ArgList &Args,
-                         llvm::opt::ArgStringList &CmdArgs);
-} // namespace dpu
-
 class LLVM_LIBRARY_VISIBILITY DPURTE : public Generic_ELF {
 public:
   DPURTE(const Driver &D, const llvm::Triple &Triple,
@@ -60,6 +55,8 @@ public:
     free(PathToRtLibLTO);
     free(PathToRtLibLTOThin);
   }
+
+  unsigned GetDefaultDwarfVersion() const override { return 4; }
 
   SanitizerMask getSupportedSanitizers() const override {
     SanitizerMask Res = ToolChain::getSupportedSanitizers();
