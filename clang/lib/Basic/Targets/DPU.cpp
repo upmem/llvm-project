@@ -38,3 +38,30 @@ ArrayRef<Builtin::Info> DPUTargetInfo::getTargetBuiltins() const {
   return llvm::makeArrayRef(BuiltinInfo, clang::DPU::LastTSBuiltin -
                                              Builtin::FirstTSBuiltin);
 }
+
+struct DPUCPUInfo {
+  llvm::StringLiteral Name;
+  DPUTargetInfo::CPUKind Kind;
+};
+
+static constexpr DPUCPUInfo CPUInfo[] = {
+  {{"v1A"}, DPUTargetInfo::CK_V1A},
+  {{"v1B"}, DPUTargetInfo::CK_V1B},
+};
+
+DPUTargetInfo::CPUKind DPUTargetInfo::getCPUKind(StringRef Name) const {
+  const DPUCPUInfo *Item = llvm::find_if(
+      CPUInfo, [Name](const DPUCPUInfo &Info) { return Info.Name == Name; });
+
+  if (Item == std::end(CPUInfo)) {
+    return CK_GENERIC;
+  }
+
+  return Item->Kind;
+}
+
+void DPUTargetInfo::fillValidCPUList(
+    SmallVectorImpl<StringRef> &Values) const {
+  for (const DPUCPUInfo &Info : CPUInfo)
+    Values.push_back(Info.Name);
+}

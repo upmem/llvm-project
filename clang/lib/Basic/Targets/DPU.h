@@ -77,6 +77,25 @@ public:
   BuiltinVaListKind getBuiltinVaListKind() const override {
     return TargetInfo::VoidPtrBuiltinVaList;
   }
+
+  enum CPUKind {
+    CK_GENERIC,
+    CK_V1A,
+    CK_V1B
+  } CPU = CK_GENERIC;
+
+  CPUKind getCPUKind(StringRef Name) const;
+
+  bool isValidCPUName(StringRef Name) const override {
+    return getCPUKind(Name) != CK_GENERIC;
+  }
+
+  void fillValidCPUList(SmallVectorImpl<StringRef> &Values) const override;
+
+  bool setCPU(const std::string &Name) override {
+    CPU = getCPUKind(Name);
+    return CPU != CK_GENERIC;
+  }
 };
 } // namespace targets
 } // namespace clang

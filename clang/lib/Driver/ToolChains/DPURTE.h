@@ -49,6 +49,10 @@ public:
                         Action::OffloadKind DeviceOffloadKind) const override;
 
   std::string computeSysRoot() const override;
+
+  std::string
+  ComputeLLVMTriple(const llvm::opt::ArgList &Args,
+		    types::ID InputType = types::TY_INVALID) const override;
 protected:
   Tool *buildLinker() const override;
 };

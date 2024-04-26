@@ -7,6 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "Arch/DPU.h"
 #include "DPURTE.h"
 #include "CommonArgs.h"
 #include "InputInfo.h"
@@ -83,6 +84,13 @@ void DPURTE::addClangTargetOptions(
   if (!nr_tasklets_already_added) {
     CC1Args.push_back("-D" NR_TASKLETS "=1");
   }
+}
+
+
+std::string
+DPURTE::ComputeLLVMTriple(const llvm::opt::ArgList &Args, types::ID InputType) const {
+  std::string SubArch = tools::dpu::getDPUVersionFromArgs(Args);
+  return "dpu" + StringRef(SubArch).lower() + "-upmem-dpurte";
 }
 } // namespace toolchains
 
