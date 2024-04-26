@@ -10,25 +10,35 @@
 // Target-independent interfaces which we are implementing
 include "llvm/Target/Target.td"
 
-// Register File Description
+//===----------------------------------------------------------------------===//
+// DPU Features on codegen
+//===----------------------------------------------------------------------===//
+
+def FeatureDPUNoSugar : SubtargetFeature<"nosugar", "noSugar", "false", "Disable the use of Syntactic Sugar Instruction">;
+def FeatureDPUDisableMramCheck : SubtargetFeature<"disablemramcheck", "disableMramCheck", "false", "Disable the check of alignment of buffer of the transfer with the MRAM">;
+
+//===----------------------------------------------------------------------===//
+// Register File, Calling Conv, Instruction Descriptions
+//===----------------------------------------------------------------------===//
+
 include "DPURegisterInfo.td"
-
-// Instruction Descriptions
 include "DPUInstrInfo.td"
-
-// Calling conventions
 include "DPUCallingConv.td"
 
 def DPUInstrInfo : InstrInfo;
 
 //===----------------------------------------------------------------------===//
-// Declare the target which we are implementing
+// DPU processors supported
 //===----------------------------------------------------------------------===//
 
 class Proc<string Name, list<SubtargetFeature> Features>
  : Processor<Name, NoItineraries, Features>;
 
 def : Proc<"generic", []>;
+
+//===----------------------------------------------------------------------===//
+// Declare the target which we are implementing
+//===----------------------------------------------------------------------===//
 
 def DPUAsmParser : AsmParser {
   let ShouldEmitMatchRegisterName = 1;
@@ -52,6 +62,3 @@ def DPU : Target {
   let AssemblyParserVariants = [DPUAsmParserVariant];
   let AssemblyWriters = [DPUInstPrinter];
 }
-
-def FeatureDPUNoSugar : SubtargetFeature<"nosugar", "noSugar", "false", "Disable the use of Syntactic Sugar Instruction">;
-def FeatureDPUDisableMramCheck : SubtargetFeature<"disablemramcheck", "disableMramCheck", "false", "Disable the check of alignment of buffer of the transfer with the MRAM">;
