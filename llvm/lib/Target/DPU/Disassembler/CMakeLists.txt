@@ -4,9 +4,10 @@ add_llvm_component_library(LLVMDPUDisassembler
         DPUOperandDecoder.cpp
 
         LINK_COMPONENTS
+        DPUDesc
+        DPUInfo
         MC
         MCDisassembler
-        DPUInfo
         Support
 
         ADD_TO_COMPONENT

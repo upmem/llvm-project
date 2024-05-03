@@ -2,7 +2,7 @@ add_llvm_component_library(LLVMDPUAsmParser
         DPUAsmParser.cpp
 
         LINK_COMPONENTS
-        MC 
+        MC
         MCParser
         DPUDesc
         DPUInfo

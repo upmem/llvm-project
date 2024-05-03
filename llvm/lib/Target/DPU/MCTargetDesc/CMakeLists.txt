@@ -7,9 +7,10 @@ add_llvm_component_library(LLVMDPUDesc
   DPUInstPrinter.cpp
 
   LINK_COMPONENTS
+  DPUInfo
   MC
   MCDisassembler
-  DPUInfo
+  Support
 
   ADD_TO_COMPONENT
   DPU
