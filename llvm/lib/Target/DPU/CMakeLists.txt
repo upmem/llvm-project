@@ -33,16 +33,18 @@ add_llvm_target(DPUCodeGen
         intrinsics_gen
 
         LINK_COMPONENTS
+        Analysis
         AsmPrinter
         CodeGen
         Core
+        DPUAsmParser
         DPUDesc
         DPUInfo
-        DPUAsmParser
         MC
         SelectionDAG
         Support
         Target
+        TransformUtils
 
         ADD_TO_COMPONENT
         DPU
@@ -50,7 +52,5 @@ add_llvm_target(DPUCodeGen
 
 add_subdirectory(AsmParser)
 add_subdirectory(Disassembler)
-add_subdirectory(TargetInfo)
 add_subdirectory(MCTargetDesc)
-
-
+add_subdirectory(TargetInfo)
