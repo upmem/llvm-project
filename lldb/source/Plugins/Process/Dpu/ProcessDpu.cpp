@@ -295,6 +295,17 @@ ProcessDpu::~ProcessDpu() {
   delete m_rank;
 }
 
+llvm::Expected<llvm::ArrayRef<uint8_t>>
+ProcessDpu::GetSoftwareBreakpointTrapOpcode(size_t size_hint) {
+  static const uint8_t g_dpu_opcode[] = { 0x00, 0x00,0x00, 0x20,0x63,0x7e,0x00,0x00};
+  switch (GetArchitecture().GetMachine()) {
+  case llvm::Triple::dpu:
+    return llvm::makeArrayRef(g_dpu_opcode);
+  default:
+    return NativeProcessProtocol::GetSoftwareBreakpointTrapOpcode(size_hint);
+  }
+}
+
 ProcessDpu::ProcessDpu(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
                        const ArchSpec &arch, MainLoop &mainloop, DpuRank *rank,
                        Dpu *dpu)
