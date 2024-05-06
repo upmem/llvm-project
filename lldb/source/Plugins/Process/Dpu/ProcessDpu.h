@@ -153,6 +153,9 @@ public:
                        Status &error) override;
 
   ~ProcessDpu();
+protected:
+  llvm::Expected<llvm::ArrayRef<uint8_t>>
+  GetSoftwareBreakpointTrapOpcode(size_t size_hint) override;
 
 private:
   ProcessDpu(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
