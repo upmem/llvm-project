@@ -166,6 +166,15 @@ private:
 
   Status DpuErrorStatus(const char *message);
 
+  enum eMemoryAddressSpace {
+    eMemoryAddressSpaceIRAM,
+    eMemoryAddressSpaceMRAM,
+    eMemoryAddressSpaceWRAM,
+    eMemoryAddressSpaceUNKNOWN
+  };
+  eMemoryAddressSpace ComputeMemoryAddressSpace(lldb::addr_t addr,
+                                                   size_t size);
+
   ArchSpec m_arch;
   lldb::IOObjectSP m_timer_fd;
   MainLoop::ReadHandleUP m_timer_handle;
