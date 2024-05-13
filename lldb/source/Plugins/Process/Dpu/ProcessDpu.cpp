@@ -50,6 +50,10 @@
 #include "Plugins/Process/POSIX/ProcessPOSIXLog.h"
 #include "ThreadDpu.h"
 
+extern "C" {
+#include <dpu_program.h>
+}
+
 #include <linux/unistd.h>
 #include <sys/timerfd.h> /* TODO only exists on Linux */
 #include <sys/types.h>
@@ -355,6 +359,8 @@ ProcessDpu::ProcessDpu(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
 
 void ProcessDpu::InterfaceTimerCallback() {
   unsigned int exit_status;
+  Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_PROCESS));
+  LLDB_LOG(log, "========= this is a log test ===========");
   StateType current_state = m_dpu->PollStatus(&exit_status);
   if (current_state != StateType::eStateInvalid) {
     if (current_state == StateType::eStateExited) {
@@ -559,10 +565,40 @@ size_t ProcessDpu::UpdateThreads() { return m_threads.size(); }
 
 Status ProcessDpu::SetBreakpoint(lldb::addr_t addr, uint32_t size,
                                  bool hardware) {
+  lldb::addr_t overlay_start_address;
+  lldb::addr_t addr_offset = 0;
+  size_t bytes_read;
+  Log *log(GetLogIfAnyCategoriesSet(POSIX_LOG_BREAKPOINTS));
+  LLDB_LOGF(log,
+            "ProcessDpu::SetBreakpoint (addr = %" PRIx64
+            ", size = %" PRIu32
+            "hw = %s)",
+            addr, size, hardware ? "true" : "false");
+  // FIXME : try and fetch symbol instead of trusting overlay_start_address will always be stored at the same address in the elf
+  struct dpu_symbol_t overlay_start_symbol;
+  if (m_dpu->GetSymbol("__iram_overlay_start", &overlay_start_symbol)) {
+    overlay_start_address = overlay_start_symbol.address;
+    overlay_start_address <<= 3;
+    overlay_start_address += 0x80000000;
+    if (addr >= overlay_start_address && overlay_start_address != 0x80000000) {
+      uint32_t loaded_group_value;
+      // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
+      ReadMemory(0x0000010, &loaded_group_value, 4, bytes_read);
+      if(bytes_read == 4) {
+        struct dpu_symbol_t dpu_load_start_symbol;
+        // FIXME : change symbol name depending on loaded_group_value
+        if (m_dpu->GetSymbol("__load_start_mram_fg_1", &dpu_load_start_symbol)) {
+          addr_offset = dpu_load_start_symbol.address - overlay_start_address;
+          addr_offset -= addr & 0x07f00000; // remove any viram region msb marker
+        }
+      }
+    }
+  }
+  // FIXME : also set breakpoint in iram for function groups
   if (hardware)
-    return SetHardwareBreakpoint(addr, size);
+      return SetHardwareBreakpoint(addr+addr_offset, size);
   else
-    return SetSoftwareBreakpoint(addr, size);
+    return SetSoftwareBreakpoint(addr+addr_offset, size);
 }
 
 Status ProcessDpu::RemoveBreakpoint(lldb::addr_t addr, bool hardware) {
