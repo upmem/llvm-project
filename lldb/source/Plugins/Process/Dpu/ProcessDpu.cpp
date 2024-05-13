@@ -591,25 +591,45 @@ Status ProcessDpu::RemoveBreakpoint(lldb::addr_t addr, bool hardware) {
     return NativeProcessProtocol::RemoveBreakpoint(addr);
 }
 
+ProcessDpu::eMemoryAddressSpace
+ProcessDpu::ComputeMemoryAddressSpace(lldb::addr_t addr, size_t size) {
+  if (addr >= k_dpu_iram_base &&
+      (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
+    return eMemoryAddressSpaceIRAM;
+  } else if (addr >= k_dpu_mram_base &&
+             (addr + size) <= (k_dpu_mram_base + m_mram_size)) {
+    return eMemoryAddressSpaceMRAM;
+  } else if (addr >= k_dpu_wram_base &&
+             (addr + size) <= (k_dpu_wram_base + m_wram_size)) {
+    return eMemoryAddressSpaceWRAM;
+  } else {
+    return eMemoryAddressSpaceUNKNOWN;
+  }
+}
+
 Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
                               size_t &bytes_read) {
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_MEMORY));
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
 
   bytes_read = 0;
-  if (addr >= k_dpu_iram_base &&
-      (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
+  switch (ComputeMemoryAddressSpace(addr, size)) {
+  case eMemoryAddressSpaceIRAM:
     if (!m_dpu->ReadIRAM(addr - k_dpu_iram_base, buf, size))
       return Status("ReadMemory: Cannot copy from IRAM");
-  } else if (addr >= k_dpu_mram_base &&
-             (addr + size) <= (k_dpu_mram_base + m_mram_size)) {
+    break;
+
+  case eMemoryAddressSpaceMRAM:
     if (!m_dpu->ReadMRAM(addr - k_dpu_mram_base, buf, size))
       return Status("ReadMemory: Cannot copy from MRAM");
-  } else if (addr >= k_dpu_wram_base &&
-             (addr + size) <= (k_dpu_wram_base + m_wram_size)) {
+    break;
+
+  case eMemoryAddressSpaceWRAM:
     if (!m_dpu->ReadWRAM(addr, buf, size))
       return Status("ReadMemory: Cannot copy from WRAM");
-  } else {
+    break;
+
+  case eMemoryAddressSpaceUNKNOWN:
     return Status("ReadMemory: Cannot read, unknown address space");
   }
   bytes_read = size;
@@ -623,19 +643,23 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
 
   bytes_written = 0;
-  if (addr >= k_dpu_iram_base &&
-      (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
+  switch (ComputeMemoryAddressSpace(addr, size)) {
+  case eMemoryAddressSpaceIRAM:
     if (!m_dpu->WriteIRAM(addr - k_dpu_iram_base, buf, size))
       return Status("WriteMemory: Cannot copy to IRAM");
-  } else if (addr >= k_dpu_mram_base &&
-             (addr + size) <= (k_dpu_mram_base + m_mram_size)) {
+    break;
+
+  case eMemoryAddressSpaceMRAM:
     if (!m_dpu->WriteMRAM(addr - k_dpu_mram_base, buf, size))
       return Status("WriteMemory: Cannot copy to MRAM");
-  } else if (addr >= k_dpu_wram_base &&
-             (addr + size) <= (k_dpu_wram_base + m_wram_size)) {
+    break;
+
+  case eMemoryAddressSpaceWRAM:
     if (!m_dpu->WriteWRAM(addr, buf, size))
       return Status("WriteMemory: Cannot copy to WRAM");
-  } else {
+    break;
+
+  case eMemoryAddressSpaceUNKNOWN:
     return Status("WriteMemory: Cannot write, unknown address space");
   }
   bytes_written = size;
