@@ -39,7 +39,7 @@ class DpuRank {
 public:
   DpuRank();
   ~DpuRank();
-  bool Open(char *profile, FILE *stdout_fd, bool valid = true);
+  bool Open(const char *profile, FILE *stdout_fd, bool valid = true);
   bool IsValid();
   bool Reset();
   Dpu *GetDpu(size_t index);
