@@ -95,6 +95,10 @@ ProcessDpu::Factory::Launch(ProcessLaunchInfo &launch_info,
     return Status("Cannot open terminal_fd ").ToError();
   }
 
+  // propagate sub-process stdout to host
+  fflush(stdout);
+  stdout = stdout_fd;
+
   bool verbose_set = getenv("UPMEM_VERBOSE") != NULL;
   if (!verbose_set) {
     set_verbose_output_file(stdout_fd);
