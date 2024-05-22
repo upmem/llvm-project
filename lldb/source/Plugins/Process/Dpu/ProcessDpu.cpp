@@ -81,8 +81,6 @@ extern "C" {
 extern void set_verbose_output_file(FILE *);
 }
 
-#define k_dpu_viram_offset 0x00100000
-
 llvm::Expected<std::unique_ptr<NativeProcessProtocol>>
 ProcessDpu::Factory::Launch(ProcessLaunchInfo &launch_info,
                             NativeDelegate &native_delegate,
@@ -568,67 +566,16 @@ size_t ProcessDpu::UpdateThreads() { return m_threads.size(); }
 
 Status ProcessDpu::SetBreakpoint(lldb::addr_t addr, uint32_t size,
                                  bool hardware) {
-  lldb::addr_t overlay_start_address;
-  lldb::addr_t addr_offset = 0;
   size_t bytes_read;
   Log *log(GetLogIfAnyCategoriesSet(POSIX_LOG_BREAKPOINTS));
-  printf("ProcessDpu::SetBreakpoint (addr = %" PRIx64
-            ", size = %" PRIu32
-            ", hw = %s)",
-            addr, size, hardware ? "true" : "false");
-//  // FIXME : try and fetch symbol instead of trusting overlay_start_address will always be stored at the same address in the elf
-//  struct dpu_symbol_t overlay_start_symbol;
-//  /*
-//  if (m_dpu->GetSymbol("__iram_overlay_start", &overlay_start_symbol)) {
-//    overlay_start_address = overlay_start_symbol.address;
-//    overlay_start_address <<= 3;
-//    overlay_start_address += 0x80000000;
-//    */
-//    overlay_start_address = 0x80001738;
-//    if (addr >= overlay_start_address && overlay_start_address != 0x80000000) {
-//      uint32_t loaded_group_value;
-//        struct dpu_symbol_t dpu_load_start_symbol;
-//        // FIXME : change symbol name depending on loaded_group_value
-//      /*
-//        if (m_dpu->GetSymbol("__load_start_mram_fg_1", &dpu_load_start_symbol)) {
-//          addr_offset = dpu_load_start_symbol.address - overlay_start_address;
-//        */
-//          addr_offset = 0x08100090 - overlay_start_address;
-//          addr_offset -= addr & 0x07f00000; // remove any viram region msb marker
-//        //}
-//    }
-//  //}
-//  printf("===========\n");
-//  printf("addr_offset =             %lx\n", addr_offset);
-//  printf("overlay_start_address =   %lx\n", overlay_start_address);
-//  printf("addr+addr_offset =        %lx\n", addr+addr_offset);
-//  printf("===========\n");
-  // FIXME : also set breakpoint in iram for function groups
   if (hardware)
-      return SetHardwareBreakpoint(addr+addr_offset, size);
+      return SetHardwareBreakpoint(addr, size);
   else
-    return SetSoftwareBreakpoint(addr+addr_offset, size);
+    return SetSoftwareBreakpoint(addr, size);
 }
 
 Status ProcessDpu::RemoveBreakpoint(lldb::addr_t addr, bool hardware) {
   printf("RemoveBreakpoint(addr=%x, hardware=%s)\n", addr, hardware? "true" : "false");
-  // addr &= 0xf80fffff;
-  /*
-  if (addr & 0xf8000000 == 0x80000000) {
-    if (addr & 0x07f00000) {
-    lldb::addr_t mram_addr =  (addr & 0xf80fffff) + 0x08100090 - 0x80001738;
-    printf("removing mram bp : 0x%lx\n", addr);
-    if (hardware)
-      RemoveHardwareBreakpoint(mram_addr);
-    else
-      NativeProcessProtocol::RemoveBreakpoint(addr);
-    } else {
-      // TODO Only remove iram breakpoint if corresponding function group is loaded
-      addr &= 0xf80fffff;
-    }
-  }
-  printf("removing bp : 0x%lx\n", addr);
-  */
   if (hardware)
     return RemoveHardwareBreakpoint(addr);
   else
@@ -638,14 +585,19 @@ Status ProcessDpu::RemoveBreakpoint(lldb::addr_t addr, bool hardware) {
 Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
                               size_t &bytes_read) {
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_MEMORY));
+  Status error;
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
   printf("ReadMemory(addr=%x, ..., size=%u,...)\n", addr, size);
 
   bytes_read = 0;
-  if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & 0xf80fffff) + size) <= (k_dpu_iram_base + m_iram_size)) {
+  if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & (~k_dpu_viram_msb_mask)) + size) <= (k_dpu_iram_base + m_iram_size)) {
     // expected behaviour : if can fetch symbols, read correct mram location. Otherwise, read iram
-    printf("reading mram at : 0x%lx\n", (addr & 0xf80fffff) + 0x100090 - 0x1738 - k_dpu_iram_base);
-    if (!m_dpu->ReadMRAM((addr & 0xf80fffff) + 0x100090 - 0x1738 - k_dpu_iram_base, buf, size))
+    lldb::addr_t mram_addr;
+    error = ViramAddressToMramPhysicalAddress(addr, &mram_addr);
+    if (error.Fail())
+      return Status("ReadMemory: cannot convert viram to mram physical address");
+    printf("reading mram at : 0x%lx\n", mram_addr - k_dpu_mram_base);
+    if (!m_dpu->ReadMRAM(mram_addr - k_dpu_mram_base, buf, size))
       return Status("ReadMemory: Cannot copy from MRAM");
   } else if (addr >= k_dpu_iram_base &&
       (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
@@ -675,15 +627,25 @@ Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
 Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
                                size_t &bytes_written) {
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_MEMORY));
+  Status error;
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
   printf("WriteMemory(addr=%x, ..., size=%u,...)\n", addr, size);
 
   bytes_written = 0;
-  if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & 0xf80fffff) + size) <= (k_dpu_iram_base + m_iram_size)) {
+  if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & (~k_dpu_viram_msb_mask)) + size) <= (k_dpu_iram_base + m_iram_size)) {
     // expected behaviour : if can fetch symbols, write to correct mram location and if fg is loaded, write to iram. Otherwise, only write to iram
-    if (!m_dpu->WriteMRAM((addr & 0xf80fffff) + 0x100090 - 0x1738 - k_dpu_iram_base, buf, size))
+    lldb::addr_t mram_addr;
+    lldb::addr_t iram_addr;
+    error = ViramAddressToMramPhysicalAddress(addr, &mram_addr);
+    if (error.Fail())
+      return Status("WriteMemory: cannot convert viram to mram physical address");
+    if (!m_dpu->WriteMRAM(mram_addr - k_dpu_mram_base, buf, size))
       return Status("WriteMemory: Cannot copy to MRAM");
-    if (!m_dpu->WriteIRAM((addr & 0xf80fffff) - k_dpu_iram_base, buf, size))
+    error = ViramAddressToLoadedIramAddress(addr, &iram_addr);
+    if (error.Fail()) {
+      LLDB_LOG(log, "WriteMemory: Could not write viram to iram as this function group is not currently loaded");
+      printf("WriteMemory did not write viram to iram\n");
+    } else if (!m_dpu->WriteIRAM(iram_addr - k_dpu_iram_base, buf, size))
       return Status("WriteMemory: Cannot copy to IRAM");
   } else if (addr >= k_dpu_iram_base &&
       (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
@@ -708,6 +670,35 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
   printf("\n");
 
   return Status();
+}
+
+Status ProcessDpu::ViramAddressToMramPhysicalAddress(lldb::addr_t viram_addr, lldb::addr_t *mram_addr) {
+  *mram_addr = (viram_addr & ~k_dpu_viram_msb_mask) + 0x100090 - 0x1738 - k_dpu_iram_base + k_dpu_mram_base;
+  return Status();
+}
+
+Status ProcessDpu::ViramAddressToLoadedIramAddress(lldb::addr_t viram_addr, lldb::addr_t *iram_addr) {
+  Status error;
+  size_t bytes_read;
+  lldb::addr_t overlay_start_address;
+  // FIXME : try and fetch symbol instead of trusting overlay_start_address will always be stored at the same address in the elf
+  error = ReadMemory(0x0000008, &overlay_start_address, 8, bytes_read);
+  if(!error.Fail() && bytes_read == 8) {
+    overlay_start_address <<= 3;
+    overlay_start_address += 0x80000000;
+    if (viram_addr >= overlay_start_address && overlay_start_address != 0x80000000) {
+      uint32_t loaded_group_value;
+      // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
+      error = ReadMemory(0x0000010, &loaded_group_value, 4, bytes_read);
+      if(!error.Fail() && bytes_read == 4) {
+        if ((viram_addr & k_dpu_viram_msb_mask) ==  0x00100000*(loaded_group_value+1)) {
+          *iram_addr =  viram_addr & ~k_dpu_viram_msb_mask;
+          return Status();
+        }
+      }
+    }
+  }
+  return Status("This function group is not currently loaded in iram\n");
 }
 
 Status ProcessDpu::GetLoadedModuleFileSpec(const char *module_path,

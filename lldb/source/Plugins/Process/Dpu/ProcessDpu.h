@@ -39,6 +39,8 @@ const ArchSpec k_dpu_arch("dpu-upmem-dpurte");
 constexpr lldb::addr_t k_dpu_wram_base = 0x00000000;
 constexpr lldb::addr_t k_dpu_mram_base = 0x08000000;
 constexpr lldb::addr_t k_dpu_iram_base = 0x80000000;
+constexpr lldb::addr_t k_dpu_viram_offset = 0x00100000;
+constexpr lldb::addr_t k_dpu_viram_msb_mask = k_dpu_viram_offset*0xf;
 } // namespace dpu
 
 namespace process_dpu {
@@ -95,6 +97,10 @@ public:
 
   Status WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
                      size_t &bytes_written) override;
+
+  Status ViramAddressToMramPhysicalAddress(lldb::addr_t viram_addr, lldb::addr_t *mram_addr);
+
+  Status ViramAddressToLoadedIramAddress(lldb::addr_t viram_addr, lldb::addr_t *iram_addr);
 
   virtual llvm::Expected<lldb::addr_t>
   AllocateMemory(size_t size, uint32_t permissions) override;
