@@ -25,6 +25,8 @@
 #include "llvm/Object/ELFObjectFile.h"
 #include "llvm/Support/ARMAttributeParser.h"
 #include "llvm/Support/ARMBuildAttributes.h"
+#include "llvm/Support/DPUAttributeParser.h"
+#include "llvm/Support/DPUBuildAttributes.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/RISCVAttributeParser.h"
@@ -896,6 +898,26 @@ InputSectionBase *ObjFile<ELFT>::createInputSection(const Elf_Shdr &sec) {
       // dynamic loaders require the presence of an attribute section for dlopen
       // to work. In a full implementation we would merge all attribute
       // sections.
+      if (in.attributes == nullptr) {
+        in.attributes = make<InputSection>(*this, sec, name);
+        return in.attributes;
+      }
+      return &InputSection::discarded;
+    }
+  }
+
+  if (config->emachine == EM_DPU && sec.sh_type == SHT_DPU_ATTRIBUTES) {
+    DPUAttributeParser attributes;
+    ArrayRef<uint8_t> contents = check(this->getObj().getSectionContents(sec));
+    if (Error e = attributes.parse(contents, support::little)) {
+      auto *isec = make<InputSection>(*this, sec, name);
+      warn(toString(isec) + ": " + llvm::toString(std::move(e)));
+    } else {
+
+      // FIXME: Retain the first attribute section we see. Tools such as
+      // llvm-objdump make use of the attribute section to determine which
+      // standard extensions to enable. In a full implementation we would merge
+      // all attribute sections.
       if (in.attributes == nullptr) {
         in.attributes = make<InputSection>(*this, sec, name);
         return in.attributes;

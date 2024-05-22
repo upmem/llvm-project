@@ -43,6 +43,8 @@
 #include "llvm/Support/ARMBuildAttributes.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Compiler.h"
+#include "llvm/Support/DPUAttributeParser.h"
+#include "llvm/Support/DPUBuildAttributes.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Format.h"
@@ -2457,6 +2459,7 @@ template <typename ELFT> void ELFDumper<ELFT>::printLoadName() {
 template <class ELFT> void ELFDumper<ELFT>::printArchSpecificInfo() {
   switch (Obj.getHeader().e_machine) {
   case EM_ARM:
+  case EM_DPU:
   case EM_RISCV:
     printAttributes();
     break;
@@ -2488,13 +2491,14 @@ template <class ELFT> void ELFDumper<ELFT>::printAttributes() {
   }
 
   const unsigned Machine = Obj.getHeader().e_machine;
-  assert((Machine == EM_ARM || Machine == EM_RISCV) &&
+  assert((Machine == EM_ARM || Machine == EM_RISCV || Machine == EM_DPU) &&
          "Attributes not implemented.");
 
   DictScope BA(W, "BuildAttributes");
   for (const Elf_Shdr &Sec : cantFail(Obj.sections())) {
     if (Sec.sh_type != ELF::SHT_ARM_ATTRIBUTES &&
-        Sec.sh_type != ELF::SHT_RISCV_ATTRIBUTES)
+        Sec.sh_type != ELF::SHT_RISCV_ATTRIBUTES &&
+        Sec.sh_type != ELF::SHT_DPU_ATTRIBUTES)
       continue;
 
     ArrayRef<uint8_t> Contents;
@@ -2516,6 +2520,8 @@ template <class ELFT> void ELFDumper<ELFT>::printAttributes() {
     auto ParseAttrubutes = [&]() {
       if (Machine == EM_ARM)
         return ARMAttributeParser(&W).parse(Contents, support::little);
+      if (Machine == EM_DPU)
+        return DPUAttributeParser(&W).parse(Contents, support::little);
       return RISCVAttributeParser(&W).parse(Contents, support::little);
     };
 
