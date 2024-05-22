@@ -369,7 +369,8 @@ protected:
 
     for (const Elf_Shdr &Sec : *SectionsOrErr) {
       if (Sec.sh_type == ELF::SHT_ARM_ATTRIBUTES ||
-          Sec.sh_type == ELF::SHT_RISCV_ATTRIBUTES) {
+          Sec.sh_type == ELF::SHT_RISCV_ATTRIBUTES ||
+          Sec.sh_type == ELF::SHT_DPU_ATTRIBUTES) {
         auto ErrorOrContents = EF.getSectionContents(Sec);
         if (!ErrorOrContents)
           return ErrorOrContents.takeError();
