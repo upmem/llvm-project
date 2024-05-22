@@ -681,6 +681,7 @@ bool Dpu::ReadMRAM(uint32_t offset, void *buf, size_t size) {
 
 bool Dpu::GetSymbol(const char *symbol_name, dpu_symbol_t *symbol) {
   dpu_program_t *runtime = dpu_get_program(m_dpu);
+  lldbassert(runtime);
   if (!runtime)
     return false;
   if (dpu_get_symbol(runtime, symbol_name, symbol) == DPU_OK) return true;
@@ -780,9 +781,11 @@ lldb::StateType Dpu::GetThreadState(uint32_t thread_index,
   uint32_t dma_fault_thread_index = context->dma_fault_thread_index;
   uint32_t mem_fault_thread_index = context->mem_fault_thread_index;
   uint32_t bkp_fault_id = context->bkp_fault_id;
+  printf("hello from GetThreadState() ===============\n");
   if (bkp_fault && bkp_fault_thread_index == thread_index) {
     if (bkp_fault_id == 0) {
       stop_reason = eStopReasonBreakpoint;
+      printf("stop reason is breakpoint. Returning from GetThreadState()\n");
       return eStateStopped;
     } else {
       description = "fault " + std::to_string(bkp_fault_id) + " (" +

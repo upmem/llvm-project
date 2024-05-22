@@ -106,6 +106,11 @@ Status RegisterContextDpu::ReadRegister(const RegisterInfo *info,
         *m_context_pc * 8 /*sizeof(iram_instruction_t)*/ + k_dpu_iram_base;
     if (m_thread.GetState() == eStateSuspended)
       pc++;
+    if (pc > 0x80001738)
+    {
+      printf("ReadRegister fixing pc from %x to %x\n", pc, pc | 0x00200000);
+      pc |= 0x00200000;// TODO : Use the values stored in memory instead (and remove the fix from UnwindDpu.cpp
+    }
     value.SetUInt32(pc);
   } else if (reg == zf_dpu)
     value.SetUInt32(*m_context_zf ? 1 : 0);

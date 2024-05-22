@@ -81,6 +81,8 @@ extern "C" {
 extern void set_verbose_output_file(FILE *);
 }
 
+#define k_dpu_viram_offset 0x00100000
+
 llvm::Expected<std::unique_ptr<NativeProcessProtocol>>
 ProcessDpu::Factory::Launch(ProcessLaunchInfo &launch_info,
                             NativeDelegate &native_delegate,
@@ -336,7 +338,7 @@ ProcessDpu::ProcessDpu(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
   SetState(StateType::eStateStopped, false);
 
   m_iram_region.GetRange().SetRangeBase(k_dpu_iram_base);
-  m_iram_region.GetRange().SetRangeEnd(k_dpu_iram_base + m_iram_size);
+  m_iram_region.GetRange().SetRangeEnd(k_dpu_iram_base + k_dpu_viram_offset*6 + m_iram_size);
   m_iram_region.SetReadable(MemoryRegionInfo::eYes);
   m_iram_region.SetWritable(MemoryRegionInfo::eYes);
   m_iram_region.SetExecutable(MemoryRegionInfo::eYes);
@@ -533,6 +535,7 @@ Status ProcessDpu::GetMemoryRegionInfo(lldb::addr_t load_addr,
     range_info = m_mram_region;
   } else if (m_iram_region.GetRange().Contains(load_addr)) {
     range_info = m_iram_region;
+    // FIXME : add viram ranges
   } else {
     range_info.GetRange().SetRangeBase(load_addr);
     range_info.GetRange().SetRangeEnd(LLDB_INVALID_ADDRESS);
@@ -569,31 +572,37 @@ Status ProcessDpu::SetBreakpoint(lldb::addr_t addr, uint32_t size,
   lldb::addr_t addr_offset = 0;
   size_t bytes_read;
   Log *log(GetLogIfAnyCategoriesSet(POSIX_LOG_BREAKPOINTS));
-  LLDB_LOGF(log,
-            "ProcessDpu::SetBreakpoint (addr = %" PRIx64
+  printf("ProcessDpu::SetBreakpoint (addr = %" PRIx64
             ", size = %" PRIu32
-            "hw = %s)",
+            ", hw = %s)",
             addr, size, hardware ? "true" : "false");
-  // FIXME : try and fetch symbol instead of trusting overlay_start_address will always be stored at the same address in the elf
-  struct dpu_symbol_t overlay_start_symbol;
-  if (m_dpu->GetSymbol("__iram_overlay_start", &overlay_start_symbol)) {
-    overlay_start_address = overlay_start_symbol.address;
-    overlay_start_address <<= 3;
-    overlay_start_address += 0x80000000;
-    if (addr >= overlay_start_address && overlay_start_address != 0x80000000) {
-      uint32_t loaded_group_value;
-      // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
-      ReadMemory(0x0000010, &loaded_group_value, 4, bytes_read);
-      if(bytes_read == 4) {
-        struct dpu_symbol_t dpu_load_start_symbol;
-        // FIXME : change symbol name depending on loaded_group_value
-        if (m_dpu->GetSymbol("__load_start_mram_fg_1", &dpu_load_start_symbol)) {
-          addr_offset = dpu_load_start_symbol.address - overlay_start_address;
-          addr_offset -= addr & 0x07f00000; // remove any viram region msb marker
-        }
-      }
-    }
-  }
+//  // FIXME : try and fetch symbol instead of trusting overlay_start_address will always be stored at the same address in the elf
+//  struct dpu_symbol_t overlay_start_symbol;
+//  /*
+//  if (m_dpu->GetSymbol("__iram_overlay_start", &overlay_start_symbol)) {
+//    overlay_start_address = overlay_start_symbol.address;
+//    overlay_start_address <<= 3;
+//    overlay_start_address += 0x80000000;
+//    */
+//    overlay_start_address = 0x80001738;
+//    if (addr >= overlay_start_address && overlay_start_address != 0x80000000) {
+//      uint32_t loaded_group_value;
+//        struct dpu_symbol_t dpu_load_start_symbol;
+//        // FIXME : change symbol name depending on loaded_group_value
+//      /*
+//        if (m_dpu->GetSymbol("__load_start_mram_fg_1", &dpu_load_start_symbol)) {
+//          addr_offset = dpu_load_start_symbol.address - overlay_start_address;
+//        */
+//          addr_offset = 0x08100090 - overlay_start_address;
+//          addr_offset -= addr & 0x07f00000; // remove any viram region msb marker
+//        //}
+//    }
+//  //}
+//  printf("===========\n");
+//  printf("addr_offset =             %lx\n", addr_offset);
+//  printf("overlay_start_address =   %lx\n", overlay_start_address);
+//  printf("addr+addr_offset =        %lx\n", addr+addr_offset);
+//  printf("===========\n");
   // FIXME : also set breakpoint in iram for function groups
   if (hardware)
       return SetHardwareBreakpoint(addr+addr_offset, size);
@@ -602,6 +611,24 @@ Status ProcessDpu::SetBreakpoint(lldb::addr_t addr, uint32_t size,
 }
 
 Status ProcessDpu::RemoveBreakpoint(lldb::addr_t addr, bool hardware) {
+  printf("RemoveBreakpoint(addr=%x, hardware=%s)\n", addr, hardware? "true" : "false");
+  // addr &= 0xf80fffff;
+  /*
+  if (addr & 0xf8000000 == 0x80000000) {
+    if (addr & 0x07f00000) {
+    lldb::addr_t mram_addr =  (addr & 0xf80fffff) + 0x08100090 - 0x80001738;
+    printf("removing mram bp : 0x%lx\n", addr);
+    if (hardware)
+      RemoveHardwareBreakpoint(mram_addr);
+    else
+      NativeProcessProtocol::RemoveBreakpoint(addr);
+    } else {
+      // TODO Only remove iram breakpoint if corresponding function group is loaded
+      addr &= 0xf80fffff;
+    }
+  }
+  printf("removing bp : 0x%lx\n", addr);
+  */
   if (hardware)
     return RemoveHardwareBreakpoint(addr);
   else
@@ -612,9 +639,15 @@ Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
                               size_t &bytes_read) {
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_MEMORY));
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
+  printf("ReadMemory(addr=%x, ..., size=%u,...)\n", addr, size);
 
   bytes_read = 0;
-  if (addr >= k_dpu_iram_base &&
+  if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & 0xf80fffff) + size) <= (k_dpu_iram_base + m_iram_size)) {
+    // expected behaviour : if can fetch symbols, read correct mram location. Otherwise, read iram
+    printf("reading mram at : 0x%lx\n", (addr & 0xf80fffff) + 0x100090 - 0x1738 - k_dpu_iram_base);
+    if (!m_dpu->ReadMRAM((addr & 0xf80fffff) + 0x100090 - 0x1738 - k_dpu_iram_base, buf, size))
+      return Status("ReadMemory: Cannot copy from MRAM");
+  } else if (addr >= k_dpu_iram_base &&
       (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
     if (!m_dpu->ReadIRAM(addr - k_dpu_iram_base, buf, size))
       return Status("ReadMemory: Cannot copy from IRAM");
@@ -630,6 +663,11 @@ Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
     return Status("ReadMemory: Cannot read, unknown address space");
   }
   bytes_read = size;
+  printf("read   at %x : ", addr);
+  for (size_t i=0; i< bytes_read; i++) {
+    printf("%0hhX ", ((unsigned char *)buf)[i]);
+  }
+  printf("\n");
 
   return Status();
 }
@@ -638,9 +676,16 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
                                size_t &bytes_written) {
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_MEMORY));
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
+  printf("WriteMemory(addr=%x, ..., size=%u,...)\n", addr, size);
 
   bytes_written = 0;
-  if (addr >= k_dpu_iram_base &&
+  if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & 0xf80fffff) + size) <= (k_dpu_iram_base + m_iram_size)) {
+    // expected behaviour : if can fetch symbols, write to correct mram location and if fg is loaded, write to iram. Otherwise, only write to iram
+    if (!m_dpu->WriteMRAM((addr & 0xf80fffff) + 0x100090 - 0x1738 - k_dpu_iram_base, buf, size))
+      return Status("WriteMemory: Cannot copy to MRAM");
+    if (!m_dpu->WriteIRAM((addr & 0xf80fffff) - k_dpu_iram_base, buf, size))
+      return Status("WriteMemory: Cannot copy to IRAM");
+  } else if (addr >= k_dpu_iram_base &&
       (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
     if (!m_dpu->WriteIRAM(addr - k_dpu_iram_base, buf, size))
       return Status("WriteMemory: Cannot copy to IRAM");
@@ -656,6 +701,11 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
     return Status("WriteMemory: Cannot write, unknown address space");
   }
   bytes_written = size;
+  printf("written at %x : ", addr);
+  for (size_t i=0; i< bytes_written; i++) {
+    printf("%0hhX ", ((unsigned char *)buf)[i]);
+  }
+  printf("\n");
 
   return Status();
 }
