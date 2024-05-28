@@ -101,12 +101,31 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
                           const llvm::opt::ArgList &TCArgs,
                           const char *LinkingOutput) const {
   const ToolChain &TC = getToolChain();
+  const llvm::Triple &TargetTriple = TC.getEffectiveTriple();
+
+  std::string subarch_str("");
+  switch (TargetTriple.getSubArch()) {
+  case llvm::Triple::DPUSubArch_v1a: {
+    subarch_str.append("v1A");
+    break;
+  }
+  case llvm::Triple::DPUSubArch_v1b: {
+    subarch_str.append("v1B");
+    break;
+  }
+  default:
+    llvm_unreachable("Unhandled Triple.");
+    break;
+  }
 
   const std::string sysroot = TC.computeSysRoot();
   std::string pg_ext("");
   if (TCArgs.hasArg(options::OPT_pg)) {
     pg_ext.append("_p");
   }
+
+  const std::string builtin_path = sysroot + "/built-in" + "/" + subarch_str;
+  const std::string config_ext = pg_ext + "_" + subarch_str;
 
   std::string Linker = TC.GetProgramPath(getShortName());
   // Put additional linker options
@@ -124,26 +143,26 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
   CmdArgs.push_back("--define-common");
   if (!TCArgs.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
     CmdArgs.push_back("-L");
-    CmdArgs.push_back(TCArgs.MakeArgString(sysroot + "/built-in"));
+    CmdArgs.push_back(TCArgs.MakeArgString(builtin_path));
 
-    const std::string RtLTOLibrary = sysroot + "/built-in/librtlto" + pg_ext + ".a";
+    const std::string RtLTOLibrary = builtin_path + "/librtlto" + config_ext + ".a";
 
     if (TCArgs.hasArg(options::OPT_flto_EQ)) {
       // Need to inject the RTE BC library into the whole chain.
       CmdArgs.push_back(llvm::StringSwitch<const char *>(
                             TCArgs.getLastArg(options::OPT_flto_EQ)->getValue())
-                            .Case("thin", TCArgs.MakeArgString(sysroot + "/built-in/librtltothin" + pg_ext + ".a"))
+                            .Case("thin", TCArgs.MakeArgString(builtin_path + "/librtltothin" + config_ext + ".a"))
                             .Default(TCArgs.MakeArgString(RtLTOLibrary)));
     } else if (TCArgs.hasArg(options::OPT_flto)) {
       CmdArgs.push_back(TCArgs.MakeArgString(RtLTOLibrary));
     } else {
       CmdArgs.push_back("-l");
-      CmdArgs.push_back(TCArgs.MakeArgString("rt" + pg_ext));
+      CmdArgs.push_back(TCArgs.MakeArgString("rt" + config_ext));
     }
 
     if (TCArgs.hasArg(options::OPT_pg)) {
       CmdArgs.push_back("-l");
-      CmdArgs.push_back("rtmcount");
+      CmdArgs.push_back(TCArgs.MakeArgString("rtmcount_" + subarch_str));
     }
   }
 
@@ -236,7 +255,6 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
       CmdArgs.push_back(str_tasklet_size[each_tasklet]);
     }
 
-    const llvm::Triple &TargetTriple = TC.getEffectiveTriple();
     switch (TargetTriple.getSubArch()) {
     case llvm::Triple::DPUSubArch_v1a: {
       CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_IRAM_SIZE="
