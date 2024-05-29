@@ -144,17 +144,13 @@ lldb::addr_t DpuContext::GetPcOfThread(dpu_thread_t thread) {
   printf("hello from GetPcOfThread() =====\n");
   uint32_t raw_pc = m_context->pcs[thread];
   printf("raw_pc = 0x%x (bytes: 0x%x)\n", raw_pc, InstIdx2InstAddr(raw_pc));
-  /*
-  lldbassert(0);
-  uint32_t adjusted_pc = raw_pc;
-  if ((raw_pc<<3) > 0x00001738)
+  uint32_t adjusted_pc = InstIdx2InstAddr(raw_pc);
+  if (adjusted_pc >= 0x80001658)
   {
-    adjusted_pc *= sizeof(dpuinstruction_t);
-    adjusted_pc += 0x08100090 - 0x00001738;
+    adjusted_pc |= 0x00200000;
     printf("adjusted_pc = 0x%x\n", adjusted_pc);
     return adjusted_pc;
   }
-  */
   return InstIdx2InstAddr(raw_pc);
 }
 

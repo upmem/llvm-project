@@ -25,6 +25,13 @@
 #include "ThreadDpu.h"
 #include "lldb/Host/common/NativeProcessProtocol.h"
 
+#define ADDR_FG_IRAM_OVERLAY_START     0x8
+#define ADDR_FG_CURRENTLY_LOADED_GROUP 0x10
+#define ADDR_FG_LOAD_STARTS_ADDR       0x18
+#define ADDR_FG_INITIALIZED            0x20
+#define ADDR_FG_MAGIC_VALUE            0x28
+#define FG_MAGIC_VALUE                 0xC0DE0FF10AD70015
+
 namespace lldb_private {
 class Status;
 class Scalar;

@@ -46,6 +46,7 @@ private:
   bool *m_context_zf;
   bool *m_context_cf;
   bool *m_registers_has_been_modified;
+  ProcessDpu *m_process;
 };
 
 } // namespace process_dpu

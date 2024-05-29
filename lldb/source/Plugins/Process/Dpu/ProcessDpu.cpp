@@ -575,7 +575,7 @@ Status ProcessDpu::SetBreakpoint(lldb::addr_t addr, uint32_t size,
 }
 
 Status ProcessDpu::RemoveBreakpoint(lldb::addr_t addr, bool hardware) {
-  printf("RemoveBreakpoint(addr=%x, hardware=%s)\n", addr, hardware? "true" : "false");
+  printf("RemoveBreakpoint(addr=%lx, hardware=%s)\n", addr, hardware? "true" : "false");
   if (hardware)
     return RemoveHardwareBreakpoint(addr);
   else
@@ -587,7 +587,7 @@ Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_MEMORY));
   Status error;
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
-  printf("ReadMemory(addr=%x, ..., size=%u,...)\n", addr, size);
+  printf("ReadMemory(addr=%lx, ..., size=%u,...)\n", addr, size);
 
   bytes_read = 0;
   if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & (~k_dpu_viram_msb_mask)) + size) <= (k_dpu_iram_base + m_iram_size)) {
@@ -615,9 +615,9 @@ Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
     return Status("ReadMemory: Cannot read, unknown address space");
   }
   bytes_read = size;
-  printf("read   at %x : ", addr);
+  printf("read   at %lx : ", addr);
   for (size_t i=0; i< bytes_read; i++) {
-    printf("%0hhX ", ((unsigned char *)buf)[i]);
+    printf("%02hhX ", ((unsigned char *)buf)[i]);
   }
   printf("\n");
 
@@ -629,7 +629,7 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_MEMORY));
   Status error;
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
-  printf("WriteMemory(addr=%x, ..., size=%u,...)\n", addr, size);
+  printf("WriteMemory(addr=%lx, ..., size=%u,...)\n", addr, size);
 
   bytes_written = 0;
   if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & (~k_dpu_viram_msb_mask)) + size) <= (k_dpu_iram_base + m_iram_size)) {
@@ -639,9 +639,11 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
     error = ViramAddressToMramPhysicalAddress(addr, &mram_addr);
     if (error.Fail())
       return Status("WriteMemory: cannot convert viram to mram physical address");
+    printf("writing to mram at 0x%lx\n", mram_addr);
     if (!m_dpu->WriteMRAM(mram_addr - k_dpu_mram_base, buf, size))
       return Status("WriteMemory: Cannot copy to MRAM");
     error = ViramAddressToLoadedIramAddress(addr, &iram_addr);
+    printf("maybe writing to iram at 0x%lx\n", iram_addr);
     if (error.Fail()) {
       LLDB_LOG(log, "WriteMemory: Could not write viram to iram as this function group is not currently loaded");
       printf("WriteMemory did not write viram to iram\n");
@@ -663,9 +665,9 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
     return Status("WriteMemory: Cannot write, unknown address space");
   }
   bytes_written = size;
-  printf("written at %x : ", addr);
+  printf("written at %lx : ", addr);
   for (size_t i=0; i< bytes_written; i++) {
-    printf("%0hhX ", ((unsigned char *)buf)[i]);
+    printf("%02hhX ", ((unsigned char *)buf)[i]);
   }
   printf("\n");
 
@@ -673,7 +675,37 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
 }
 
 Status ProcessDpu::ViramAddressToMramPhysicalAddress(lldb::addr_t viram_addr, lldb::addr_t *mram_addr) {
-  *mram_addr = (viram_addr & ~k_dpu_viram_msb_mask) + 0x100090 - 0x1738 - k_dpu_iram_base + k_dpu_mram_base;
+  Status error;
+  size_t bytes_read;
+  uint64_t magic_value;
+  lldb::addr_t overlay_start_address = 0;
+  lldb::addr_t load_starts_table_address = 0;
+  lldb::addr_t load_start_address = 0;
+  size_t fg_id = ((viram_addr & k_dpu_viram_msb_mask)/k_dpu_viram_offset) - 1;
+  error = ReadMemory(ADDR_FG_MAGIC_VALUE, &magic_value, 8, bytes_read);
+  printf("magic = %lx\n", magic_value);
+  if(error.Fail() || bytes_read != 8 || magic_value != FG_MAGIC_VALUE)
+    return Status("could not find fg magic_value\n");
+  error = ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 4, bytes_read);
+  if(error.Fail() || bytes_read != 4)
+    return Status("could not read load start address\n");
+  overlay_start_address <<= 3;
+  printf("overlay_start_address = %lx\n", overlay_start_address);
+  lldbassert(viram_addr >= overlay_start_address);
+  error = ReadMemory(ADDR_FG_LOAD_STARTS_ADDR, &load_starts_table_address, 4, bytes_read);
+  printf("load_starts_table_address = %lx\n", load_starts_table_address);
+  if(error.Fail() || bytes_read != 4)
+    return Status("could not read load starts table address\n");
+  if (load_starts_table_address == 0)
+    return Status("function groups not properly initialized");
+  error = ReadMemory(load_starts_table_address+4*fg_id, &load_start_address, 4, bytes_read);
+  printf("load_start_address = %lx\n", load_start_address);
+  if(error.Fail() || bytes_read != 4)
+    return Status("could not read load start address\n");
+  // *mram_addr = (viram_addr & ~k_dpu_viram_msb_mask) + 0x100090 - 0x1738 - k_dpu_iram_base + k_dpu_mram_base;
+  *mram_addr = (viram_addr & ~k_dpu_viram_msb_mask) + load_start_address - overlay_start_address - k_dpu_iram_base + k_dpu_mram_base;
+  printf("Viram2Mram()\n\tviram_addr=%lx\n\toverlay_start_address = %lx\n\tload start = %lx\n\tmram_addr = %lx\n", viram_addr, overlay_start_address, load_start_address, *mram_addr);
+  lldbassert(viram_addr != 0x80201600);
   return Status();
 }
 
@@ -682,14 +714,14 @@ Status ProcessDpu::ViramAddressToLoadedIramAddress(lldb::addr_t viram_addr, lldb
   size_t bytes_read;
   lldb::addr_t overlay_start_address;
   // FIXME : try and fetch symbol instead of trusting overlay_start_address will always be stored at the same address in the elf
-  error = ReadMemory(0x0000008, &overlay_start_address, 8, bytes_read);
-  if(!error.Fail() && bytes_read == 8) {
+  error = ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 4, bytes_read);
+  if(!error.Fail() && bytes_read == 4) {
     overlay_start_address <<= 3;
     overlay_start_address += 0x80000000;
     if (viram_addr >= overlay_start_address && overlay_start_address != 0x80000000) {
       uint32_t loaded_group_value;
       // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
-      error = ReadMemory(0x0000010, &loaded_group_value, 4, bytes_read);
+      error = ReadMemory(ADDR_FG_CURRENTLY_LOADED_GROUP, &loaded_group_value, 4, bytes_read);
       if(!error.Fail() && bytes_read == 4) {
         if ((viram_addr & k_dpu_viram_msb_mask) ==  0x00100000*(loaded_group_value+1)) {
           *iram_addr =  viram_addr & ~k_dpu_viram_msb_mask;
