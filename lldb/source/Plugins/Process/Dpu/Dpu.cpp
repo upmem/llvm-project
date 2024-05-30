@@ -781,11 +781,9 @@ lldb::StateType Dpu::GetThreadState(uint32_t thread_index,
   uint32_t dma_fault_thread_index = context->dma_fault_thread_index;
   uint32_t mem_fault_thread_index = context->mem_fault_thread_index;
   uint32_t bkp_fault_id = context->bkp_fault_id;
-  printf("hello from GetThreadState() ===============\n");
   if (bkp_fault && bkp_fault_thread_index == thread_index) {
     if (bkp_fault_id == 0) {
       stop_reason = eStopReasonBreakpoint;
-      printf("stop reason is breakpoint. Returning from GetThreadState()\n");
       return eStateStopped;
     } else {
       description = "fault " + std::to_string(bkp_fault_id) + " (" +
