@@ -251,8 +251,8 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
         return None
 
     if fct_return != 0:
-        print("ufi_identity fail with", fct_return, "during dpu_detach.")
-        return None
+        print("=====> ufi_identity fail with", fct_return, "during dpu_detach. <=====")
+        # return None
 
     debugger.SetSelectedTarget(target)
 
