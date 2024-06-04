@@ -134,6 +134,9 @@ public:
 
     AArch64SubArch_arm64e,
 
+    DPUSubArch_v1a,
+    DPUSubArch_v1b,
+
     KalimbaSubArch_v3,
     KalimbaSubArch_v4,
     KalimbaSubArch_v5,

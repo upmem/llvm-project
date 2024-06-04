@@ -113,6 +113,8 @@ add_llvm_component_library(LLVMSupport
   DeltaAlgorithm.cpp
   DAGDeltaAlgorithm.cpp
   DJB.cpp
+  DPUAttributeParser.cpp
+  DPUBuildAttrs.cpp
   ELFAttributeParser.cpp
   ELFAttributes.cpp
   Error.cpp

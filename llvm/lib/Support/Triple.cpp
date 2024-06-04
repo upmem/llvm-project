@@ -631,6 +631,8 @@ static Triple::ArchType parseArch(StringRef ArchName) {
       return parseARMArch(ArchName);
     if (ArchName.startswith("bpf"))
       return parseBPFArch(ArchName);
+    if (ArchName.startswith("dpu"))
+      return Triple::dpu;
   }
 
   return AT;
@@ -740,6 +742,13 @@ static Triple::SubArchType parseSubArch(StringRef SubArchName) {
   if (SubArchName.startswith("mips") &&
       (SubArchName.endswith("r6el") || SubArchName.endswith("r6")))
     return Triple::MipsSubArch_r6;
+
+  if (SubArchName.startswith("dpu")) {
+    return StringSwitch<Triple::SubArchType>(SubArchName)
+        .EndsWith("v1a", Triple::DPUSubArch_v1a)
+        .EndsWith("v1b", Triple::DPUSubArch_v1b)
+        .Default(Triple::NoSubArch);
+  }
 
   if (SubArchName == "powerpcspe")
     return Triple::PPCSubArch_spe;

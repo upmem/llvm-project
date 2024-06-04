@@ -47,7 +47,16 @@ DpuRank::DpuRank() : nr_threads(0), m_lock() {
   stdout_fd = NULL;
 }
 
-bool DpuRank::Open(char *profile, FILE *stdout_file, bool valid) {
+DpuRank::~DpuRank() {
+  while (!m_dpus.empty()) {
+    delete m_dpus.back();
+    m_dpus.pop_back();
+  }
+  dpu_free_rank(m_rank);
+  fclose(stdout_fd);
+}
+
+bool DpuRank::Open(const char *profile, FILE *stdout_file, bool valid) {
   std::lock_guard<std::recursive_mutex> guard(m_lock);
 
   int ret = dpu_get_rank_of_type(profile, &m_rank);

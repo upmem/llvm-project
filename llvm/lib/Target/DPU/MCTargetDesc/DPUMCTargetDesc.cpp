@@ -12,8 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "DPUInstPrinter.h"
-#include "llvm/BinaryFormat/ELF.h"
-#include "llvm/MC/MCELFStreamer.h"
+#include "DPUTargetStreamer.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCStreamer.h"
@@ -47,8 +46,6 @@
 #include "DPUMCAsmInfo.h"
 #include "DPUMCTargetDesc.h"
 
-#define DPU_ABI_VERSION 2
-
 using namespace llvm;
 
 static MCInstPrinter *createDPUMCInstPrinter(const Triple &T,
@@ -78,21 +75,10 @@ static MCSubtargetInfo *createDPUMCSubtargetInfo(const Triple &TT,
   return createDPUMCSubtargetInfoImpl(TT, CPU, CPU, FS);
 }
 
-class DPUTargetStreamer : public MCTargetStreamer {
-public:
-  MCELFStreamer &getStreamer() {
-    return static_cast<MCELFStreamer &>(Streamer);
-  }
-  DPUTargetStreamer(MCStreamer &S) : MCTargetStreamer(S) {
-    MCAssembler &MCA = getStreamer().getAssembler();
-    MCA.setELFHeaderEFlags(
-        EF_EABI_DPU_SET(MCA.getELFHeaderEFlags(), DPU_ABI_VERSION));
-  }
-};
 
 static MCTargetStreamer *createDPUTargetStreamer(MCStreamer &S,
                                                  const MCSubtargetInfo &STI) {
-  return new DPUTargetStreamer(S);
+  return new DPUTargetStreamer(S, STI);
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeDPUTargetMC() {

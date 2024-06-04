@@ -7,6 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "Arch/DPU.h"
 #include "DPURTE.h"
 #include "CommonArgs.h"
 #include "InputInfo.h"
@@ -25,18 +26,6 @@ namespace clang {
 namespace driver {
 namespace toolchains {
 
-namespace dpu {
-void addDPUTargetOptions(const llvm::opt::ArgList &Args,
-                         llvm::opt::ArgStringList &CmdArgs) {
-  // add debug information by default if -g0 is not specified
-  Arg *A = Args.getLastArg(options::OPT_g_Group);
-  if (!A || !A->getOption().matches(options::OPT_g0)) {
-    CmdArgs.push_back("-debug-info-kind=limited");
-    CmdArgs.push_back("-dwarf-version=4");
-  }
-}
-} // namespace dpu
-
 void DPURTE::AddClangSystemIncludeArgs(
     const llvm::opt::ArgList &DriverArgs,
     llvm::opt::ArgStringList &CC1Args) const {
@@ -44,35 +33,24 @@ void DPURTE::AddClangSystemIncludeArgs(
     return;
 
   CC1Args.push_back("-nostdsysteminc");
-  addSystemInclude(DriverArgs, CC1Args, StringRef(PathToStdlibIncludes));
-  addSystemInclude(DriverArgs, CC1Args, StringRef(PathToSyslibIncludes));
+  addSystemInclude(DriverArgs, CC1Args, computeSysRoot() + "/stdlib");
+  addSystemInclude(DriverArgs, CC1Args, computeSysRoot() + "/syslib");
 }
 
-char *DPURTE::GetUpmemSdkPath(const char *Path) {
-  char *result;
-  if (PathToSDK != NULL) {
-    asprintf(&result, "%s%s", PathToSDK, Path);
-    return result;
-  }
-  const std::string SysRoot(getDriver().SysRoot);
+std::string DPURTE::computeSysRoot() const {
+  if (!getDriver().SysRoot.empty())
+    return getDriver().SysRoot;
+
   const std::string InstalledDir(getDriver().getInstalledDir());
-  const std::string UpmemDir(InstalledDir + "/../share/upmem");
-  if (!SysRoot.empty()) {
-    PathToSDK = strdup(SysRoot.c_str());
-  } else if (getVFS().exists(UpmemDir)) {
-    PathToSDK = strdup((InstalledDir + "/..").c_str());
-  } else {
-    PathToSDK = strdup(Path);
-  }
-  asprintf(&result, "%s%s", PathToSDK, Path);
-  return result;
+  const std::string UpmemDir(InstalledDir + "/../share/upmem/include");
+
+  if (getVFS().exists(UpmemDir))
+    return UpmemDir;
+
+  return std::string();
 }
 
-Tool *DPURTE::buildLinker() const {
-  return new tools::dpu::Linker(*this, PathToLinkScript, PathToRtLibDirectory,
-                                RtLibName, PathToRtLibLTO, PathToRtLibLTOThin,
-                                PathToBootstrap, McountLibName);
-}
+Tool *DPURTE::buildLinker() const { return new tools::dpu::Linker(*this); }
 
 #define NR_TASKLETS "NR_TASKLETS"
 
@@ -107,6 +85,13 @@ void DPURTE::addClangTargetOptions(
     CC1Args.push_back("-D" NR_TASKLETS "=1");
   }
 }
+
+
+std::string
+DPURTE::ComputeLLVMTriple(const llvm::opt::ArgList &Args, types::ID InputType) const {
+  std::string SubArch = tools::dpu::getDPUVersionFromArgs(Args);
+  return "dpu" + StringRef(SubArch).lower() + "-upmem-dpurte";
+}
 } // namespace toolchains
 
 namespace tools {
@@ -115,12 +100,39 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
                           const InputInfo &Output, const InputInfoList &Inputs,
                           const llvm::opt::ArgList &TCArgs,
                           const char *LinkingOutput) const {
-  std::string Linker = getToolChain().GetProgramPath(getShortName());
+  const ToolChain &TC = getToolChain();
+  const llvm::Triple &TargetTriple = TC.getEffectiveTriple();
+
+  std::string subarch_str("");
+  switch (TargetTriple.getSubArch()) {
+  case llvm::Triple::DPUSubArch_v1a: {
+    subarch_str.append("v1A");
+    break;
+  }
+  case llvm::Triple::DPUSubArch_v1b: {
+    subarch_str.append("v1B");
+    break;
+  }
+  default:
+    llvm_unreachable("Unhandled Triple.");
+    break;
+  }
+
+  const std::string sysroot = TC.computeSysRoot();
+  std::string pg_ext("");
+  if (TCArgs.hasArg(options::OPT_pg)) {
+    pg_ext.append("_p");
+  }
+
+  const std::string builtin_path = sysroot + "/built-in" + "/" + subarch_str;
+  const std::string config_ext = pg_ext + "_" + subarch_str;
+
+  std::string Linker = TC.GetProgramPath(getShortName());
   // Put additional linker options
   ArgStringList CmdArgs;
   CmdArgs.push_back("--discard-locals");
 
-  AddLinkerInputs(getToolChain(), Inputs, TCArgs, CmdArgs, JA);
+  AddLinkerInputs(TC, Inputs, TCArgs, CmdArgs, JA);
   CmdArgs.push_back("-o");
   CmdArgs.push_back(Output.getFilename());
 
@@ -131,24 +143,26 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
   CmdArgs.push_back("--define-common");
   if (!TCArgs.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
     CmdArgs.push_back("-L");
-    CmdArgs.push_back(RtLibraryPath);
+    CmdArgs.push_back(TCArgs.MakeArgString(builtin_path));
+
+    const std::string RtLTOLibrary = builtin_path + "/librtlto" + config_ext + ".a";
 
     if (TCArgs.hasArg(options::OPT_flto_EQ)) {
       // Need to inject the RTE BC library into the whole chain.
       CmdArgs.push_back(llvm::StringSwitch<const char *>(
                             TCArgs.getLastArg(options::OPT_flto_EQ)->getValue())
-                            .Case("thin", RtLTOThinLibrary)
-                            .Default(RtLTOLibrary));
+                            .Case("thin", TCArgs.MakeArgString(builtin_path + "/librtltothin" + config_ext + ".a"))
+                            .Default(TCArgs.MakeArgString(RtLTOLibrary)));
     } else if (TCArgs.hasArg(options::OPT_flto)) {
-      CmdArgs.push_back(RtLTOLibrary);
+      CmdArgs.push_back(TCArgs.MakeArgString(RtLTOLibrary));
     } else {
       CmdArgs.push_back("-l");
-      CmdArgs.push_back(RtLibraryName);
+      CmdArgs.push_back(TCArgs.MakeArgString("rt" + config_ext));
     }
 
     if (TCArgs.hasArg(options::OPT_pg)) {
       CmdArgs.push_back("-l");
-      CmdArgs.push_back(McountLibraryName);
+      CmdArgs.push_back(TCArgs.MakeArgString("rtmcount_" + subarch_str));
     }
   }
 
@@ -164,8 +178,9 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (!HasArgScript) {
     CmdArgs.push_back("-T");
-    CmdArgs.push_back(LinkScript);
+    CmdArgs.push_back(TCArgs.MakeArgString(sysroot + "/link/dpu.lds"));
 
+    constexpr unsigned int DPU_NR_THREADS = std::max(DPU_NR_THREADS_V1A, DPU_NR_THREADS_V1B);
 #define STR_BUFFER_SIZE 128
 #define NR_TASKLETS_FMT NR_TASKLETS "=%u"
 #define DEFAULT_STACK_SIZE_FMT "STACK_SIZE_DEFAULT=%u"
@@ -239,10 +254,41 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
       }
       CmdArgs.push_back(str_tasklet_size[each_tasklet]);
     }
+
+    switch (TargetTriple.getSubArch()) {
+    case llvm::Triple::DPUSubArch_v1a: {
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_IRAM_SIZE="
+                                             + std::to_string(DPU_IRAM_SIZE_V1A)));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_WRAM_SIZE="
+                                             + std::to_string(DPU_WRAM_SIZE_V1A)));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_ATOMIC_SIZE="
+                                             + std::to_string(DPU_ATOMIC_SIZE_V1A)));
+      // There is an issue on ATOMIC HW buffer on v1A
+      // We intentionally scrap a bit of space to be safe
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_ATOMIC_DISPLACEMENT=200"));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_NR_THREADS="
+                                             + std::to_string(DPU_NR_THREADS_V1A)));
+      break;
+    }
+    case llvm::Triple::DPUSubArch_v1b: {
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_IRAM_SIZE="
+                                             + std::to_string(DPU_IRAM_SIZE_V1B)));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_WRAM_SIZE="
+                                             + std::to_string(DPU_WRAM_SIZE_V1B)));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_ATOMIC_SIZE="
+                                             + std::to_string(DPU_ATOMIC_SIZE_V1B)));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_ATOMIC_DISPLACEMENT=0"));
+      CmdArgs.push_back(TCArgs.MakeArgString("--defsym=DPU_NR_THREADS="
+                                             + std::to_string(DPU_NR_THREADS_V1B)));
+      break;
+    }
+    default:
+      break;
+    }
   }
 
   if (!TCArgs.hasArg(options::OPT_nostartfiles)) {
-    CmdArgs.push_back(Bootstrap);
+    CmdArgs.push_back(TCArgs.MakeArgString(sysroot + "/misc/crt0" + pg_ext + ".o"));
   }
 
   /* Pass -L options to the linker */

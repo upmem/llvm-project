@@ -99,6 +99,10 @@ ProcessDpu::Factory::Launch(ProcessLaunchInfo &launch_info,
     return Status("Cannot open terminal_fd ").ToError();
   }
 
+  // propagate sub-process stdout to host
+  fflush(stdout);
+  stdout = stdout_fd;
+
   bool verbose_set = getenv("UPMEM_VERBOSE") != NULL;
   if (!verbose_set) {
     set_verbose_output_file(stdout_fd);
@@ -290,6 +294,21 @@ void ProcessDpu::Terminate() {
 // -----------------------------------------------------------------------------
 // Public Instance Methods
 // -----------------------------------------------------------------------------
+
+ProcessDpu::~ProcessDpu() {
+  delete m_rank;
+}
+
+llvm::Expected<llvm::ArrayRef<uint8_t>>
+ProcessDpu::GetSoftwareBreakpointTrapOpcode(size_t size_hint) {
+  static const uint8_t g_dpu_opcode[] = { 0x00, 0x00,0x00, 0x20,0x63,0x7e,0x00,0x00};
+  switch (GetArchitecture().GetMachine()) {
+  case llvm::Triple::dpu:
+    return llvm::makeArrayRef(g_dpu_opcode);
+  default:
+    return NativeProcessProtocol::GetSoftwareBreakpointTrapOpcode(size_hint);
+  }
+}
 
 ProcessDpu::ProcessDpu(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
                        const ArchSpec &arch, MainLoop &mainloop, DpuRank *rank,
@@ -581,6 +600,24 @@ Status ProcessDpu::RemoveBreakpoint(lldb::addr_t addr, bool hardware) {
     return NativeProcessProtocol::RemoveBreakpoint(addr);
 }
 
+ProcessDpu::eMemoryAddressSpace
+ProcessDpu::ComputeMemoryAddressSpace(lldb::addr_t addr, size_t size) {
+  if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & (~k_dpu_viram_msb_mask)) + size) <= (k_dpu_iram_base + m_iram_size)) {
+    return eMemoryAddressSpaceVIRAM;
+  } else if (addr >= k_dpu_iram_base &&
+      (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
+    return eMemoryAddressSpaceIRAM;
+  } else if (addr >= k_dpu_mram_base &&
+             (addr + size) <= (k_dpu_mram_base + m_mram_size)) {
+    return eMemoryAddressSpaceMRAM;
+  } else if (addr >= k_dpu_wram_base &&
+             (addr + size) <= (k_dpu_wram_base + m_wram_size)) {
+    return eMemoryAddressSpaceWRAM;
+  } else {
+    return eMemoryAddressSpaceUNKNOWN;
+  }
+}
+
 Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
                               size_t &bytes_read) {
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_MEMORY));
@@ -588,7 +625,8 @@ Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
 
   bytes_read = 0;
-  if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & (~k_dpu_viram_msb_mask)) + size) <= (k_dpu_iram_base + m_iram_size)) {
+  switch (ComputeMemoryAddressSpace(addr, size)) {
+  case eMemoryAddressSpaceVIRAM:
     // expected behaviour : if can fetch symbols, read correct mram location. Otherwise, read iram
     lldb::addr_t mram_addr;
     error = ViramAddressToMramPhysicalAddress(addr, &mram_addr);
@@ -596,22 +634,33 @@ Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
       return Status("ReadMemory: cannot convert viram to mram physical address");
     if (!m_dpu->ReadMRAM(mram_addr - k_dpu_mram_base, buf, size))
       return Status("ReadMemory: Cannot copy from MRAM");
-  } else if (addr >= k_dpu_iram_base &&
-      (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
+    break;
+  case eMemoryAddressSpaceIRAM:
     if (!m_dpu->ReadIRAM(addr - k_dpu_iram_base, buf, size))
       return Status("ReadMemory: Cannot copy from IRAM");
-  } else if (addr >= k_dpu_mram_base &&
-             (addr + size) <= (k_dpu_mram_base + m_mram_size)) {
+    break;
+
+  case eMemoryAddressSpaceMRAM:
     if (!m_dpu->ReadMRAM(addr - k_dpu_mram_base, buf, size))
       return Status("ReadMemory: Cannot copy from MRAM");
-  } else if (addr >= k_dpu_wram_base &&
-             (addr + size) <= (k_dpu_wram_base + m_wram_size)) {
+    break;
+
+  case eMemoryAddressSpaceWRAM:
     if (!m_dpu->ReadWRAM(addr, buf, size))
       return Status("ReadMemory: Cannot copy from WRAM");
-  } else {
+    break;
+
+  case eMemoryAddressSpaceUNKNOWN:
     return Status("ReadMemory: Cannot read, unknown address space");
   }
   bytes_read = size;
+  /*
+  printf("ReadMemory(0x%lx) : ", addr);
+  for (int i=0; i<size; i++) {
+    printf("%02hx ", ((unsigned char *) buf)[i]);
+  }
+  printf("\n");
+  */
 
   return Status();
 }
@@ -623,7 +672,8 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
 
   bytes_written = 0;
-  if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & (~k_dpu_viram_msb_mask)) + size) <= (k_dpu_iram_base + m_iram_size)) {
+  switch (ComputeMemoryAddressSpace(addr, size)) {
+  case eMemoryAddressSpaceVIRAM:
     // expected behaviour : if can fetch symbols, write to correct mram location and if fg is loaded, write to iram. Otherwise, only write to iram
     lldb::addr_t mram_addr;
     lldb::addr_t iram_addr;
@@ -637,22 +687,33 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
       LLDB_LOG(log, "WriteMemory: Could not write viram to iram as this function group is not currently loaded");
     } else if (!m_dpu->WriteIRAM(iram_addr - k_dpu_iram_base, buf, size))
       return Status("WriteMemory: Cannot copy to IRAM");
-  } else if (addr >= k_dpu_iram_base &&
-      (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
+    break;
+  case eMemoryAddressSpaceIRAM:
     if (!m_dpu->WriteIRAM(addr - k_dpu_iram_base, buf, size))
       return Status("WriteMemory: Cannot copy to IRAM");
-  } else if (addr >= k_dpu_mram_base &&
-             (addr + size) <= (k_dpu_mram_base + m_mram_size)) {
+    break;
+
+  case eMemoryAddressSpaceMRAM:
     if (!m_dpu->WriteMRAM(addr - k_dpu_mram_base, buf, size))
       return Status("WriteMemory: Cannot copy to MRAM");
-  } else if (addr >= k_dpu_wram_base &&
-             (addr + size) <= (k_dpu_wram_base + m_wram_size)) {
+    break;
+
+  case eMemoryAddressSpaceWRAM:
     if (!m_dpu->WriteWRAM(addr, buf, size))
       return Status("WriteMemory: Cannot copy to WRAM");
-  } else {
+    break;
+
+  case eMemoryAddressSpaceUNKNOWN:
     return Status("WriteMemory: Cannot write, unknown address space");
   }
   bytes_written = size;
+  /*
+  printf("WriteMemory(0x%lx) : ", addr);
+  for (int i=0; i<size; i++) {
+    printf("%02hx ", ((unsigned char *) buf)[i]);
+  }
+  printf("\n");
+  */
 
   return Status();
 }
@@ -664,25 +725,31 @@ Status ProcessDpu::ViramAddressToMramPhysicalAddress(lldb::addr_t viram_addr, ll
   lldb::addr_t overlay_start_address = 0;
   lldb::addr_t load_starts_table_address = 0;
   lldb::addr_t load_start_address = 0;
+  // printf("ViramAddressToMramPhysicalAddress(0x%lx)\n", viram_addr);
   size_t fg_id = ((viram_addr & k_dpu_viram_msb_mask)/k_dpu_viram_offset) - 1;
   error = ReadMemory(ADDR_FG_MAGIC_VALUE, &magic_value, 8, bytes_read);
+  // printf("\tmagic = 0x%lx\n", magic_value);
   if(error.Fail() || bytes_read != 8 || magic_value != FG_MAGIC_VALUE)
     return Status("could not find fg magic_value\n");
   error = ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 4, bytes_read);
+  // printf("\toverlay_start = 0x%x\n", overlay_start_address);
   if(error.Fail() || bytes_read != 4)
     return Status("could not read load start address\n");
   overlay_start_address <<= 3;
   lldbassert(viram_addr >= overlay_start_address);
   error = ReadMemory(ADDR_FG_LOAD_STARTS_ADDR, &load_starts_table_address, 4, bytes_read);
+  // printf("\tload_start_table = 0x%x\n", load_starts_table_address);
   if(error.Fail() || bytes_read != 4)
     return Status("could not read load starts table address\n");
   if (load_starts_table_address == 0)
     return Status("function groups not properly initialized");
   error = ReadMemory(load_starts_table_address+4*fg_id, &load_start_address, 4, bytes_read);
+  // printf("\tload_start = 0x%x\n", load_start_address);
   if(error.Fail() || bytes_read != 4)
     return Status("could not read load start address\n");
   // *mram_addr = (viram_addr & ~k_dpu_viram_msb_mask) + 0x100090 - 0x1738 - k_dpu_iram_base + k_dpu_mram_base;
   *mram_addr = (viram_addr & ~k_dpu_viram_msb_mask) + load_start_address - overlay_start_address - k_dpu_iram_base + k_dpu_mram_base;
+  // printf("\t = 0x%lx\n", *mram_addr);
   return Status();
 }
 
@@ -700,7 +767,7 @@ Status ProcessDpu::ViramAddressToLoadedIramAddress(lldb::addr_t viram_addr, lldb
       // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
       error = ReadMemory(ADDR_FG_CURRENTLY_LOADED_GROUP, &loaded_group_value, 4, bytes_read);
       if(!error.Fail() && bytes_read == 4) {
-        if ((viram_addr & k_dpu_viram_msb_mask) ==  0x00100000*(loaded_group_value+1)) {
+        if ((viram_addr & k_dpu_viram_msb_mask) ==  k_dpu_viram_offset*(loaded_group_value+1)) {
           *iram_addr =  viram_addr & ~k_dpu_viram_msb_mask;
           return Status();
         }

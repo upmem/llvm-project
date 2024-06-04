@@ -1,8 +1,41 @@
+import os
 import re
 import sys
 import subprocess
-import os
+import time
+
+import psutil
+
 import lldb
+
+SUB_LLDB_PROCESS_PORT = int(os.environ.get("SUB_LLDB_PROCESS_PORT", 2066))
+SUB_LLDB_PROCESS_MAX_RETRY = int(os.environ.get("SUB_LLDB_PROCESS_MAX_RETRY", 10))
+
+def wait_until_port_open(port, pid):
+    proc = psutil.Process(pid)
+    for i in range(SUB_LLDB_PROCESS_MAX_RETRY):
+        if proc.status() == psutil.STATUS_ZOMBIE:
+            print("lldb-server-dpu with pid", pid, "died.")
+            return False
+
+        conn = proc.connections()
+
+        port_is_open = False
+        for c in conn:
+            if (c.laddr.port == port
+                and c.status == 'LISTEN'):
+                port_is_open = True
+                break
+
+        if port_is_open:
+            print("lldb-server-dpu is ready for connection.")
+            return True
+        else:
+            slack_time = pow(2, i) * 0.25
+            print("Attempt", i, "failed. Retry in ", slack_time, " seconds.")
+            time.sleep(slack_time)
+
+    return False
 
 
 def check_target(target):
@@ -13,8 +46,8 @@ def check_target(target):
 
 
 def decompute_dpu_pid(pid):
-    rank_id = (pid / (100*100)) % 100
-    slice_id = (pid / 100) % 100
+    rank_id = (pid // (100*100)) % 100
+    slice_id = (pid // 100) % 100
     dpu_id = pid % 100
     return rank_id, slice_id, dpu_id
 
@@ -149,8 +182,10 @@ def break_to_next_boot_and_get_dpus(debugger, target):
             get_nb_slices_and_nb_dpus_per_slice(rank, target)
         nb_dpu = nb_ci * nb_dpu_per_ci
         for each_dpu in range(0, nb_dpu):
-            dpu_list.append(int(str(rank.GetValueForExpressionPath(
-                "->dpus[" + str(each_dpu) + "]").GetAddress()), 16))
+            local_dpu = rank.GetValueForExpressionPath("->dpus[" + str(each_dpu) + "]")
+            _enabled = local_dpu.GetChildMemberWithName("enabled").GetValueAsUnsigned()
+            if _enabled == 1:
+                dpu_list.append(int(str(local_dpu.GetAddress()), 16))
     elif function_name == launch_dpu_function:
         dpu_list.append(frame.FindVariable("dpu").GetValueAsUnsigned())
 
@@ -205,8 +240,20 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
     process_dpu.WriteMemory(dpu_first_instruction_addr,
                             bytearray([0x00, 0x00, 0x00, 0x20,
                                        0x63, 0x7e, 0x00, 0x00]), error)
+    pid = process_dpu.GetProcessID()
     process_dpu.Detach()
     debugger.DeleteTarget(target_dpu)
+
+    rank = get_rank_from_pid(debugger, pid)
+    fct_exec_success, fct_return = exec_ufi_identity(debugger, rank)
+    if not fct_exec_success:
+        print("Could not execute ufi_identity during detach")
+        return None
+
+    if fct_return != 0:
+        print("=====> ufi_identity fail with", fct_return, "during dpu_detach. <=====")
+        # return None
+
     debugger.SetSelectedTarget(target)
 
     target.GetProcess().GetSelectedThread().StepOutOfFrame(host_frame, error)
@@ -321,17 +368,24 @@ def dpu_attach(debugger, command, result, internal_dict):
     if storage.IsValid():
         lldb_server_dpu_env["UPMEM_LLDB_ERROR_STORE_ADDR"] = str(storage.location)
 
-    subprocess.Popen(['lldb-server-dpu',
-                      'gdbserver',
-                      '--attach',
-                      str(pid),
-                      ':2066'],
-                     env=lldb_server_dpu_env)
+    sub_lldb = subprocess.Popen(['lldb-server-dpu',
+                                 'gdbserver',
+                                 '--attach',
+                                 str(pid),
+                                 ':' + str(SUB_LLDB_PROCESS_PORT)],
+                                env=lldb_server_dpu_env)
+
+    # The creation and initialization of the process above could take quite some time.
+    # We wait here for the communication channel to be created.
+    print("Waiting for lldb-server-dpu with pid", sub_lldb.pid, "to finish initialization.")
+    if not(wait_until_port_open(SUB_LLDB_PROCESS_PORT, sub_lldb.pid)):
+        print("lldb-server-dpu did not succesfully open communication channel.")
+        return None
 
     listener = debugger.GetListener()
     error = lldb.SBError()
     process_dpu = target_dpu.ConnectRemote(listener,
-                                           "connect://localhost:2066",
+                                           "connect://localhost:" + str(SUB_LLDB_PROCESS_PORT),
                                            "gdb-remote",
                                            error)
     if not(process_dpu.IsValid()):
@@ -456,14 +510,7 @@ def print_list(rank_list, result, command):
                 result)
 
 
-def dpu_list(debugger, command, result, internal_dict):
-    '''
-    usage: dpu_list [-v] [-r <rank_id>] [-s <status:IDLE|RUNNING|ERROR>]
-    options:
-    \t-v \tVerbose mode, print detail information for all DPUs
-    \t-r \tFilter DPUs of the specified rank_id
-    \t-s \tFilter DPUs of the specified status
-    '''
+def get_allocated_dpus(debugger):
     target = debugger.GetSelectedTarget()
     if not(check_target(target)):
         return None
@@ -524,17 +571,47 @@ def dpu_list(debugger, command, result, internal_dict):
                                                                  slice_id, dpu_id,
                                                                  dpu_status, program_path))
 
+    return result_list
+
+
+def dpu_list(debugger, command, result, internal_dict):
+    '''
+    usage: dpu_list [-v] [-r <rank_id>] [-s <status:IDLE|RUNNING|ERROR>]
+    options:
+    \t-v \tVerbose mode, print detail information for all DPUs
+    \t-r \tFilter DPUs of the specified rank_id
+    \t-s \tFilter DPUs of the specified status
+    '''
+    result_list = get_allocated_dpus(debugger)
+    if result_list is None:
+        return None
+
     print_list(result_list, result, command)
     return result_list
 
 
+def dpu_attach_first(debugger, command, result, internal_dict):
+    allocated_dpus = get_allocated_dpus(debugger)
+    if not allocated_dpus:
+        print("Could not find any dpu to attach to")
+        return None
+
+    first_rank_key = list(allocated_dpus.keys())[0]
+    dpu_addr, slice_id, dpu_id, status, program = allocated_dpus[first_rank_key][0]
+    new_cmd = ".".join(str(x) for x in [first_rank_key,
+                                        slice_id,
+                                        dpu_id])
+    print("Attaching to ", new_cmd)
+    return dpu_attach(debugger, new_cmd, result, internal_dict)
+
+
 def exec_ufi_identity(debugger, rank):
-    success, unused = get_value_from_command(
+    success, fct_return = get_value_from_command(
         debugger,
         "ufi_identity((dpu_rank_t *)"
         + rank.GetValue() + ", 0xff, lldb_dummy_results)",
         16)
-    return success
+    return success, fct_return
 
 
 def get_rank_from_pid(debugger, pid):
@@ -577,5 +654,14 @@ def dpu_detach(debugger, command, result, internal_dict):
     target.GetProcess().Detach()
     debugger.DeleteTarget(target)
     rank = get_rank_from_pid(debugger, pid)
-    if not exec_ufi_identity(debugger, rank):
+
+    fct_exec_success, fct_return = exec_ufi_identity(debugger, rank)
+
+    if not fct_exec_success:
         print("Could not execute ufi_identity during detach")
+        return None
+
+    if fct_return != 0:
+        print("ufi_identity fail with", fct_return, "during dpu_detach.")
+
+    return fct_return
