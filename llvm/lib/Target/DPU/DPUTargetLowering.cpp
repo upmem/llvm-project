@@ -1157,7 +1157,13 @@ DPUTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
   if (Constraint.size() == 1) {
     LLVM_DEBUG(dbgs() << "DPU/Lower - get reg for inline asm constraint ("
                       << Constraint << ")\n");
-    return std::make_pair(0U, &DPU::GP_REGRegClass);
+    if (VT == MVT::i32 || VT == MVT::i16 || VT == MVT::i8) {
+      return std::make_pair(0U, &DPU::GP_REGRegClass);
+    } else if (VT == MVT::i64) {
+      return std::make_pair(0U, &DPU::GP64_REGRegClass);
+    }
+    // This will generate an error message
+    return std::make_pair(0u, static_cast<const TargetRegisterClass*>(0));
   }
   return TargetLowering::getRegForInlineAsmConstraint(TRI, Constraint, VT);
 }
