@@ -68,12 +68,15 @@ def get_value_from_command(debugger, command, base):
     return True, addr
 
 
-def set_debug_mode(debugger, rank, debug_mode):
-    success, unused = get_value_from_command(
-        debugger,
-        "hw_set_debug_mode((dpu_rank_t *)"
-        + rank.GetValue() + ", " + str(debug_mode) + ")",
-        10)
+def set_debug_mode(debugger, target, rank, debug_mode):
+    command = ("hw_set_debug_mode((dpu_rank_t *)" + rank.GetValue() + ", "
+               + str(debug_mode) + ")")
+    res = target.EvaluateExpression(command)
+    if res.GetError().Fail():
+        raise Exception("Command ", command, " failed.\n", res.GetError().description)
+
+    status = res.GetValueAsUnsigned()
+    success = status == 0
     return success
 
 
@@ -331,7 +334,7 @@ def dpu_attach(debugger, command, result, internal_dict):
         slices_target_env += str((slice_target_dpu_group_id <<
                                   32) + slice_target_type) + "&"
 
-    if not(set_debug_mode(debugger, rank, 1)):
+    if not(set_debug_mode(debugger, target, rank, 1)):
         print("Could not set dpu in debug mode")
         return None
 
@@ -432,7 +435,7 @@ def dpu_attach(debugger, command, result, internal_dict):
                                             print_buffer_var_addr)
 
     debugger.SetSelectedTarget(target)
-    if not(set_debug_mode(debugger, rank, 0)):
+    if not(set_debug_mode(debugger, target, rank, 0)):
         print("Could not unset dpu from debug mode")
         return None
 
