@@ -248,10 +248,7 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
     debugger.DeleteTarget(target_dpu)
 
     rank = get_rank_from_pid(debugger, pid)
-    fct_exec_success, fct_return = exec_ufi_identity(debugger, rank)
-    if not fct_exec_success:
-        print("Could not execute ufi_identity during detach")
-        return None
+    fct_return = exec_ufi_identity(debugger, target, rank)
 
     if fct_return != 0:
         print("=====> ufi_identity fail with", fct_return, "during dpu_detach. <=====")
@@ -608,13 +605,16 @@ def dpu_attach_first(debugger, command, result, internal_dict):
     return dpu_attach(debugger, new_cmd, result, internal_dict)
 
 
-def exec_ufi_identity(debugger, rank):
-    success, fct_return = get_value_from_command(
-        debugger,
-        "ufi_identity((dpu_rank_t *)"
-        + rank.GetValue() + ", 0xff, lldb_dummy_results)",
-        16)
-    return success, fct_return
+def exec_ufi_identity(debugger, target, rank):
+    command = ("ufi_identity((dpu_rank_t *)"
+               + rank.GetValue() + ", 0xff, lldb_dummy_results)")
+
+    res = target.EvaluateExpression(command)
+    if res.GetError().Fail():
+        raise Exception("Command ", command, " failed.\n", res.GetError().description)
+
+    status = res.GetValueAsUnsigned()
+    return status
 
 
 def get_rank_from_pid(debugger, pid):
@@ -658,11 +658,8 @@ def dpu_detach(debugger, command, result, internal_dict):
     debugger.DeleteTarget(target)
     rank = get_rank_from_pid(debugger, pid)
 
-    fct_exec_success, fct_return = exec_ufi_identity(debugger, rank)
-
-    if not fct_exec_success:
-        print("Could not execute ufi_identity during detach")
-        return None
+    target = debugger.GetSelectedTarget()
+    fct_return = exec_ufi_identity(debugger, target, rank)
 
     if fct_return != 0:
         print("ufi_identity fail with", fct_return, "during dpu_detach.")
