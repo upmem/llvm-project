@@ -56,18 +56,6 @@ def compute_dpu_pid(rank_id, slice_id, dpu_id):
     return dpu_id + 100 * (slice_id + 100 * (rank_id + 100))
 
 
-def get_value_from_command(debugger, command, base):
-    return_obj = lldb.SBCommandReturnObject()
-    debugger.GetCommandInterpreter().HandleCommand("p/x " + command, return_obj)
-    if return_obj.GetStatus() != lldb.eReturnStatusSuccessFinishResult:
-        return False, 0
-    output = return_obj.GetOutput()
-    if output is None or len(output) == 0:
-        return True, 0
-    addr = int(re.search('.*= (.+)', return_obj.GetOutput()).group(1), base)
-    return True, addr
-
-
 def set_debug_mode(debugger, target, rank, debug_mode):
     command = ("hw_set_debug_mode((dpu_rank_t *)" + rank.GetValue() + ", "
                + str(debug_mode) + ")")
@@ -85,18 +73,16 @@ def get_dpu_from_command(command, debugger, target):
     try:
         addr = int(command, 16)
     except ValueError:
-        success, addr = get_value_from_command(debugger, command, 16)
-        if not success:
-            command_values = command.split('.')
-            if len(command_values) == 3:
-                rank_id = command_values[0]
-                dpus = dpu_list(debugger, None, None, None)
-                if rank_id in dpus:
-                    addr = next((dpu[0] for dpu in dpus[rank_id]
-                                 if (command ==
-                                     str(rank_id) + "." + str(dpu[1]) + "." +
-                                     str(dpu[2]))),
-                                0)
+        command_values = command.split('.')
+        if len(command_values) == 3:
+            rank_id = command_values[0]
+            dpus = dpu_list(debugger, None, None, None)
+            if rank_id in dpus:
+                addr = next((dpu[0] for dpu in dpus[rank_id]
+                             if (command ==
+                                 str(rank_id) + "." + str(dpu[1]) + "." +
+                                 str(dpu[2]))),
+                            0)
     if addr == 0:
         print("Could not interpret command '" + command + "'")
         return None
