@@ -280,8 +280,6 @@ def dpu_attach(debugger, command, result, internal_dict):
 
     print("Attaching to dpu '" + str(dpu_address) + "'")
 
-    program_path = get_dpu_program_path(dpu)
-
     rank = dpu.GetChildMemberWithName("rank")
     if not(rank.IsValid()):
         print("Could not find dpu rank")
@@ -337,6 +335,8 @@ def dpu_attach(debugger, command, result, internal_dict):
     lldb_server_dpu_env["UPMEM_LLDB_SLICES_TARGET"] = slices_target_env
     lldb_server_dpu_env["UPMEM_LLDB_HOST_MUXS_MRAM_STATE"] = \
         host_muxs_mram_state_env
+
+    program_path = get_dpu_program_path(dpu)
 
     if not(program_path is None):
         module_spec = lldb.SBModuleSpec()
