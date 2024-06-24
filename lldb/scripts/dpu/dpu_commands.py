@@ -593,13 +593,8 @@ def dpu_attach_first(debugger, command, result, internal_dict):
         print("Could not find any dpu to attach to")
         return None
 
-    first_rank_key = list(allocated_dpus.keys())[0]
-    dpu_addr, slice_id, dpu_id, status, program = allocated_dpus[first_rank_key][0]
-    new_cmd = ".".join(str(x) for x in [first_rank_key,
-                                        slice_id,
-                                        dpu_id])
-    print("Attaching to ", new_cmd)
-    return dpu_attach(debugger, new_cmd, result, internal_dict)
+    first_dpu, _, _, _, _ = next(iter(allocated_dpus.values()))[0]
+    return dpu_attach(debugger, first_dpu, result, internal_dict)
 
 
 def exec_ufi_identity(debugger, target, rank):
