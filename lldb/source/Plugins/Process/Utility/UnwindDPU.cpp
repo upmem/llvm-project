@@ -144,6 +144,7 @@ bool UnwindDPU::DoGetFrameInfoAtIndex(uint32_t frame_idx, lldb::addr_t &cfa,
   behaves_like_zeroth_frame = frame_idx == 0;
   cfa = m_frames[frame_idx]->cfa;
   pc = m_frames[frame_idx]->pc;
+  lldb::addr_t viram_bitmask = 0;
 
   Status error;
   // FIXME : try and fetch symbol instead of trusting overlay_start_address will always be stored at the same address in the elf
@@ -156,11 +157,12 @@ bool UnwindDPU::DoGetFrameInfoAtIndex(uint32_t frame_idx, lldb::addr_t &cfa,
         uint32_t loaded_group_value;
         // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
         if(m_thread.GetProcess()->ReadMemory(ADDR_FG_CURRENTLY_LOADED_GROUP, &loaded_group_value, 4, error) == 4) {
-          pc |= FG_DPU_VIRAM_OFFSET*(loaded_group_value+1);
+          viram_bitmask = FG_DPU_VIRAM_OFFSET*(loaded_group_value+1);
         }
       }
     }
   }
+  pc |= viram_bitmask;
 
   return true;
 }
