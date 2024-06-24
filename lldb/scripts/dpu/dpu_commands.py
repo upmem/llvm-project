@@ -69,9 +69,12 @@ def set_debug_mode(debugger, target, rank, debug_mode):
 
 
 def get_dpu_from_command(command, debugger, target):
-    addr = 0
+    if type(command) is lldb.SBValue:
+        return command
     try:
         addr = int(command, 16)
+        return target.CreateValueFromExpression(
+            "dpu", "(struct dpu_t *)" + str(addr))
     except ValueError:
         command_values = command.split('.')
         if len(command_values) == 3:
@@ -83,11 +86,9 @@ def get_dpu_from_command(command, debugger, target):
                                  str(rank_id) + "." + str(dpu[1]) + "." +
                                  str(dpu[2]))),
                             0)
-    if addr == 0:
-        print("Could not interpret command '" + command + "'")
-        return None
-    return target.CreateValueFromExpression(
-        "dpu", "(struct dpu_t *)" + str(addr))
+                return addr
+    print("Could not interpret command '" + command + "'")
+    return None
 
 
 def get_rank_id(rank, target):
@@ -174,9 +175,9 @@ def break_to_next_boot_and_get_dpus(debugger, target):
             local_dpu = rank.GetValueForExpressionPath("->dpus[" + str(each_dpu) + "]")
             _enabled = local_dpu.GetChildMemberWithName("enabled").GetValueAsUnsigned()
             if _enabled == 1:
-                dpu_list.append(int(str(local_dpu.GetAddress()), 16))
+                dpu_list.append(local_dpu)
     elif function_name == launch_dpu_function:
-        dpu_list.append(frame.FindVariable("dpu").GetValueAsUnsigned())
+        dpu_list.append(frame.FindVariable("dpu"))
 
     return dpu_list, frame
 
@@ -202,7 +203,7 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
             print("Could not find the dpu to attach to")
             return None
         dpus_booting = list(filter(
-            lambda dpu: dpu == dpu_to_attach.GetValueAsUnsigned(),
+            lambda dpu: dpu.GetAddress() == dpu_to_attach.GetAddress(),
             dpus_booting))
         while len(dpus_booting) == 0:
             dpus_booting, host_frame =\
@@ -211,10 +212,13 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
                 print("Could not find the dpu booting")
                 return None
             dpus_booting = filter(
-                lambda dpu: dpu == dpu_to_attach.GetValueAsUnsigned(),
+                lambda dpu: dpu.GetAddress() == dpu_to_attach.GetAddress(),
                 dpus_booting)
 
-    dpu_addr = str(hex(dpus_booting[0]))
+    # As the object that represents the dpu will disapear,
+    # we capture the address here
+    dpu_addr = str(dpus_booting[0].GetAddress())
+
     print("Setting up dpu '" + dpu_addr + "' for attach on boot...")
     target_dpu = dpu_attach(debugger, dpu_addr, None, None)
     if target_dpu is None:
@@ -267,7 +271,14 @@ def dpu_attach(debugger, command, result, internal_dict):
     if dpu is None or not(dpu.IsValid):
         print("Could not find dpu")
         return None
-    print("Attaching to dpu '" + dpu.GetValue() + "'")
+
+    # the dpu object can be a completelly resolved SBValue
+    # or just a wrapped pointer
+    dpu_address = dpu.GetAddress()
+    if not dpu_address.IsValid():
+        dpu_address = dpu.GetValue()
+
+    print("Attaching to dpu '" + str(dpu_address) + "'")
 
     program_path = get_dpu_program_path(dpu)
 
@@ -433,7 +444,7 @@ def print_list_rank(rank_id, dpus_info, verbose, status_filter, result):
                 result.PutCString(
                     "'%s'  %2u.%u.%u  %7s  '%s'" %
                     (
-                        str(hex(dpu_addr)),
+                        str(dpu_addr.GetAddress()),
                         int(rank_id),
                         slice_id,
                         dpu_id,
@@ -553,7 +564,7 @@ def get_allocated_dpus(debugger):
                                             slice_id,
                                             dpu_id)
 
-                result_list.setdefault(str(rank_id), []).append((int(str(dpu.GetAddress()), 16),
+                result_list.setdefault(str(rank_id), []).append((dpu,
                                                                  slice_id, dpu_id,
                                                                  dpu_status, program_path))
 
