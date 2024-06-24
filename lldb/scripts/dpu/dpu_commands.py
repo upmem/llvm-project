@@ -68,6 +68,18 @@ def set_debug_mode(debugger, target, rank, debug_mode):
     return success
 
 
+def setup_for_onboot(debugger, target, dpu_addr):
+    command = "setup_for_onboot((dpu_t *)" + dpu_addr + ")"
+    res = target.EvaluateExpression(command)
+    if res.GetError().Fail():
+        raise Exception("Command ", command, " failed.\n", res.GetError().description)
+
+    status = res.GetChildMemberWithName("status").GetValueAsUnsigned()
+    instr = res.GetChildMemberWithName("instr").GetValueAsUnsigned()
+
+    return status, instr
+
+
 def get_dpu_from_command(command, debugger, target):
     if type(command) is lldb.SBValue:
         return command
@@ -228,41 +240,34 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
     dpu_addr = str(dpus_booting[0].GetAddress())
 
     print("Setting up dpu '" + dpu_addr + "' for attach on boot...")
-    target_dpu = dpu_attach(debugger, dpu_addr, None, None)
-    if target_dpu is None:
-        print("Could not attach to dpu")
+
+    # Replace first instruction for a breakpoint
+    setup_for_onboot_status, setup_for_onboot_instr = setup_for_onboot(debugger, target, dpu_addr)
+    if setup_for_onboot_status != 0: # DPU_OK
+        print("setup_for_onboot failed with",  setup_for_onboot_status, "during dpu_attach_on_boot.")
+        if setup_for_onboot_instr == 1:
+            print("Could not copy instruction from IRAM.")
+        else:
+            print("Could not set instruction to IRAM.")
         return None
 
+    # step out from frame dpu_launch_thread_on_rank or dpu_launch_thread_on_dpu
+    # we breakpoint in earlier during break_to_next_boot_and_get_dpus()
     error = lldb.SBError()
-    process_dpu = target_dpu.GetProcess()
-    dpu_first_instruction_addr = 0x80000000
-    dpu_first_instruction = process_dpu.ReadMemory(dpu_first_instruction_addr,
-                                                   8, error)
-    process_dpu.WriteMemory(dpu_first_instruction_addr,
-                            bytearray([0x00, 0x00, 0x00, 0x20,
-                                       0x63, 0x7e, 0x00, 0x00]), error)
-    pid = process_dpu.GetProcessID()
-    process_dpu.Detach()
-    debugger.DeleteTarget(target_dpu)
-
-    rank = get_rank_from_pid(debugger, pid)
-    fct_return = exec_ufi_identity(debugger, target, rank)
-
-    if fct_return != 0:
-        print("=====> ufi_identity fail with", fct_return, "during dpu_detach. <=====")
-        # return None
-
-    debugger.SetSelectedTarget(target)
-
     target.GetProcess().GetSelectedThread().StepOutOfFrame(host_frame, error)
     print("dpu '" + str(dpu_addr) + "' has booted")
 
+    # Attach to the DPU we just setup
+    # it has breakpointed at the very first instruction
     target_dpu = dpu_attach(debugger, dpu_addr, None, None)
     if target_dpu is None:
         print("Could not attach to dpu")
         return None
-    target_dpu.GetProcess().WriteMemory(dpu_first_instruction_addr,
-                                        dpu_first_instruction, error)
+
+    # Restore the first instruction
+    target_dpu.GetProcess().WriteMemory(0x80000000,
+                                        setup_for_onboot_instr.to_bytes(8, byteorder='little'),
+                                        error)
 
     return target_dpu
 
