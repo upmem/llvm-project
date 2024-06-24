@@ -610,9 +610,8 @@ def dpu_attach_first(debugger, command, result, internal_dict):
     return dpu_attach(debugger, first_dpu, result, internal_dict)
 
 
-def exec_ufi_identity(debugger, target, rank):
-    command = ("ufi_identity((dpu_rank_t *)"
-               + rank.GetValue() + ", 0xff, lldb_dummy_results)")
+def host_synchronize(debugger, target, rank):
+    command = "host_synchronize((dpu_rank_t *)" + rank.GetValue() + ")"
 
     res = target.EvaluateExpression(command)
     if res.GetError().Fail():
@@ -664,9 +663,9 @@ def dpu_detach(debugger, command, result, internal_dict):
     rank = get_rank_from_pid(debugger, pid)
 
     target = debugger.GetSelectedTarget()
-    fct_return = exec_ufi_identity(debugger, target, rank)
+    status = host_synchronize(debugger, target, rank)
 
-    if fct_return != 0:
-        print("ufi_identity fail with", fct_return, "during dpu_detach.")
+    if status != 0:
+        print("host_synchronize fail with", status, "during dpu_detach.")
 
-    return fct_return
+    return status
