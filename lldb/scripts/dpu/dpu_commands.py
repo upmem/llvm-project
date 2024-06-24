@@ -205,15 +205,23 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
         dpus_booting = list(filter(
             lambda dpu: dpu.GetAddress() == dpu_to_attach.GetAddress(),
             dpus_booting))
-        while len(dpus_booting) == 0:
+        print("Waiting for specified DPU to boot.")
+        for i in range(10):
+            if len(dpus_booting) == 1:
+                break
+            slack_time = pow(2, i) * 0.25
+            print("Attempt", i, "failed. Retry in ", slack_time, " seconds.")
+            time.sleep(slack_time)
+
             dpus_booting, host_frame =\
                 break_to_next_boot_and_get_dpus(debugger, target)
-            if dpus_booting is None or len(dpus_booting) == 0:
-                print("Could not find the dpu booting")
-                return None
-            dpus_booting = filter(
+            dpus_booting = list(filter(
                 lambda dpu: dpu.GetAddress() == dpu_to_attach.GetAddress(),
-                dpus_booting)
+                dpus_booting))
+
+        if len(dpus_booting) != 1:
+            print("Could not find the dpu booting")
+            return None
 
     # As the object that represents the dpu will disapear,
     # we capture the address here
