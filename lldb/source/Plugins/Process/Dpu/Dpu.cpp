@@ -748,7 +748,7 @@ bool *Dpu::ThreadRegistersHasBeenModified() {
   return &registers_has_been_modified;
 }
 
-const std::string bkp_fault_description[9] = {"",
+const std::string bkp_fault_description[10] = {"",
                                               "Heap Full",
                                               "Division by Zero",
                                               "Assert",
@@ -756,7 +756,8 @@ const std::string bkp_fault_description[9] = {"",
                                               "Printf Overflow",
                                               "Already Profiling",
                                               "Not Profiling",
-                                              "Wrong Alignment"};
+                                              "Wrong Alignment",
+                                              "Performance counter invalid"};
 
 lldb::StateType Dpu::GetThreadState(uint32_t thread_index,
                                     std::string &description,
