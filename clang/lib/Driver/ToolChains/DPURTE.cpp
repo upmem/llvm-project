@@ -145,18 +145,16 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-L");
     CmdArgs.push_back(TCArgs.MakeArgString(builtin_path));
 
-    const std::string RtLTOLibrary = builtin_path + "/librtlto" + config_ext + ".a";
-
+    // Link rt library
+    CmdArgs.push_back("-l");
     if (TCArgs.hasArg(options::OPT_flto_EQ)) {
-      // Need to inject the RTE BC library into the whole chain.
       CmdArgs.push_back(llvm::StringSwitch<const char *>(
                             TCArgs.getLastArg(options::OPT_flto_EQ)->getValue())
-                            .Case("thin", TCArgs.MakeArgString(builtin_path + "/librtltothin" + config_ext + ".a"))
-                            .Default(TCArgs.MakeArgString(RtLTOLibrary)));
+                            .Case("thin", TCArgs.MakeArgString("rtltothin" + config_ext))
+                            .Default(TCArgs.MakeArgString("rtlto" + config_ext)));
     } else if (TCArgs.hasArg(options::OPT_flto)) {
-      CmdArgs.push_back(TCArgs.MakeArgString(RtLTOLibrary));
+      CmdArgs.push_back(TCArgs.MakeArgString("rtlto" + config_ext));
     } else {
-      CmdArgs.push_back("-l");
       CmdArgs.push_back(TCArgs.MakeArgString("rt" + config_ext));
     }
 
