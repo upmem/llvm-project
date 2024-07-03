@@ -287,7 +287,7 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   if (!TCArgs.hasArg(options::OPT_nostartfiles)) {
-    CmdArgs.push_back(TCArgs.MakeArgString(sysroot + "/misc/crt0" + pg_ext + ".o"));
+    CmdArgs.push_back(TCArgs.MakeArgString(sysroot + "/misc/" + subarch_str + "/crt0" + pg_ext + ".o"));
   }
 
   /* Pass -L options to the linker */
