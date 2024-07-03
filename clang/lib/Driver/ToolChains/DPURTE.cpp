@@ -101,6 +101,7 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
                           const llvm::opt::ArgList &TCArgs,
                           const char *LinkingOutput) const {
   const ToolChain &TC = getToolChain();
+  const Driver &D = getToolChain().getDriver();
   const llvm::Triple &TargetTriple = TC.getEffectiveTriple();
 
   std::string subarch_str("");
@@ -291,6 +292,12 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   /* Pass -L options to the linker */
   TCArgs.AddAllArgs(CmdArgs, options::OPT_L);
+
+  if (D.isUsingLTO()) {
+    assert(!Inputs.empty() && "Must have at least one input.");
+    addLTOOptions(TC, TCArgs, CmdArgs, Output, Inputs[0],
+                  D.getLTOMode() == LTOK_Thin);
+  }
 
   C.addCommand(std::make_unique<Command>(
       JA, *this, ResponseFileSupport::AtFileCurCP(), TCArgs.MakeArgString(Linker), CmdArgs, Inputs));
