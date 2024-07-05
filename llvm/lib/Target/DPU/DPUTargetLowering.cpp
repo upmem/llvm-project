@@ -89,10 +89,10 @@ DPUTargetLowering::DPUTargetLowering(const TargetMachine &TM, DPUSubtarget &STI)
   PredictableSelectIsExpensive = true;
   setJumpIsExpensive(false);
 
-  setLibcallName(RTLIB::SDIVREM_I32, "__divmodsi4");
-  setLibcallName(RTLIB::UDIVREM_I32, "__udivmodsi4");
-  setLibcallName(RTLIB::SDIV_I32, "__div32");
-  setLibcallName(RTLIB::UDIV_I32, "__udiv32");
+  // setLibcallName(RTLIB::SDIVREM_I32, "__divmodsi4");
+  // setLibcallName(RTLIB::UDIVREM_I32, "__udivmodsi4");
+  // setLibcallName(RTLIB::SDIV_I32, "__div32");
+  // setLibcallName(RTLIB::UDIV_I32, "__udiv32");
 
   // Set up the register classes.
   addRegisterClass(MVT::i32, &DPU::GP_REGRegClass);

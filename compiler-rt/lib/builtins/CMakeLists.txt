@@ -94,13 +94,13 @@ set(GENERIC_SOURCES
   ffssi2.c
   ffsti2.c
   fixdfdi.c
-  fixdfsi.c
+  # fixdfsi.c
   fixdfti.c
   fixsfdi.c
   fixsfsi.c
   fixsfti.c
   fixunsdfdi.c
-  fixunsdfsi.c
+  # fixunsdfsi.c
   fixunsdfti.c
   fixunssfdi.c
   fixunssfsi.c
@@ -262,6 +262,11 @@ if (NOT MSVC)
     i386/fp_mode.c
   )
 endif ()
+
+set(dpu_SOURCES
+  dpu/udivsi3.c
+  ${GENERIC_SOURCES}
+  )
 
 # Implement extended-precision builtins, assuming long double is 80 bits.
 # long double is not 80 bits on Android or MSVC.

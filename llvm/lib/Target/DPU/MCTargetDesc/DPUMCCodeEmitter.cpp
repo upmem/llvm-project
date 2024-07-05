@@ -36,6 +36,9 @@ void DPUMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                                          SmallVectorImpl<MCFixup> &Fixups,
                                          const MCSubtargetInfo &STI) const {
   // Get instruction encoding and emit it
+  // MI.dump();
+  MI.dump_pretty(dbgs());
+  dbgs() << "\n";
   uint64_t Value = getBinaryCodeForInstr(MI, Fixups, STI);
 
   // Emit bytes in little-endian
