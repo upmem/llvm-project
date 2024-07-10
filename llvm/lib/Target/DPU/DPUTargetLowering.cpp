@@ -382,22 +382,21 @@ SDValue DPUTargetLowering::LowerOperation(SDValue Op, SelectionDAG &DAG) const {
     return LowerVAARG(Op, DAG);
 
   default: {
-    const char *NodeName = getTargetNodeName(Op.getOpcode());
     LLVM_DEBUG({
       dbgs() << "FAIL: ";
       Op.dump(&DAG);
-    });
-    if (NodeName != nullptr) {
-      LLVM_DEBUG(dbgs() << "\tnode name = " << NodeName << "\n");
-    }
-    for (unsigned eachOp = 0; eachOp < Op.getNumOperands(); eachOp++) {
-      LLVM_DEBUG({
+      dbgs() << "\n";
+      const char *NodeName = getTargetNodeName(Op.getOpcode());
+      if (NodeName != nullptr) {
+        dbgs() << "\tnode name = " << NodeName << "\n";
+      }
+      for (unsigned eachOp = 0; eachOp < Op.getNumOperands(); eachOp++) {
         dbgs() << "\toperand #" << std::to_string(eachOp) << " = ";
         Op.getOperand(eachOp).dump(&DAG);
+      }
       });
-    }
-  }
     report_fatal_error("NOT implemented: lowering of such a type of SDValue");
+  }
   }
 }
 
