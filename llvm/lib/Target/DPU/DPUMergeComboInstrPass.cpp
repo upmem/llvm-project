@@ -822,8 +822,17 @@ bool DPUMergeComboInstrPass::runOnMachineFunction(MachineFunction &MF) {
     MachineBasicBlock *MBB = &MFI;
 
     LLVM_DEBUG(MBB->dump());
-    changeMade |= mergeComboInstructionsInMBB(MBB, InstrInfo);
+    bool local_change = mergeComboInstructionsInMBB(MBB, InstrInfo);
+    if (local_change) {
+      LLVM_DEBUG({
+        dbgs() << "\nchanged to:\n";
+        MBB->dump();
+      });
+      changeMade = true;
+    }
   }
 
+  LLVM_DEBUG(dbgs() << "********** DPU/MergeComboInstrPass: " << MF.getName()
+                    << " done: changeMade = " << changeMade << " **********\n\n");
   return changeMade;
 }
