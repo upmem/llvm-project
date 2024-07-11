@@ -139,7 +139,9 @@ def MAJ_ID8:   DPUReg<31, "ID8", [], [ID8]>;
 // that can be used as an instruction operand.
 // Hide the reserved registers, so that we are very sure that the compiler will
 // not do anything with them.
-def GP_REG    : RegisterClass<"DPU", [i32], 32, (add (sequence "R%u", 0, 23), (sequence "MAJ_R%u", 0, 23))>;
+def GP_REG    : RegisterClass<"DPU", [i32], 32, (add (sequence "R%u", 0, 23), (sequence "MAJ_R%u", 0, 23), ZERO, ONE,
+// LNEG,    <-- there is an issue with this one:        lsr_add r2, lneg, r2, 3  seems to be understood as sats r2, r2 ... encoding problem???
+ MNEG)>;
 def CONST_REG : RegisterClass<"DPU", [i32], 32, (add ZERO, ONE, LNEG, MNEG, MAJ_ZERO, MAJ_ONE, MAJ_LNEG, MAJ_MNEG)>;
 def ID_REG    : RegisterClass<"DPU", [i32], 32, (add ID, ID2, ID4, ID8, MAJ_ID, MAJ_ID2, MAJ_ID4, MAJ_ID8)>;
 def ZERO_REG  : RegisterClass<"DPU", [i32], 32, (add ZERO, MAJ_ZERO)>;

@@ -387,10 +387,61 @@ void DPUDAGToDAGISel::Select(SDNode *Node) {
     return;
   }
 
+  EVT VT = Node->getValueType(0);
+
   switch (Opcode) {
+  case ISD::Constant: {
+    LLVM_DEBUG({dbgs() << "a constant: "; Node->dump();});
+    if (VT == MVT::i32) {
+      // Materialize some constants as copies from constant register.
+      // This allows the coalescer to propagate these into other instructions.
+      ConstantSDNode *ConstNode = cast<ConstantSDNode>(Node);
+      if (ConstNode->isNullValue()) {
+	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
+					     DPU::ZERO, MVT::i32);
+	ReplaceNode(Node, New.getNode());
+	return;
+      } else if (ConstNode->isOne()) {
+	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
+					     DPU::ONE, MVT::i32);
+	ReplaceNode(Node, New.getNode());
+	return;
+      } else if (ConstNode->isAllOnesValue()) {
+	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
+					     DPU::LNEG, MVT::i32);
+	ReplaceNode(Node, New.getNode());
+	return;
+      } else {
+	const ConstantInt *Cst = ConstNode->getConstantIntValue();
+	if (Cst->isMinValue(/* signed = */ true)) {
+	  SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
+					       DPU::MNEG, MVT::i32);
+	  ReplaceNode(Node, New.getNode());
+	  return;
+	}
+      }
+    } else if (VT == MVT::i64) {
+      ConstantSDNode *ConstNode = cast<ConstantSDNode>(Node);
+      if (ConstNode->isNullValue()) {
+	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
+					     DPU::ZERO, MVT::i32);
+	auto *NewMove = CurDAG->getMachineNode(DPU::MOVE_Srr, SDLoc(Node), VT,
+					       New);
+	ReplaceNode(Node, NewMove);
+	return;
+      } else if (ConstNode->isOne()) {
+	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
+					     DPU::ONE, MVT::i32);
+	auto *NewMove = CurDAG->getMachineNode(DPU::MOVE_Srr, SDLoc(Node), VT,
+					       New);
+	ReplaceNode(Node, NewMove);
+	return;
+      }
+    }
+    break;
+  }
   case ISD::FrameIndex: {
     int FI = cast<FrameIndexSDNode>(Node)->getIndex();
-    EVT VT = Node->getValueType(0);
     SDValue TFI = CurDAG->getTargetFrameIndex(FI, VT);
     unsigned Opc = DPU::ADDrri;
     if (Node->hasOneUse()) {

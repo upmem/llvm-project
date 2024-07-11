@@ -167,3 +167,19 @@ DPURegisterInfo::getCallPreservedMask(const MachineFunction & /*MF*/,
                                       CallingConv::ID /*CC*/) const {
   return CSR_RegMask;
 }
+
+bool DPURegisterInfo::isConstantPhysReg(MCRegister PhysReg) const {
+  switch(PhysReg) {
+  default:
+    return false;
+  case DPU::ZERO:
+  case DPU::ONE:
+  case DPU::LNEG:
+  case DPU::MNEG:
+  // case DPU::ID:
+  // case DPU::ID2:
+  // case DPU::ID4:
+  // case DPU::ID8:
+    return true;
+  }
+}
