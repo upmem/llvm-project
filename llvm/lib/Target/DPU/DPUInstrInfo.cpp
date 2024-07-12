@@ -106,9 +106,9 @@ bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::JUMPr)).addReg(DPU::R23);
     break;
   case DPU::CALLi:
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLri))
-        .addReg(DPU::R23)
-        .add(MI.getOperand(0));
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLri), DPU::R23)
+        .add(MI.getOperand(0))
+        .copyImplicitOps(MI);
     break;
   case DPU::CALLr:
     BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLrr))

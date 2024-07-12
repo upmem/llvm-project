@@ -85,7 +85,8 @@ void DPUFrameLowering::emitPrologue(MachineFunction &MF,
         .addCFIIndex(CFIIndex)
         .setMIFlag(MachineInstr::FrameSetup);
 
-    BuildMI(MBB, MBBI, DL, DPUII.get(DPU::SDrir), DPU::R22)
+    BuildMI(MBB, MBBI, DL, DPUII.get(DPU::SDrir))
+        .addReg(DPU::R22)
         .addImm(StackSize - STACK_SIZE_FOR_D22)
         .addReg(DPU::D22);
     BuildMI(MBB, MBBI, DL, DPUII.get(DPU::ADDrri), DPU::R22)
