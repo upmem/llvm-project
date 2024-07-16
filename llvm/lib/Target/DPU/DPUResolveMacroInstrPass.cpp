@@ -181,18 +181,31 @@ static void resolveJeq64(MachineBasicBlock *MBB,
   const BasicBlock *LLVM_BB = MBB->getBasicBlock();
   MachineFunction::iterator I = ++MBB->getIterator();
   MachineFunction *F = MBB->getParent();
+
+  bool need_splice = std::next(MBBIter) != MBB->end();
+
+  MachineBasicBlock *FTMBB = MBB->getFallThrough();
+
   MachineBasicBlock *trueMBB = F->CreateMachineBasicBlock(LLVM_BB);
-  MachineBasicBlock *endMBB = F->CreateMachineBasicBlock(LLVM_BB);
+  MachineBasicBlock *endMBB;
+  MachineBasicBlock *JumpMBB = MBBIter->getOperand(3).getMBB();
+
   F->insert(I, trueMBB);
-  F->insert(I, endMBB);
-  // Update machine-CFG edges by transferring all successors of the current
-  // block to the new block which will contain the Phi node for the select.
-  endMBB->splice(endMBB->begin(), MBB, std::next(MBBIter), MBB->end());
-  endMBB->transferSuccessorsAndUpdatePHIs(MBB);
+  if (need_splice) {
+    endMBB = F->CreateMachineBasicBlock(LLVM_BB);
+    F->insert(I, endMBB);
+    // Update machine-CFG edges by transferring all successors of the current
+    // block to the new block which will contain the Phi node for the select.
+    endMBB->splice(endMBB->begin(), MBB, std::next(MBBIter), MBB->end());
+    endMBB->transferSuccessorsAndUpdatePHIs(MBB);
+    MBB->addSuccessor(endMBB);
+  } else {
+    endMBB = FTMBB;
+    MBB->removeSuccessor(JumpMBB);
+  }
+
   // Next, add the true and fallthrough blocks as its successors.
-  auto JumpMBB = MBBIter->getOperand(3).getMBB();
   MBB->addSuccessor(trueMBB);
-  MBB->addSuccessor(endMBB);
   trueMBB->addSuccessor(JumpMBB);
   trueMBB->addSuccessor(endMBB);
 
@@ -215,6 +228,9 @@ static void resolveJeq64(MachineBasicBlock *MBB,
       .addReg(MsbOp1Reg)
       .addReg(MsbOp2Reg)
       .addMBB(JumpMBB);
+
+  trueMBB->addLiveIn(MsbOp1Reg);
+  trueMBB->addLiveIn(MsbOp2Reg);
 }
 
 static void resolveJneq64(MachineBasicBlock *MBB,
@@ -227,6 +243,7 @@ static void resolveJneq64(MachineBasicBlock *MBB,
   MachineBasicBlock *endMBB = F->CreateMachineBasicBlock(LLVM_BB);
   F->insert(I, trueMBB);
   F->insert(I, endMBB);
+
   // Update machine-CFG edges by transferring all successors of the current
   // block to the new block which will contain the Phi node for the select.
   endMBB->splice(endMBB->begin(), MBB, std::next(MBBIter), MBB->end());
@@ -257,6 +274,9 @@ static void resolveJneq64(MachineBasicBlock *MBB,
       .addReg(MsbOp1Reg)
       .addReg(MsbOp2Reg)
       .addMBB(JumpMBB);
+  trueMBB->addLiveIn(MsbOp1Reg);
+  trueMBB->addLiveIn(MsbOp2Reg);
+  endMBB->removeSuccessor(JumpMBB, /* NormalizeSuccProbs = */ true);
 }
 
 static void resolveJcc64AsSub64(MachineBasicBlock *MBB,
@@ -496,8 +516,18 @@ bool DPUResolveMacroInstrPass::runOnMachineFunction(MachineFunction &MF) {
 
   for (auto &MFI : MF) {
     MachineBasicBlock *MBB = &MFI;
-    changeMade |= resolveMacroInstructionsInMBB(MBB, InstrInfo);
+    LLVM_DEBUG({MBB->dump();});
+    bool local_change = resolveMacroInstructionsInMBB(MBB, InstrInfo);
+    if (local_change) {
+      LLVM_DEBUG({
+	  dbgs() << "change to:\n";
+	  MBB->dump();
+	});
+      changeMade = true;
+    }
   }
 
+  LLVM_DEBUG(dbgs() << "********** DPU/ResolveMacroInstrPass: " << MF.getName()
+	     << " done: changeMade = " << changeMade << " **********\n\n");
   return changeMade;
 }
