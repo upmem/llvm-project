@@ -2029,6 +2029,12 @@ static MachineBasicBlock *
 EmitMul16WithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB,
                             unsigned MulLL, unsigned MulHL, unsigned MulHL2,
                             unsigned MulHH) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MI.dump();
+      dbgs() << "** BB: "; BB->dump();
+      dbgs() << "****** \n";
+    });
   const TargetInstrInfo &TII = *BB->getParent()->getSubtarget().getInstrInfo();
   DebugLoc dl = MI.getDebugLoc();
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
@@ -2062,12 +2068,23 @@ EmitMul16WithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB,
   unsigned int LSL3Dest = RI.createVirtualRegister(&DPU::GP_REGRegClass);
 
   // should be checked
-  BuildMI(BB, dl, TII.get(MulLL), LLDest)
+  // BuildMI(BB, dl, TII.get(MulLL), LLDest)
+  //     .addReg(Op1)
+  //     .addReg(Op2)
+  //     .addImm(DPUAsmCondition::Small)
+  //     .addMBB(fastMBB);
+  LLVMContext &Context = F->getFunction().getContext();
+  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+  BuildMI(BB, dl, TII.get(DPU::MUL_UL_ULrrr), LLDest)
       .addReg(Op1)
       .addReg(Op2)
-      .addImm(DPUAsmCondition::Small)
-      .addMBB(fastMBB);
-
+    .addMetadata(N);
+  BuildMI(BB, dl, TII.get(DPU::JLTUrii))
+    .addReg(LLDest)
+    .addImm(0x100)
+    .addMBB(fastMBB)
+    .addMetadata(N);
+  
   BuildMI(slowMBB, dl, TII.get(MulHL), HLDest).addReg(Op1).addReg(Op2);
   BuildMI(slowMBB, dl, TII.get(DPU::LSL_ADDrrri), LSL1Dest)
       .addReg(LLDest)
@@ -2093,6 +2110,16 @@ EmitMul16WithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB,
       .addMBB(slowMBB);
 
   MI.eraseFromParent(); // The pseudo instruction is gone now.
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction replaced\n";
+      dbgs() << "** BB: "; BB->dump();
+      dbgs() << "** slowMBB: "; slowMBB->dump();
+      dbgs() << "** fastMBB: "; fastMBB->dump();
+      dbgs() << "****** \n";
+    });
+ 
   return fastMBB;
 }
 
@@ -3375,14 +3402,23 @@ DPUTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   // case DPU::SEQREAD_GET_CST:
   //   return EmitSeqreadGet(MI, BB, true);
   case DPU::Mul16UUrr:
+    LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " Mul16UUrr\n";
+      });
     return EmitMul16WithCustomInserter(MI, BB, DPU::MUL_UL_ULrrrci,
                                        DPU::MUL_UH_ULrrr, DPU::MUL_UH_ULrrr,
                                        DPU::MUL_UH_UHrrr);
   case DPU::Mul16SUrr:
+    LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " Mul16SUrr\n";
+      });
     return EmitMul16WithCustomInserter(MI, BB, DPU::MUL_UL_ULrrrci,
                                        DPU::MUL_SH_ULrrr, DPU::MUL_UH_ULrrr,
                                        DPU::MUL_SH_UHrrr);
   case DPU::Mul16SSrr:
+    LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " Mul16SSrr\n";
+      });
     return EmitMul16WithCustomInserter(MI, BB, DPU::MUL_UL_ULrrrci,
                                        DPU::MUL_SH_ULrrr, DPU::MUL_SH_ULrrr,
                                        DPU::MUL_SH_SHrrr);
