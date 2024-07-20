@@ -205,6 +205,15 @@ getLastNonDebugInstrFrom(MachineBasicBlock::reverse_iterator &I,
   return &*I;
 }
 
+static bool do_have_special_metadata(MachineInstr *MI) {
+  for (const MachineOperand &Op : MI->operands()) {
+    if (Op.isMetadata() && Op.getMetadata()->getOperand(0).get() == MDString::get(MI->getMF()->getFunction().getContext(), "MySpecialMetadata")) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 static bool mergeBranchArithmeticInMBB(MachineBasicBlock *MBB,
 				       const DPUInstrInfo &InstrInfo) {
@@ -226,6 +235,49 @@ static bool mergeBranchArithmeticInMBB(MachineBasicBlock *MBB,
 
   LastOpc = LastInst->getOpcode();
   SecondLastOpc = SecondLastInst->getOpcode();
+
+  // attempt to merge lslx/lsrx and XX 32 jeq XX 32 instructions
+  // TODO: check if it's shift32 as well?
+  //       or maybe use other metadata?
+  //         but this is to be extra careful, or the next player in the game ... :)
+  if (LastOpc == DPU::JEQrii && do_have_special_metadata(LastInst)
+      && SecondLastOpc == DPU::ANDrri && do_have_special_metadata(SecondLastInst)) {
+    I++;
+    MachineInstr *ThirdLastInst = getLastNonDebugInstrFrom(I, REnd);
+    if (ThirdLastInst == NULL) {
+      LLVM_DEBUG(dbgs() << "KO: I++ == REnd\n");
+      return false;
+    }
+    unsigned int ThirdLastOpc = ThirdLastInst->getOpcode();
+    if ((ThirdLastOpc == DPU::LSLXrrr || ThirdLastOpc == DPU::LSRXrrr)
+	&& do_have_special_metadata(ThirdLastInst)) {
+      LLVM_DEBUG({dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";});
+      unsigned int new_opcode = (ThirdLastOpc == DPU::LSLXrrr ?
+				 DPU::LSLXrrrci : DPU::LSRXrrrci);
+      MachineInstrBuilder ComboInst = BuildMI(MBB, ThirdLastInst->getDebugLoc(),
+					      InstrInfo.get(new_opcode),
+					      ThirdLastInst->getOperand(0).getReg());
+      ComboInst.add(ThirdLastInst->getOperand(1));
+      ComboInst.add(ThirdLastInst->getOperand(2));
+      ComboInst.addImm(DPUAsmCondition::Condition::Shift32);
+      ComboInst.addMBB(LastInst->getOperand(2).getMBB());
+
+      LLVM_DEBUG({
+	  dbgs() << "OK\n";
+	  dbgs() << "del "; ThirdLastInst->dump();
+	  dbgs() << "del "; SecondLastInst->dump();
+	  dbgs() << "del "; LastInst->dump();
+	  dbgs() << "fused to\n";
+	  dbgs() << "add "; ComboInst->dump();
+	});
+
+      LastInst->eraseFromParent();
+      SecondLastInst->eraseFromParent();
+      ThirdLastInst->eraseFromParent();
+      LLVM_DEBUG({dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";});
+      return true;
+    }
+  }
 
   switch (SecondLastOpc) {
   default:
@@ -271,7 +323,7 @@ static bool mergeBranchArithmeticInMBB(MachineBasicBlock *MBB,
 	  dbgs() << "OK\n";
 	  dbgs() << "del "; SecondLastInst->dump();
 	  dbgs() << "del "; LastInst->dump();
-	  dbgs() << "fused to ";
+	  dbgs() << "fused to\n";
 	  dbgs() << "add "; ComboInst->dump();
 	});
       LastInst->eraseFromParent();
@@ -745,7 +797,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
     // we morph the branch from unconditional to conditional
     // by this, we modify the CFG by creating artificially a fall through which is not declared
     // so, it's bugged
-    // return false;
+    return false;
     // 
     
     if (!ImmCanBeEncodedOn8Bits) {
