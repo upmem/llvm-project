@@ -239,7 +239,12 @@ static bool mergeBranchArithmeticInMBB(MachineBasicBlock *MBB,
   // attempt to merge lslx/lsrx and XX 32 jeq XX 32 instructions
   // TODO: check if it's shift32 as well?
   //       or maybe use other metadata?
-  //         but this is to be extra careful, or the next player in the game ... :)
+  //         but this is to be extra careful, or for the next player in the game ... :)
+  // though, here I apply only when with my metadata
+  //   but if I actually not test my metadata, maybe
+  //     and add JNEQrii, I could pop both
+  //     and why not tackle other possible optim that may have introduce this code
+  //        event from user maybe
   if (LastOpc == DPU::JEQrii && do_have_special_metadata(LastInst)
       && SecondLastOpc == DPU::ANDrri && do_have_special_metadata(SecondLastInst)) {
     I++;
@@ -304,14 +309,6 @@ static bool mergeBranchArithmeticInMBB(MachineBasicBlock *MBB,
 	&& LastInst->getOperand(1).getImm() == 32
 	&& do_def_reg_alias
 	) {
-      // dbgs() << "yep we may optimize to \n";
-      // SecondLastInst->getOperand(0).dump();
-      // dbgs() << " = CLZ_Urrci\n";
-      // SecondLastInst->getOperand(1).dump();
-      // dbgs() << DPUAsmCondition::Condition::NotMaximum << "\n";
-      // dbgs() << LastInst->getOperand(2).getMBB()->getFullName() << "\n";
-      // LastInst->getOperand(2).getMBB()->dump();
-
       LLVM_DEBUG({dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";});
       
       MachineInstrBuilder ComboInst = BuildMI(MBB, SecondLastInst->getDebugLoc(), InstrInfo.get(DPU::CLZ_Urrci), SecondLastInst->getOperand(0).getReg())
@@ -330,12 +327,7 @@ static bool mergeBranchArithmeticInMBB(MachineBasicBlock *MBB,
       SecondLastInst->eraseFromParent();
       LLVM_DEBUG({dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";});
       return true;
-    } else {
-      LLVM_DEBUG({dbgs() << "can't optimize\n";});
-      return false;
     }
-
-    return false;
   }
   }
 
