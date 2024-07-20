@@ -141,10 +141,17 @@ def ID8:   DPUReg<31, "id8">;
 // not do anything with them.
 def GP_REG    : RegisterClass<"DPU", [i32], 32, (add (sequence "R%u", 0, 23)
 // , (sequence "MAJ_R%u", 0, 23)
-, ZERO
-, ONE
-// ,LNEG <-- there is an issue with this one:        lsr_add r2, lneg, r2, 3  seems to be understood as sats r2, r2 ... encoding problem???
-// ,MNEG <-- this one as well
+// , ZERO
+// , ONE
+// ,LNEG //<-- there is an issue with this one:        lsr_add r2, lneg, r2, 3  seems to be understood as sats r2, r2 ... encoding problem???
+// ,MNEG //<-- this one as well
+// in fact they cause more trouble now.
+// probably they are not well specified elsewhere
+// or encoding/decoding are not well tested properly with register constraints ...
+//  need to check that
+//   because register coalescing could be really interesting ...
+//    move $d/r 0/1/-1 could be potentially removed
+//   will check that later, first: correctness
 )>;
 
 def CONST_REG : RegisterClass<"DPU", [i32], 32, (add ZERO, ONE, LNEG, MNEG

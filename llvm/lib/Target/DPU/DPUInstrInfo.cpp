@@ -53,7 +53,9 @@ void DPUInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                        const TargetRegisterClass *RC,
                                        const TargetRegisterInfo *TRI) const {
   DebugLoc DL = (I != MBB.end()) ? I->getDebugLoc() : DebugLoc();
-  unsigned Opcode = (RC == &DPU::GP_REGRegClass) ? DPU::SWrir : DPU::SDrir;
+  unsigned Opcode = (RC == &DPU::GP_REGRegClass
+		     // || RC == &DPU::GPZ_REGRegClass
+		     ) ? DPU::SWrir : DPU::SDrir;
 
   LLVM_DEBUG({
     dbgs() << "DPU/Instr - storeRegToStackSlot DestReg="
@@ -82,7 +84,9 @@ void DPUInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   DebugLoc DL;
   if (I != MBB.end())
     DL = I->getDebugLoc();
-  unsigned Opcode = (RC == &DPU::GP_REGRegClass) ? DPU::LWrri : DPU::LDrri;
+  unsigned Opcode = (RC == &DPU::GP_REGRegClass
+		     // || RC == &DPU::GPZ_REGRegClass
+		     ) ? DPU::LWrri : DPU::LDrri;
   LLVM_DEBUG({
     dbgs() << "DPU/Instr - loadRegFromStackSlot DestReg="
            << std::to_string(DestReg) << " Opcode= " << std::to_string(Opcode)
@@ -99,8 +103,18 @@ bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineFunction *MF = MBB.getParent();
   MachineFrameInfo &MFI = MF->getFrameInfo();
 
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to expand: "; MI.dump();
+      dbgs() << "** MBB: "; MBB.dump();
+      dbgs() << "****** \n";
+    });
   switch (MI.getDesc().getOpcode()) {
   default:
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "Don't know how to expand.\n";
+      });
     return false;
   case DPU::RETi:
     BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::JUMPr)).addReg(DPU::R23);
@@ -128,9 +142,22 @@ bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
         .addImm(DPUAsmCondition::Condition::False);
     break;
   }
+
+  // case DPU::Jcci:
+  // case DPU::TmpJcci:
+  // case DPU::Jcc: {
+  //   // don't expand yet as they are used for late optimization
+  //   // these late optimization should be reworked and placed earlier in the pipeline
+  //   // so we could treat more cases of optim
+  //   break;
+  // }
   }
 
   MBB.erase(MI);
+
+  LLVM_DEBUG({
+      dbgs() << "** MBB: "; MBB.dump();
+    });
   return true;
 }
 
@@ -443,6 +470,22 @@ unsigned DPUInstrInfo::removeBranch(MachineBasicBlock &MBB,
 void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
                                           MachineBasicBlock *TBB, DebugLoc DL,
                                           ArrayRef<MachineOperand> Cond) const {
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "DPU::sub_32bit " << DPU::sub_32bit << "\n";
+  //     dbgs() << "DPU::sub_32bit_hi " << DPU::sub_32bit_hi << "\n";
+  //     for (unsigned i = 0; i < Cond.size(); ++i) {
+  // 	dbgs() << "Cond[" << i << "] = "; Cond[i].dump();
+  // 	if (Cond[i].isReg()) {
+  // 	  dbgs() << "is Reg\n";
+  // 	  dbgs() << Cond[i].getReg() << "\n";
+  // 	  dbgs() << Cond[i].getSubReg() << "\n";
+
+  // 	  dbgs() << "contains " << DPU::GP64_REGRegClass.contains(Cond[i].getReg()) << "\n";
+  // 	}
+  //     }
+  //   });
+
   MachineInstrBuilder MIB;
 
   unsigned Opc = Cond[0].getImm();
@@ -450,12 +493,19 @@ void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
   MIB = BuildMI(&MBB, DL, get(Opc));
 
   for (unsigned i = 1; i < Cond.size(); ++i) {
-    if (Cond[i].isReg())
-      MIB.addReg(Cond[i].getReg());
-    else if (Cond[i].isImm())
+    if (Cond[i].isReg()) {
+      // The register in question could potentially be a
+      // subreg hi/lo of a 64-bit vreg
+      if (unsigned SubReg = Cond[i].getSubReg()) {
+	MIB.addReg(Cond[i].getReg(), 0, SubReg);
+      } else {
+	MIB.addReg(Cond[i].getReg());
+      }
+    } else if (Cond[i].isImm()) {
       MIB.addImm(Cond[i].getImm());
-    else
+    } else {
       assert(false && "Cannot copy operand");
+    }
   }
 
   MIB.addMBB(TBB);
@@ -492,4 +542,35 @@ unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
   if (BytesAdded)
     *BytesAdded = nrOfInsertedMachineInstr;
   return nrOfInsertedMachineInstr;
+}
+
+bool DPUInstrInfo::shouldSink(const MachineInstr &MI) const {
+  switch (MI.getDesc().getOpcode()) {
+  default:
+    break;
+  case DPU::CLZ_Urr:
+  case DPU::LSLXrrr:
+  case DPU::LSRXrrr:
+  case DPU::ANDrri:
+  case DPU::JEQrii:
+  case DPU::JNEQrii:
+    {
+      //   return false;
+      for (const MachineOperand &Op : MI.operands()) {
+	if (Op.isMetadata() && Op.getMetadata()->getOperand(0).get() == MDString::get(MI.getMF()->getFunction().getContext(), "MySpecialMetadata")) {
+	  LLVM_DEBUG({
+	      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " Don't sink because I have MySpecialMetadata.\n";
+	    });
+	  return false; // Do not sink this instruction
+	}
+      }
+      LLVM_DEBUG({
+	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " I'm potentially something used in arith+cond+jump from EmitInstrWithCustomInserter but I allow sink because I don't have MySpecialMetadata.\n";
+	});
+      break;
+    }
+  }
+
+  // return true;
+  return TargetInstrInfo::shouldSink(MI);
 }

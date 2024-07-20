@@ -28,14 +28,13 @@ static bool shouldScheduleAdjacent(const TargetInstrInfo &TII,
   // We are mainly interested in merging a simple operation with a simple
   // conditional/unconditional branch
   LLVM_DEBUG({
-    dbgs() << "DPU/Merge: checking macro fusion:\n\t";
-    if (!FirstMI)
-      dbgs() << "<NONE>";
-    else
-      FirstMI->dump();
-    dbgs() << "\n\t";
-    SecondMI.dump();
-    dbgs() << "\n";
+    dbgs() << "DPU/Merge: checking macro fusion:\n";
+    if (!FirstMI) {
+      dbgs() << "\t<NONE>\n";
+    } else {
+      dbgs() << "\t"; FirstMI->dump();
+    }
+    dbgs() << "\t"; SecondMI.dump();
   });
 
   if (!FirstMI) {
@@ -51,14 +50,38 @@ static bool shouldScheduleAdjacent(const TargetInstrInfo &TII,
   switch (secondOpc) {
   default:
     // todo probably more opportunities (Conditional branches...)
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "DPU/Merge: the two instructions cannot be fused\n";
+      });
     return false;
   case DPU::JUMPi:
   case DPU::TmpJcci:
     break;
+  case DPU::JNEQrii:
+  case DPU::JEQrii:
+    if (!(FirstMI->getOperand(0).isReg() && SecondMI.getOperand(0).isReg() &&
+	  (FirstMI->getOperand(0).getReg() ==
+	   SecondMI.getOperand(0).getReg()))) {
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "DPU/Merge: the two instructions cannot be fused\n";
+      });
+    LLVM_DEBUG({
+	dbgs() << "first reg " << FirstMI->getOperand(0).getReg() << "\n";
+	dbgs() << "second reg " << SecondMI.getOperand(0).getReg() << "\n";
+      });
+    return false;
+    }
+    break;
   case DPU::Jcci:
     if (!(FirstMI->getOperand(0).isReg() && SecondMI.getOperand(1).isReg() &&
-          (FirstMI->getOperand(0).getReg() ==
-           SecondMI.getOperand(1).getReg()))) {
+	  (FirstMI->getOperand(0).getReg() ==
+	   SecondMI.getOperand(1).getReg()))) {
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "DPU/Merge: the two instructions cannot be fused\n";
+      });
       return false;
     }
     break;
@@ -68,7 +91,10 @@ static bool shouldScheduleAdjacent(const TargetInstrInfo &TII,
   default:
     // todo probably more opportunities (Operations with specific immediate
     // operands, call...)
-    LLVM_DEBUG(dbgs() << "DPU/Merge: the two instructions cannot be fused\n");
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "DPU/Merge: the two instructions cannot be fused\n";
+      });
     return false;
   case DPU::ADDrri:
   case DPU::ADDrrr:
@@ -92,6 +118,7 @@ static bool shouldScheduleAdjacent(const TargetInstrInfo &TII,
   case DPU::RORrrr:
   case DPU::RORrri:
   case DPU::CLZrr:
+  case DPU::CLZ_Urr:
   case DPU::CAOrr:
   case DPU::MUL_UL_ULrrr:
   case DPU::MUL_SL_ULrrr:

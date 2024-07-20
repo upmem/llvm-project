@@ -6,6 +6,9 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
+
+// TODO: expand to more situation of arith+comp+branch
+
 #include "DPUTargetMachine.h"
 #include <llvm/CodeGen/MachineInstrBuilder.h>
 #include <set>
@@ -200,6 +203,91 @@ getLastNonDebugInstrFrom(MachineBasicBlock::reverse_iterator &I,
     return NULL;
   }
   return &*I;
+}
+
+
+static bool mergeBranchArithmeticInMBB(MachineBasicBlock *MBB,
+				       const DPUInstrInfo &InstrInfo) {
+  MachineBasicBlock::reverse_iterator I = MBB->rbegin(), REnd = MBB->rend();
+  MachineInstr *LastInst, *SecondLastInst;
+  unsigned int LastOpc, SecondLastOpc;
+
+  LastInst = getLastNonDebugInstrFrom(I, REnd);
+  if (LastInst == NULL) {
+    LLVM_DEBUG(dbgs() << "KO: I == REnd\n");
+    return false;
+  }
+  I++;
+  SecondLastInst = getLastNonDebugInstrFrom(I, REnd);
+  if (SecondLastInst == NULL) {
+    LLVM_DEBUG(dbgs() << "KO: I++ == REnd\n");
+    return false;
+  }
+
+  LastOpc = LastInst->getOpcode();
+  SecondLastOpc = SecondLastInst->getOpcode();
+
+  switch (SecondLastOpc) {
+  default:
+    LLVM_DEBUG(dbgs() << "KO: Unknown SecondLastOpc\n");
+    return false;
+  case DPU::CLZ_Urr: {
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "study CLZ_Urr to CLZ_Urrci\n";
+	SecondLastInst->dump();
+	LastInst->dump();
+      });
+    
+    bool do_def_reg_alias = false;
+    const TargetRegisterInfo *TRI = MBB->getParent()->getSubtarget().getRegisterInfo();
+    for (MCRegAliasIterator Alias(SecondLastInst->getOperand(0).getReg(), TRI, true); Alias.isValid(); ++Alias) {
+      Register AliasReg = *Alias;
+      if (LastInst->getOperand(0).getReg() == AliasReg) {
+	// dbgs() << "yep it's alias\n";
+	do_def_reg_alias = true;
+      }
+    }
+    if (LastInst->getOpcode() == DPU::JNEQrii
+	&& LastInst->getOperand(1).getImm() == 32
+	&& do_def_reg_alias
+	) {
+      // dbgs() << "yep we may optimize to \n";
+      // SecondLastInst->getOperand(0).dump();
+      // dbgs() << " = CLZ_Urrci\n";
+      // SecondLastInst->getOperand(1).dump();
+      // dbgs() << DPUAsmCondition::Condition::NotMaximum << "\n";
+      // dbgs() << LastInst->getOperand(2).getMBB()->getFullName() << "\n";
+      // LastInst->getOperand(2).getMBB()->dump();
+
+      LLVM_DEBUG({dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";});
+      
+      MachineInstrBuilder ComboInst = BuildMI(MBB, SecondLastInst->getDebugLoc(), InstrInfo.get(DPU::CLZ_Urrci), SecondLastInst->getOperand(0).getReg())
+	.add(SecondLastInst->getOperand(1))
+	.addImm(DPUAsmCondition::Condition::NotMaximum)
+	.addMBB(LastInst->getOperand(2).getMBB());
+
+      LLVM_DEBUG({
+	  dbgs() << "OK\n";
+	  dbgs() << "del "; SecondLastInst->dump();
+	  dbgs() << "del "; LastInst->dump();
+	  dbgs() << "fused to ";
+	  dbgs() << "add "; ComboInst->dump();
+	});
+      LastInst->eraseFromParent();
+      SecondLastInst->eraseFromParent();
+      LLVM_DEBUG({dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";});
+      return true;
+    } else {
+      LLVM_DEBUG({dbgs() << "can't optimize\n";});
+      return false;
+    }
+
+    return false;
+  }
+  }
+
+  return false;
 }
 
 static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
@@ -653,6 +741,13 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
     LLVM_DEBUG(dbgs() << "KO: Unknown LastOpc\n");
     return false;
   case DPU::JUMPi: {
+    // this is currently wrong
+    // we morph the branch from unconditional to conditional
+    // by this, we modify the CFG by creating artificially a fall through which is not declared
+    // so, it's bugged
+    // return false;
+    // 
+    
     if (!ImmCanBeEncodedOn8Bits) {
       LLVM_DEBUG(
           dbgs() << "KO: LastOpc == DPU::JUMPi && !ImmCanBeEncodedOn8Bits\n");
@@ -822,12 +917,14 @@ bool DPUMergeComboInstrPass::runOnMachineFunction(MachineFunction &MF) {
     MachineBasicBlock *MBB = &MFI;
 
     LLVM_DEBUG(MBB->dump());
-    bool local_change = mergeComboInstructionsInMBB(MBB, InstrInfo);
+
+    bool local_change = mergeBranchArithmeticInMBB(MBB, InstrInfo);
+    local_change |= mergeComboInstructionsInMBB(MBB, InstrInfo);
     if (local_change) {
       LLVM_DEBUG({
-        dbgs() << "\nchanged to:\n";
-        MBB->dump();
-      });
+	  dbgs() << "\nchanged to:\n";
+	  MBB->dump();
+	});
       changeMade = true;
     }
   }

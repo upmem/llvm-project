@@ -96,6 +96,7 @@ DPUTargetLowering::DPUTargetLowering(const TargetMachine &TM, DPUSubtarget &STI)
 
   // Set up the register classes.
   addRegisterClass(MVT::i32, &DPU::GP_REGRegClass);
+  // addRegisterClass(MVT::i32, &DPU::CONST_REGRegClass);
   addRegisterClass(MVT::i64, &DPU::GP64_REGRegClass);
 
   // Compute derived properties from the register classes
@@ -2060,6 +2061,7 @@ EmitMul16WithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB,
   unsigned int LSL2Dest = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned int LSL3Dest = RI.createVirtualRegister(&DPU::GP_REGRegClass);
 
+  // should be checked
   BuildMI(BB, dl, TII.get(MulLL), LLDest)
       .addReg(Op1)
       .addReg(Op2)
@@ -2372,6 +2374,13 @@ EmitMramLoadDoubleWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
 
 static MachineBasicBlock *
 EmitLsl64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MI.dump();
+      dbgs() << "** BB: "; BB->dump();
+      dbgs() << "****** \n";
+    });
+
   /*
       What we want to generate (with dc.h != rb in that example):
       lslx       __R0, da.l, rb, ?sh32 @+4
@@ -2405,9 +2414,10 @@ EmitLsl64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
   MachineRegisterInfo &RI = F->getRegInfo();
   unsigned LsbToMsbPartReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned MsbToMsbPartReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
-  unsigned LsbOp1Reg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
-  unsigned MsbOp1Reg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
-
+  // unsigned LsbOp1Reg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+  // unsigned MsbOp1Reg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+  unsigned ShiftReg_check = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+  
   unsigned BigShiftMsbReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned BigShiftLsbReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
 
@@ -2425,20 +2435,49 @@ EmitLsl64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
   unsigned UndefReg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
   unsigned Undef2Reg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
 
-  BuildMI(BB, dl, TII.get(DPU::COPY), LsbOp1Reg)
-      .addReg(Op1Reg, 0, DPU::sub_32bit);
+  // BuildMI(BB, dl, TII.get(DPU::COPY), LsbOp1Reg)
+  //     .addReg(Op1Reg, 0, DPU::sub_32bit);
 
-  BuildMI(BB, dl, TII.get(DPU::LSLXrrrci), LsbToMsbPartReg)
-      .addReg(LsbOp1Reg)
-      .addReg(ShiftReg)
-      .addImm(DPUAsmCondition::Condition::Shift32)
-      .addMBB(bigShiftMBB);
+  // unsigned DummyReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+  
+  /// faulty
+  // BuildMI(BB, dl, TII.get(DPU::LSLXrrrci), LsbToMsbPartReg)
+  //     .addReg(LsbOp1Reg)
+  //     .addReg(ShiftReg)
+  //     .addImm(DPUAsmCondition::Condition::Shift32)
+  //     .addMBB(bigShiftMBB);
 
-  BuildMI(smallShiftMBB, dl, TII.get(DPU::COPY), MsbOp1Reg)
-      .addReg(Op1Reg, 0, DPU::sub_32bit_hi);
+  /// good, but
+  // could increase quite a bit the code size
+  //   because MachineSinking will sink the lslxrrr to other places
+  //   and we will not be able to merge those three
+  //   though, with shouldSink false for this
+  //   on a few example, I can keep them adjacent
+  //  but I may kill other optimization stuff in other code
+  //   that use it genuinelly
+  LLVMContext &Context = F->getFunction().getContext();
+  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+  BuildMI(BB, dl, TII.get(DPU::LSLXrrr), LsbToMsbPartReg)
+    // .addReg(LsbOp1Reg)
+    .addReg(Op1Reg, 0, DPU::sub_32bit)
+    .addReg(ShiftReg)
+    .addMetadata(N);
+  BuildMI(BB, dl, TII.get(DPU::ANDrri), ShiftReg_check)
+    .addReg(ShiftReg)
+    .addImm(0x20)
+    .addMetadata(N);
+  BuildMI(BB, dl, TII.get(DPU::JEQrii))
+    .addReg(ShiftReg_check)
+    .addImm(0x20)
+    .addMBB(bigShiftMBB)
+    .addMetadata(N);
+  
+  // BuildMI(smallShiftMBB, dl, TII.get(DPU::COPY), MsbOp1Reg)
+      // .addReg(Op1Reg, 0, DPU::sub_32bit_hi);
 
   BuildMI(smallShiftMBB, dl, TII.get(DPU::LSLrrr), MsbToMsbPartReg)
-      .addReg(MsbOp1Reg)
+      // .addReg(MsbOp1Reg)
+    .addReg(Op1Reg, 0, DPU::sub_32bit_hi)
       .addReg(ShiftReg);
 
   BuildMI(smallShiftMBB, dl, TII.get(DPU::ORrrr), SmallShiftMsbReg)
@@ -2446,7 +2485,8 @@ EmitLsl64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
       .addReg(LsbToMsbPartReg);
 
   BuildMI(smallShiftMBB, dl, TII.get(DPU::LSLrrr), SmallShiftLsbReg)
-      .addReg(LsbOp1Reg)
+      // .addReg(LsbOp1Reg)
+    .addReg(Op1Reg, 0, DPU::sub_32bit)
       .addReg(ShiftReg);
 
   BuildMI(smallShiftMBB, dl, TII.get(DPU::IMPLICIT_DEF), Undef2Reg);
@@ -2465,7 +2505,8 @@ EmitLsl64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
   BuildMI(smallShiftMBB, dl, TII.get(DPU::JUMPi)).addMBB(endMBB);
 
   BuildMI(bigShiftMBB, dl, TII.get(DPU::LSLrrr), BigShiftMsbReg)
-      .addReg(LsbOp1Reg)
+      // .addReg(LsbOp1Reg)
+    .addReg(Op1Reg, 0, DPU::sub_32bit)
       .addReg(ShiftReg);
 
   BuildMI(bigShiftMBB, dl, TII.get(DPU::MOVEri), BigShiftLsbReg).addImm(0);
@@ -2494,6 +2535,16 @@ EmitLsl64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
       .addMBB(smallShiftMBB);
 
   MI.eraseFromParent(); // The pseudo instruction is gone now.
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction replaced\n";
+      dbgs() << "** BB: "; BB->dump();
+      dbgs() << "** smallShiftMBB: "; smallShiftMBB->dump();
+      dbgs() << "** bigShiftMBB: "; bigShiftMBB->dump();
+      dbgs() << "** endMBB: "; endMBB->dump();
+      dbgs() << "****** \n";
+    });
   return endMBB;
 }
 
@@ -2617,6 +2668,13 @@ EmitLsl64ImmediateWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
 static MachineBasicBlock *EmitShiftRight64RegisterWithCustomInserter(
     MachineInstr &MI, MachineBasicBlock *BB, unsigned int shiftRight,
     unsigned int shiftRightExtended) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MI.dump();
+      dbgs() << "** BB: "; BB->dump();
+      dbgs() << "****** \n";
+    });
+
   /*
       What we want to generate (with dc.l != rb in that example):
       lsrx    __R0, da.h, rb, ?sh32 @+4
@@ -2651,6 +2709,7 @@ static MachineBasicBlock *EmitShiftRight64RegisterWithCustomInserter(
   unsigned MsbOp1Reg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned MsbToLsbPartReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned LsbToLsbPartReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+  unsigned ShiftReg_check = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned SmallShiftLsbReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned SmallShiftMsbReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned UndefReg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
@@ -2663,11 +2722,28 @@ static MachineBasicBlock *EmitShiftRight64RegisterWithCustomInserter(
   BuildMI(BB, dl, TII.get(DPU::COPY), MsbOp1Reg)
       .addReg(Op1Reg, 0, DPU::sub_32bit_hi);
 
-  BuildMI(BB, dl, TII.get(DPU::LSRXrrrci), MsbToLsbPartReg)
-      .addReg(MsbOp1Reg)
-      .addReg(ShiftReg)
-      .addImm(DPUAsmCondition::Condition::Shift32)
-      .addMBB(bigShiftMBB);
+  // BuildMI(BB, dl, TII.get(DPU::LSRXrrrci), MsbToLsbPartReg)
+  //     .addReg(MsbOp1Reg)
+  //     .addReg(ShiftReg)
+  //     .addImm(DPUAsmCondition::Condition::Shift32)
+  //     .addMBB(bigShiftMBB);
+
+  LLVMContext &Context = F->getFunction().getContext();
+  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+
+  BuildMI(BB, dl, TII.get(DPU::LSRXrrr), MsbToLsbPartReg)
+    .addReg(MsbOp1Reg)
+    .addReg(ShiftReg)
+    .addMetadata(N);
+  BuildMI(BB, dl, TII.get(DPU::ANDrri), ShiftReg_check)
+    .addReg(ShiftReg)
+    .addImm(0x20)
+    .addMetadata(N);
+  BuildMI(BB, dl, TII.get(DPU::JEQrii))
+    .addReg(ShiftReg_check)
+    .addImm(0x20)
+    .addMBB(bigShiftMBB)
+    .addMetadata(N);
 
   BuildMI(smallShiftMBB, dl, TII.get(DPU::COPY), LsbOp1Reg)
       .addReg(Op1Reg, 0, DPU::sub_32bit);
@@ -2715,6 +2791,17 @@ static MachineBasicBlock *EmitShiftRight64RegisterWithCustomInserter(
       .addMBB(smallShiftMBB);
 
   MI.eraseFromParent(); // The pseudo instruction is gone now.
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction replaced\n";
+      dbgs() << "** BB: "; BB->dump();
+      dbgs() << "** smallShiftMBB: "; smallShiftMBB->dump();
+      dbgs() << "** bigShiftMBB: "; bigShiftMBB->dump();
+      dbgs() << "** endMBB: "; endMBB->dump();
+      dbgs() << "****** \n";
+    });
+ 
   return endMBB;
 }
 
@@ -2876,6 +2963,7 @@ EmitRot64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB,
   BuildMI(*BB, MI, dl, TII.get(lsN), Op1MsbShift)
       .addReg(Op1Msb)
       .addReg(ShiftReg);
+  // should be checked
   BuildMI(*BB, MI, dl, TII.get(lsNJump), Op1LsbShift)
       .addReg(Op1Lsb)
       .addReg(ShiftReg)
@@ -3062,6 +3150,12 @@ EmitRot64ImmediateWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB,
 
 static MachineBasicBlock *EmitClz64WithCustomInserter(MachineInstr &MI,
                                                       MachineBasicBlock *BB) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MI.dump();
+      dbgs() << "** BB: "; BB->dump();
+      dbgs() << "****** \n";
+    });
   /*
       What we want to generate (with dc != da in that example):
       clz.u dc, da.h ?nmax @+3
@@ -3093,132 +3187,193 @@ static MachineBasicBlock *EmitClz64WithCustomInserter(MachineInstr &MI,
   MachineRegisterInfo &RI = F->getRegInfo();
   unsigned FastResultReg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
   unsigned SlowResultReg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
-  unsigned UndefReg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
-  unsigned SlowResultPart1Reg =
-      RI.createVirtualRegister(&DPU::GP64_REGRegClass);
-  unsigned SlowResultPartReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
-  unsigned LsbClzReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+  
+  // unsigned UndefReg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
+  // unsigned SlowResultPart1Reg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
+  // unsigned SlowResultPartReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
 
-  BuildMI(BB, dl, TII.get(DPU::CLZ_Urrci), FastResultReg)
-      .addReg(Op1Reg, 0, DPU::sub_32bit_hi)
-      .addImm(DPUAsmCondition::Condition::NotMaximum)
-      .addMBB(endMBB);
+  unsigned SlowResultReg_step = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
+
+  unsigned LsbClzReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+  unsigned LsbAddReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+  
+  // BuildMI(BB, dl, TII.get(DPU::CLZ_Urrci), FastResultReg)
+  //     .addReg(Op1Reg, 0, DPU::sub_32bit_hi)
+  //     .addImm(DPUAsmCondition::Condition::NotMaximum)
+  //     .addMBB(endMBB);
+
+  LLVMContext &Context = F->getFunction().getContext();
+  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+  BuildMI(BB, dl, TII.get(DPU::CLZ_Urr), FastResultReg)
+    .addReg(Op1Reg, 0, DPU::sub_32bit_hi)
+    .addMetadata(N);
+  BuildMI(BB, dl, TII.get(DPU::JNEQrii))
+    .addReg(FastResultReg, 0, DPU::sub_32bit)
+    .addImm(32)
+    .addMBB(endMBB)
+    .addMetadata(N);
 
   BuildMI(msbAreZerosMBB, dl, TII.get(DPU::CLZrr), LsbClzReg)
       .addReg(Op1Reg, 0, DPU::sub_32bit);
 
-  BuildMI(msbAreZerosMBB, dl, TII.get(DPU::ADDrri), SlowResultPartReg)
+  // This
+  // BuildMI(msbAreZerosMBB, dl, TII.get(DPU::ADDrri), SlowResultPartReg)
+  //     .addReg(LsbClzReg)
+  //     .addImm(32);
+
+  // BuildMI(msbAreZerosMBB, dl, TII.get(DPU::IMPLICIT_DEF), UndefReg);
+
+  // BuildMI(msbAreZerosMBB, dl, TII.get(DPU::INSERT_SUBREG), SlowResultPart1Reg)
+  //     .addReg(UndefReg)
+  //     .addReg(SlowResultPartReg)
+  //     .addImm(DPU::sub_32bit);
+
+  // BuildMI(msbAreZerosMBB, dl, TII.get(DPU::INSERT_SUBREG), SlowResultReg)
+  //     .addReg(SlowResultPart1Reg)
+  //     .addReg(FastResultReg, 0, DPU::sub_32bit_hi)
+  //     .addImm(DPU::sub_32bit_hi);
+
+  // or
+  BuildMI(msbAreZerosMBB, dl, TII.get(DPU::ADDrri), LsbAddReg)
       .addReg(LsbClzReg)
       .addImm(32);
 
-  BuildMI(msbAreZerosMBB, dl, TII.get(DPU::IMPLICIT_DEF), UndefReg);
-
-  BuildMI(msbAreZerosMBB, dl, TII.get(DPU::INSERT_SUBREG), SlowResultPart1Reg)
-      .addReg(UndefReg)
-      .addReg(SlowResultPartReg)
-      .addImm(DPU::sub_32bit);
-
+  BuildMI(msbAreZerosMBB, dl, TII.get(DPU::INSERT_SUBREG), SlowResultReg_step)
+    .addReg(SlowResultReg_step, RegState::Undef)
+    .addReg(LsbAddReg)
+    .addImm(DPU::sub_32bit);
+  
   BuildMI(msbAreZerosMBB, dl, TII.get(DPU::INSERT_SUBREG), SlowResultReg)
-      .addReg(SlowResultPart1Reg)
+      .addReg(SlowResultReg_step)
       .addReg(FastResultReg, 0, DPU::sub_32bit_hi)
       .addImm(DPU::sub_32bit_hi);
-
+  
   BuildMI(*endMBB, endMBB->begin(), dl, TII.get(DPU::PHI), Dest)
       .addReg(FastResultReg)
       .addMBB(BB)
       .addReg(SlowResultReg)
       .addMBB(msbAreZerosMBB);
 
+  
   MI.eraseFromParent(); // The pseudo instruction is gone now.
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction replaced\n";
+      dbgs() << "** BB: "; BB->dump();
+      dbgs() << "** msbAreZerosMBB: "; msbAreZerosMBB->dump();
+      dbgs() << "** endMBB: "; endMBB->dump();
+      dbgs() << "****** \n";
+    });
+
   return endMBB;
 }
 
-static MachineBasicBlock *EmitSeqreadGet(MachineInstr &MI,
-                                         MachineBasicBlock *BB, bool IsIncCst) {
-  const TargetInstrInfo &TII = *BB->getParent()->getSubtarget().getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
-  const BasicBlock *LLVM_BB = BB->getBasicBlock();
-  MachineFunction::iterator I = ++BB->getIterator();
-  MachineFunction *F = BB->getParent();
-  MachineBasicBlock *slowMBB = F->CreateMachineBasicBlock(LLVM_BB);
-  MachineBasicBlock *fastMBB = F->CreateMachineBasicBlock(LLVM_BB);
-  F->insert(I, slowMBB);
-  F->insert(I, fastMBB);
-  // Update machine-CFG edges by transferring all successors of the current
-  // block to the new block which will contain the Phi node for the select.
-  fastMBB->splice(fastMBB->begin(), BB,
-                  std::next(MachineBasicBlock::iterator(MI)), BB->end());
-  fastMBB->transferSuccessorsAndUpdatePHIs(BB);
-  // Next, add the true and fallthrough blocks as its successors.
-  BB->addSuccessor(slowMBB);
-  BB->addSuccessor(fastMBB);
-  slowMBB->addSuccessor(fastMBB);
+// static MachineBasicBlock *EmitSeqreadGet(MachineInstr &MI,
+//                                          MachineBasicBlock *BB, bool IsIncCst) {
+//   LLVM_DEBUG({
+//       dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+//       dbgs() << "instruction to replace: "; MI.dump();
+//       dbgs() << "IsIncCst: " << IsIncCst << "\n";
+//       dbgs() << "** BB: "; BB->dump();
+//       dbgs() << "****** \n";
+//     });
+    
+//   const TargetInstrInfo &TII = *BB->getParent()->getSubtarget().getInstrInfo();
+//   DebugLoc dl = MI.getDebugLoc();
+//   const BasicBlock *LLVM_BB = BB->getBasicBlock();
+//   MachineFunction::iterator I = ++BB->getIterator();
+//   MachineFunction *F = BB->getParent();
+//   MachineBasicBlock *slowMBB = F->CreateMachineBasicBlock(LLVM_BB);
+//   MachineBasicBlock *fastMBB = F->CreateMachineBasicBlock(LLVM_BB);
+//   F->insert(I, slowMBB);
+//   F->insert(I, fastMBB);
+//   // Update machine-CFG edges by transferring all successors of the current
+//   // block to the new block which will contain the Phi node for the select.
+//   fastMBB->splice(fastMBB->begin(), BB,
+//                   std::next(MachineBasicBlock::iterator(MI)), BB->end());
+//   fastMBB->transferSuccessorsAndUpdatePHIs(BB);
+//   // Next, add the true and fallthrough blocks as its successors.
+//   BB->addSuccessor(slowMBB);
+//   BB->addSuccessor(fastMBB);
+//   slowMBB->addSuccessor(fastMBB);
 
-  unsigned int Dest = MI.getOperand(0).getReg();
-  unsigned int PtrInit = MI.getOperand(1).getReg();
-  unsigned int Reader = MI.getOperand(3).getReg();
-  unsigned int Cond = MI.getOperand(4).getImm();
-  unsigned int PageSize = MI.getOperand(5).getImm();
+//   unsigned int Dest = MI.getOperand(0).getReg();
+//   unsigned int PtrInit = MI.getOperand(1).getReg();
+//   unsigned int Reader = MI.getOperand(3).getReg();
+//   unsigned int Cond = MI.getOperand(4).getImm();
+//   unsigned int PageSize = MI.getOperand(5).getImm();
 
-  MachineRegisterInfo &RI = F->getRegInfo();
-  unsigned int PtrIncremented = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+//   MachineRegisterInfo &RI = F->getRegInfo();
+//   unsigned int PtrIncremented = RI.createVirtualRegister(&DPU::GP_REGRegClass);
 
-  if (IsIncCst) {
-    BuildMI(BB, dl, TII.get(DPU::ADDrrici), PtrIncremented)
-        .addReg(PtrInit)
-        .addImm(MI.getOperand(2).getImm())
-        .addImm(Cond)
-        .addMBB(fastMBB);
-  } else {
-    BuildMI(BB, dl, TII.get(DPU::ADDrrrci), PtrIncremented)
-        .addReg(PtrInit)
-        .addReg(MI.getOperand(2).getReg())
-        .addImm(Cond)
-        .addMBB(fastMBB);
-  }
+//   if (IsIncCst) {
+//     BuildMI(BB, dl, TII.get(DPU::ADDrrici), PtrIncremented)
+//         .addReg(PtrInit)
+//         .addImm(MI.getOperand(2).getImm())
+//         .addImm(Cond)
+//         .addMBB(fastMBB);
+//   } else {
+//     BuildMI(BB, dl, TII.get(DPU::ADDrrrci), PtrIncremented)
+//         .addReg(PtrInit)
+//         .addReg(MI.getOperand(2).getReg())
+//         .addImm(Cond)
+//         .addMBB(fastMBB);
+//   }
 
-  unsigned int WramCache = RI.createVirtualRegister(&DPU::GP_REGRegClass);
-  unsigned int MramCache = RI.createVirtualRegister(&DPU::GP_REGRegClass);
-  unsigned int MramCacheUpdated =
-      RI.createVirtualRegister(&DPU::GP_REGRegClass);
-  unsigned int PtrUpdated = RI.createVirtualRegister(&DPU::GP_REGRegClass);
-  BuildMI(slowMBB, dl, TII.get(DPU::LWrri), MramCache).addReg(Reader).addImm(4);
-  BuildMI(slowMBB, dl, TII.get(DPU::ADDrri), MramCacheUpdated)
-      .addReg(MramCache)
-      .addImm(PageSize);
-  BuildMI(slowMBB, dl, TII.get(DPU::SWrir))
-      .addReg(Reader)
-      .addImm(4)
-      .addReg(MramCacheUpdated);
-  BuildMI(slowMBB, dl, TII.get(DPU::LWrri), WramCache).addReg(Reader).addImm(0);
-  BuildMI(slowMBB, dl, TII.get(DPU::LDMArri))
-      .addReg(WramCache)
-      .addReg(MramCacheUpdated)
-      .addImm(FormatDMASize(PageSize * 2));
-  BuildMI(slowMBB, dl, TII.get(DPU::ADDrri), PtrUpdated)
-      .addReg(PtrIncremented)
-      .addImm(-PageSize);
+//   unsigned int WramCache = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+//   unsigned int MramCache = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+//   unsigned int MramCacheUpdated =
+//       RI.createVirtualRegister(&DPU::GP_REGRegClass);
+//   unsigned int PtrUpdated = RI.createVirtualRegister(&DPU::GP_REGRegClass);
+//   BuildMI(slowMBB, dl, TII.get(DPU::LWrri), MramCache).addReg(Reader).addImm(4);
+//   BuildMI(slowMBB, dl, TII.get(DPU::ADDrri), MramCacheUpdated)
+//       .addReg(MramCache)
+//       .addImm(PageSize);
+//   BuildMI(slowMBB, dl, TII.get(DPU::SWrir))
+//       .addReg(Reader)
+//       .addImm(4)
+//       .addReg(MramCacheUpdated);
+//   BuildMI(slowMBB, dl, TII.get(DPU::LWrri), WramCache).addReg(Reader).addImm(0);
+//   BuildMI(slowMBB, dl, TII.get(DPU::LDMArri))
+//       .addReg(WramCache)
+//       .addReg(MramCacheUpdated)
+//       .addImm(FormatDMASize(PageSize * 2));
+//   BuildMI(slowMBB, dl, TII.get(DPU::ADDrri), PtrUpdated)
+//       .addReg(PtrIncremented)
+//       .addImm(-PageSize);
 
-  BuildMI(*fastMBB, fastMBB->begin(), dl, TII.get(TargetOpcode::PHI), Dest)
-      .addReg(PtrIncremented)
-      .addMBB(BB)
-      .addReg(PtrUpdated)
-      .addMBB(slowMBB);
+//   BuildMI(*fastMBB, fastMBB->begin(), dl, TII.get(TargetOpcode::PHI), Dest)
+//       .addReg(PtrIncremented)
+//       .addMBB(BB)
+//       .addReg(PtrUpdated)
+//       .addMBB(slowMBB);
 
-  MI.eraseFromParent(); // The pseudo instruction is gone now.
-  return fastMBB;
-}
+//   MI.eraseFromParent(); // The pseudo instruction is gone now.
+
+//   LLVM_DEBUG({
+//       dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+//       dbgs() << "instruction replaced\n";
+//       dbgs() << "** BB: "; BB->dump();
+//       dbgs() << "** slowMBB: "; slowMBB->dump();
+//       dbgs() << "** fastMBB: "; fastMBB->dump();
+//       dbgs() << "****** \n";
+//     });
+  
+//   return fastMBB;
+// }
 
 MachineBasicBlock *
 DPUTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
                                                MachineBasicBlock *BB) const {
   switch (MI.getOpcode()) {
   default:
+    MI.print(errs());
     llvm_unreachable("Unexpected instr type to insert");
-  case DPU::SEQREAD_GET:
-    return EmitSeqreadGet(MI, BB, false);
-  case DPU::SEQREAD_GET_CST:
-    return EmitSeqreadGet(MI, BB, true);
+  // case DPU::SEQREAD_GET:
+  //   return EmitSeqreadGet(MI, BB, false);
+  // case DPU::SEQREAD_GET_CST:
+  //   return EmitSeqreadGet(MI, BB, true);
   case DPU::Mul16UUrr:
     return EmitMul16WithCustomInserter(MI, BB, DPU::MUL_UL_ULrrrci,
                                        DPU::MUL_UH_ULrrr, DPU::MUL_UH_ULrrr,
