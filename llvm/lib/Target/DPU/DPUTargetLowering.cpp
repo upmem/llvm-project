@@ -2067,23 +2067,24 @@ EmitMul16WithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB,
   unsigned int LSL2Dest = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned int LSL3Dest = RI.createVirtualRegister(&DPU::GP_REGRegClass);
 
-  // should be checked
-  // BuildMI(BB, dl, TII.get(MulLL), LLDest)
-  //     .addReg(Op1)
-  //     .addReg(Op2)
-  //     .addImm(DPUAsmCondition::Small)
-  //     .addMBB(fastMBB);
   LLVMContext &Context = F->getFunction().getContext();
   MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
-  BuildMI(BB, dl, TII.get(DPU::MUL_UL_ULrrr), LLDest)
+  BuildMI(BB, dl, TII.get(MulLL), LLDest)
       .addReg(Op1)
       .addReg(Op2)
+      .addImm(DPUAsmCondition::Small)
+      .addMBB(fastMBB)
     .addMetadata(N);
-  BuildMI(BB, dl, TII.get(DPU::JLTUrii))
-    .addReg(LLDest)
-    .addImm(0x100)
-    .addMBB(fastMBB)
-    .addMetadata(N);
+
+  // BuildMI(BB, dl, TII.get(DPU::MUL_UL_ULrrr), LLDest)
+  //     .addReg(Op1)
+  //     .addReg(Op2)
+  //   .addMetadata(N);
+  // BuildMI(BB, dl, TII.get(DPU::JLTUrii))
+  //   .addReg(LLDest)
+  //   .addImm(0x100)
+  //   .addMBB(fastMBB)
+  //   .addMetadata(N);
   
   BuildMI(slowMBB, dl, TII.get(MulHL), HLDest).addReg(Op1).addReg(Op2);
   BuildMI(slowMBB, dl, TII.get(DPU::LSL_ADDrrri), LSL1Dest)
@@ -2462,17 +2463,22 @@ EmitLsl64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
   unsigned UndefReg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
   unsigned Undef2Reg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
 
+  LLVMContext &Context = F->getFunction().getContext();
+  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+
   // BuildMI(BB, dl, TII.get(DPU::COPY), LsbOp1Reg)
   //     .addReg(Op1Reg, 0, DPU::sub_32bit);
 
   // unsigned DummyReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   
   /// faulty
-  // BuildMI(BB, dl, TII.get(DPU::LSLXrrrci), LsbToMsbPartReg)
-  //     .addReg(LsbOp1Reg)
-  //     .addReg(ShiftReg)
-  //     .addImm(DPUAsmCondition::Condition::Shift32)
-  //     .addMBB(bigShiftMBB);
+  BuildMI(BB, dl, TII.get(DPU::LSLXrrrci), LsbToMsbPartReg)
+      // .addReg(LsbOp1Reg)
+    .addReg(Op1Reg, 0, DPU::sub_32bit)
+      .addReg(ShiftReg)
+      .addImm(DPUAsmCondition::Condition::Shift32)
+      .addMBB(bigShiftMBB)
+    .addMetadata(N);
 
   /// good, but
   // could increase quite a bit the code size
@@ -2482,22 +2488,20 @@ EmitLsl64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
   //   on a few example, I can keep them adjacent
   //  but I may kill other optimization stuff in other code
   //   that use it genuinelly
-  LLVMContext &Context = F->getFunction().getContext();
-  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
-  BuildMI(BB, dl, TII.get(DPU::LSLXrrr), LsbToMsbPartReg)
-    // .addReg(LsbOp1Reg)
-    .addReg(Op1Reg, 0, DPU::sub_32bit)
-    .addReg(ShiftReg)
-    .addMetadata(N);
-  BuildMI(BB, dl, TII.get(DPU::ANDrri), ShiftReg_check)
-    .addReg(ShiftReg)
-    .addImm(0x20)
-    .addMetadata(N);
-  BuildMI(BB, dl, TII.get(DPU::JEQrii))
-    .addReg(ShiftReg_check)
-    .addImm(0x20)
-    .addMBB(bigShiftMBB)
-    .addMetadata(N);
+  // BuildMI(BB, dl, TII.get(DPU::LSLXrrr), LsbToMsbPartReg)
+  //   // .addReg(LsbOp1Reg)
+  //   .addReg(Op1Reg, 0, DPU::sub_32bit)
+  //   .addReg(ShiftReg)
+  //   .addMetadata(N);
+  // BuildMI(BB, dl, TII.get(DPU::ANDrri), ShiftReg_check)
+  //   .addReg(ShiftReg)
+  //   .addImm(0x20)
+  //   .addMetadata(N);
+  // BuildMI(BB, dl, TII.get(DPU::JEQrii))
+  //   .addReg(ShiftReg_check)
+  //   .addImm(0x20)
+  //   .addMBB(bigShiftMBB)
+  //   .addMetadata(N);
   
   // BuildMI(smallShiftMBB, dl, TII.get(DPU::COPY), MsbOp1Reg)
       // .addReg(Op1Reg, 0, DPU::sub_32bit_hi);
@@ -2746,31 +2750,35 @@ static MachineBasicBlock *EmitShiftRight64RegisterWithCustomInserter(
       RI.createVirtualRegister(&DPU::GP64_REGRegClass);
   unsigned BigShiftResultReg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
 
-  BuildMI(BB, dl, TII.get(DPU::COPY), MsbOp1Reg)
-      .addReg(Op1Reg, 0, DPU::sub_32bit_hi);
-
-  // BuildMI(BB, dl, TII.get(DPU::LSRXrrrci), MsbToLsbPartReg)
-  //     .addReg(MsbOp1Reg)
-  //     .addReg(ShiftReg)
-  //     .addImm(DPUAsmCondition::Condition::Shift32)
-  //     .addMBB(bigShiftMBB);
-
   LLVMContext &Context = F->getFunction().getContext();
   MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
 
-  BuildMI(BB, dl, TII.get(DPU::LSRXrrr), MsbToLsbPartReg)
-    .addReg(MsbOp1Reg)
-    .addReg(ShiftReg)
+  BuildMI(BB, dl, TII.get(DPU::COPY), MsbOp1Reg)
+      .addReg(Op1Reg, 0, DPU::sub_32bit_hi);
+
+  BuildMI(BB, dl, TII.get(DPU::LSRXrrrci), MsbToLsbPartReg)
+      .addReg(MsbOp1Reg)
+      .addReg(ShiftReg)
+      .addImm(DPUAsmCondition::Condition::Shift32)
+      .addMBB(bigShiftMBB)
     .addMetadata(N);
-  BuildMI(BB, dl, TII.get(DPU::ANDrri), ShiftReg_check)
-    .addReg(ShiftReg)
-    .addImm(0x20)
-    .addMetadata(N);
-  BuildMI(BB, dl, TII.get(DPU::JEQrii))
-    .addReg(ShiftReg_check)
-    .addImm(0x20)
-    .addMBB(bigShiftMBB)
-    .addMetadata(N);
+
+  // LLVMContext &Context = F->getFunction().getContext();
+  // MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+
+  // BuildMI(BB, dl, TII.get(DPU::LSRXrrr), MsbToLsbPartReg)
+  //   .addReg(MsbOp1Reg)
+  //   .addReg(ShiftReg)
+  //   .addMetadata(N);
+  // BuildMI(BB, dl, TII.get(DPU::ANDrri), ShiftReg_check)
+  //   .addReg(ShiftReg)
+  //   .addImm(0x20)
+  //   .addMetadata(N);
+  // BuildMI(BB, dl, TII.get(DPU::JEQrii))
+  //   .addReg(ShiftReg_check)
+  //   .addImm(0x20)
+  //   .addMBB(bigShiftMBB)
+  //   .addMetadata(N);
 
   BuildMI(smallShiftMBB, dl, TII.get(DPU::COPY), LsbOp1Reg)
       .addReg(Op1Reg, 0, DPU::sub_32bit);
@@ -3223,22 +3231,24 @@ static MachineBasicBlock *EmitClz64WithCustomInserter(MachineInstr &MI,
 
   unsigned LsbClzReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned LsbAddReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
-  
-  // BuildMI(BB, dl, TII.get(DPU::CLZ_Urrci), FastResultReg)
-  //     .addReg(Op1Reg, 0, DPU::sub_32bit_hi)
-  //     .addImm(DPUAsmCondition::Condition::NotMaximum)
-  //     .addMBB(endMBB);
 
   LLVMContext &Context = F->getFunction().getContext();
   MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
-  BuildMI(BB, dl, TII.get(DPU::CLZ_Urr), FastResultReg)
-    .addReg(Op1Reg, 0, DPU::sub_32bit_hi)
+
+  BuildMI(BB, dl, TII.get(DPU::CLZ_Urrci), FastResultReg)
+      .addReg(Op1Reg, 0, DPU::sub_32bit_hi)
+      .addImm(DPUAsmCondition::Condition::NotMaximum)
+      .addMBB(endMBB)
     .addMetadata(N);
-  BuildMI(BB, dl, TII.get(DPU::JNEQrii))
-    .addReg(FastResultReg, 0, DPU::sub_32bit)
-    .addImm(32)
-    .addMBB(endMBB)
-    .addMetadata(N);
+
+  // BuildMI(BB, dl, TII.get(DPU::CLZ_Urr), FastResultReg)
+  //   .addReg(Op1Reg, 0, DPU::sub_32bit_hi)
+  //   .addMetadata(N);
+  // BuildMI(BB, dl, TII.get(DPU::JNEQrii))
+  //   .addReg(FastResultReg, 0, DPU::sub_32bit)
+  //   .addImm(32)
+  //   .addMBB(endMBB)
+  //   .addMetadata(N);
 
   BuildMI(msbAreZerosMBB, dl, TII.get(DPU::CLZrr), LsbClzReg)
       .addReg(Op1Reg, 0, DPU::sub_32bit);

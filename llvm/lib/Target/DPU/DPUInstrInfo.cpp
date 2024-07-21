@@ -551,9 +551,38 @@ void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
 
   unsigned Opc = Cond[0].getImm();
 
-  MIB = BuildMI(&MBB, DL, get(Opc));
+  // treat special cases
+  // those where not well handled with LLVM SSA stuff
+  bool have_metadata = false;
+  // TODO: find a better way to discover if it's an arithmetic+comp+jump
+  //       or simply rely solely on metadata?
+  switch (Opc) {
+  default:
+    break;
+  case DPU::CLZ_Urrci:
+  case DPU::MUL_UL_ULrrrci:
+  case DPU::LSLXrrrci:
+  case DPU::LSRXrrrci:
+    {
+      for (unsigned i = 0; i < Cond.size(); ++i) {
+	if (Cond[i].isMetadata()
+	    && Cond[i].getMetadata()->getOperand(0).get() == MDString::get(MBB.getParent()->getFunction().getContext(), "MySpecialMetadata")) {
+	  have_metadata = true;
+	}
+      }
+      break;
+    }
+  }
 
-  for (unsigned i = 1; i < Cond.size(); ++i) {
+  unsigned start = 1;
+  if (have_metadata) {
+    MIB = BuildMI(&MBB, DL, get(Opc), Cond[start].getReg());
+    start++;
+  } else {
+    MIB = BuildMI(&MBB, DL, get(Opc));
+  }
+
+  for (unsigned i = start; i < Cond.size(); ++i) {
     if (Cond[i].isReg()) {
       // The register in question could potentially be a
       // subreg hi/lo of a 64-bit vreg
@@ -579,6 +608,7 @@ void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
       MIB.addMetadata(Cond[i].getMetadata());
      }
   }
+
   LLVM_DEBUG({
       dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
       dbgs() << "MIB "; MIB->dump();
@@ -625,33 +655,33 @@ unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
   return nrOfInsertedMachineInstr;
 }
 
-bool DPUInstrInfo::shouldSink(const MachineInstr &MI) const {
-  switch (MI.getDesc().getOpcode()) {
-  default:
-    break;
-  case DPU::CLZ_Urr:
-  case DPU::LSLXrrr:
-  case DPU::LSRXrrr:
-  case DPU::ANDrri:
-  case DPU::JEQrii:
-  case DPU::JNEQrii:
-    {
-      //   return false;
-      for (const MachineOperand &Op : MI.operands()) {
-	if (Op.isMetadata() && Op.getMetadata()->getOperand(0).get() == MDString::get(MI.getMF()->getFunction().getContext(), "MySpecialMetadata")) {
-	  LLVM_DEBUG({
-	      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " Don't sink because I have MySpecialMetadata.\n";
-	    });
-	  return false; // Do not sink this instruction
-	}
-      }
-      LLVM_DEBUG({
-	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " I'm potentially something used in arith+cond+jump from EmitInstrWithCustomInserter but I allow sink because I don't have MySpecialMetadata.\n";
-	});
-      break;
-    }
-  }
+// bool DPUInstrInfo::shouldSink(const MachineInstr &MI) const {
+//   switch (MI.getDesc().getOpcode()) {
+//   default:
+//     break;
+//   case DPU::CLZ_Urr:
+//   case DPU::LSLXrrr:
+//   case DPU::LSRXrrr:
+//   case DPU::ANDrri:
+//   case DPU::JEQrii:
+//   case DPU::JNEQrii:
+//     {
+//       //   return false;
+//       for (const MachineOperand &Op : MI.operands()) {
+// 	if (Op.isMetadata() && Op.getMetadata()->getOperand(0).get() == MDString::get(MI.getMF()->getFunction().getContext(), "MySpecialMetadata")) {
+// 	  LLVM_DEBUG({
+// 	      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " Don't sink because I have MySpecialMetadata.\n";
+// 	    });
+// 	  return false; // Do not sink this instruction
+// 	}
+//       }
+//       LLVM_DEBUG({
+// 	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " I'm potentially something used in arith+cond+jump from EmitInstrWithCustomInserter but I allow sink because I don't have MySpecialMetadata.\n";
+// 	});
+//       break;
+//     }
+//   }
 
-  // return true;
-  return TargetInstrInfo::shouldSink(MI);
-}
+//   // return true;
+//   return TargetInstrInfo::shouldSink(MI);
+// }

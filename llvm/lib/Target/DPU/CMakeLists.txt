@@ -28,7 +28,7 @@ add_llvm_target(DPUCodeGen
         DPUResolveMacroInstrPass.cpp
         DPUMacroFusion.cpp
         DPUSelectionDAGInfo.cpp
-
+	DPUPostRAFusion.cpp
         DEPENDS
         intrinsics_gen
 

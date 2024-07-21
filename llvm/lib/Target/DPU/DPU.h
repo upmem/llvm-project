@@ -19,6 +19,7 @@ namespace llvm {
 class FunctionPass;
 class DPUTargetMachine;
 
+FunctionPass *createDPUPostRAFusionPass(DPUTargetMachine &tm);
 FunctionPass *createDPUMergeComboInstrPass(DPUTargetMachine &tm);
 FunctionPass *createDPUResolveMacroInstrPass(DPUTargetMachine &tm);
 

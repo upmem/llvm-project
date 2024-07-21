@@ -84,6 +84,7 @@ public:
 
   bool addInstSelector() override;
 
+  // void addPostRegAlloc() override;
   void addPreEmitPass() override;
   void addPreEmitPass2() override;
 };
@@ -102,6 +103,11 @@ bool DPUPassConfig::addInstSelector() {
   addPass(createDPUISelDag(getDPUTargetMachine(), getOptLevel()));
   return false;
 }
+
+// void DPUPassConfig::addPostRegAlloc() {
+//   DPUTargetMachine &TM = getDPUTargetMachine();
+//   addPass(createDPUPostRAFusionPass(TM));
+// }
 
 void DPUPassConfig::addPreEmitPass() {
   DPUTargetMachine &TM = getDPUTargetMachine();
