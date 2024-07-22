@@ -149,6 +149,10 @@ bool DPUDAGToDAGISel::replaceUsesWithConstantReg(MachineRegisterInfo *MRI,
                                                  const DPUInstrInfo *DII,
                                                  const TargetRegisterInfo *TRI,
                                                  const MachineInstr &MI) {
+  // This function seems to do manual coalescing
+  //    probably we should use the proper one that probably knows better
+  //    maybe prob with MI operand constraint ... ?
+  //    probably better to educate the coalescer, or better define register class
   unsigned DstReg = 0, CstReg = 0;
 
   if (MI.getOpcode() == DPU::COPY) {

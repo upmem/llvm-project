@@ -2067,14 +2067,15 @@ EmitMul16WithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB,
   unsigned int LSL2Dest = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned int LSL3Dest = RI.createVirtualRegister(&DPU::GP_REGRegClass);
 
-  LLVMContext &Context = F->getFunction().getContext();
-  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+  // LLVMContext &Context = F->getFunction().getContext();
+  // MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
   BuildMI(BB, dl, TII.get(MulLL), LLDest)
       .addReg(Op1)
       .addReg(Op2)
       .addImm(DPUAsmCondition::Small)
       .addMBB(fastMBB)
-    .addMetadata(N);
+    // .addMetadata(N)
+    ;
 
   // BuildMI(BB, dl, TII.get(DPU::MUL_UL_ULrrr), LLDest)
   //     .addReg(Op1)
@@ -2463,8 +2464,8 @@ EmitLsl64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
   unsigned UndefReg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
   unsigned Undef2Reg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
 
-  LLVMContext &Context = F->getFunction().getContext();
-  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+  // LLVMContext &Context = F->getFunction().getContext();
+  // MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
 
   // BuildMI(BB, dl, TII.get(DPU::COPY), LsbOp1Reg)
   //     .addReg(Op1Reg, 0, DPU::sub_32bit);
@@ -2478,7 +2479,8 @@ EmitLsl64RegisterWithCustomInserter(MachineInstr &MI, MachineBasicBlock *BB) {
       .addReg(ShiftReg)
       .addImm(DPUAsmCondition::Condition::Shift32)
       .addMBB(bigShiftMBB)
-    .addMetadata(N);
+    // .addMetadata(N)
+    ;
 
   /// good, but
   // could increase quite a bit the code size
@@ -2750,8 +2752,8 @@ static MachineBasicBlock *EmitShiftRight64RegisterWithCustomInserter(
       RI.createVirtualRegister(&DPU::GP64_REGRegClass);
   unsigned BigShiftResultReg = RI.createVirtualRegister(&DPU::GP64_REGRegClass);
 
-  LLVMContext &Context = F->getFunction().getContext();
-  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+  // LLVMContext &Context = F->getFunction().getContext();
+  // MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
 
   BuildMI(BB, dl, TII.get(DPU::COPY), MsbOp1Reg)
       .addReg(Op1Reg, 0, DPU::sub_32bit_hi);
@@ -2761,7 +2763,8 @@ static MachineBasicBlock *EmitShiftRight64RegisterWithCustomInserter(
       .addReg(ShiftReg)
       .addImm(DPUAsmCondition::Condition::Shift32)
       .addMBB(bigShiftMBB)
-    .addMetadata(N);
+    // .addMetadata(N)
+    ;
 
   // LLVMContext &Context = F->getFunction().getContext();
   // MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
@@ -3232,14 +3235,15 @@ static MachineBasicBlock *EmitClz64WithCustomInserter(MachineInstr &MI,
   unsigned LsbClzReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
   unsigned LsbAddReg = RI.createVirtualRegister(&DPU::GP_REGRegClass);
 
-  LLVMContext &Context = F->getFunction().getContext();
-  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+  // LLVMContext &Context = F->getFunction().getContext();
+  // MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
 
   BuildMI(BB, dl, TII.get(DPU::CLZ_Urrci), FastResultReg)
       .addReg(Op1Reg, 0, DPU::sub_32bit_hi)
       .addImm(DPUAsmCondition::Condition::NotMaximum)
       .addMBB(endMBB)
-    .addMetadata(N);
+    // .addMetadata(N)
+    ;
 
   // BuildMI(BB, dl, TII.get(DPU::CLZ_Urr), FastResultReg)
   //   .addReg(Op1Reg, 0, DPU::sub_32bit_hi)

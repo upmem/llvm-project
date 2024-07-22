@@ -247,17 +247,17 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
   default:
     LLVM_DEBUG(dbgs() << "KO: Unknown SecondLastOpc\n");
     return false;
-  case DPU::MOVEri:
-    OpPrototype = OpriLimited;
-    OpJumpOpc = DPU::MOVErici;
-    OpNullJumpOpc = DPU::MOVErici; // should not be used
-    usableConditions = normalConditionsSet;
-    break;
-  case DPU::MOVErr:
-    OpPrototype = Oprr;
-    OpJumpOpc = DPU::MOVErrci;
-    OpNullJumpOpc = DPU::MOVErrci; // should not be used
-    usableConditions = normalConditionsSet;
+  // case DPU::MOVEri:
+  //   OpPrototype = OpriLimited;
+  //   OpJumpOpc = DPU::MOVErici;
+  //   OpNullJumpOpc = DPU::MOVErici; // should not be used
+  //   usableConditions = normalConditionsSet;
+  //   break;
+  // case DPU::MOVErr:
+  //   OpPrototype = Oprr;
+  //   OpJumpOpc = DPU::MOVErrci;
+  //   OpNullJumpOpc = DPU::MOVErrci; // should not be used
+  //   usableConditions = normalConditionsSet;
     break;
   case DPU::SUBrrr:
     OpPrototype = Oprrr;
@@ -669,6 +669,12 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
       return false;
     }
 
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "before change: \n";
+	dbgs() << "** MBB "; MBB->dump();
+      });
+
     int64_t actualCondition = ISD::SETTRUE2;
     MachineInstrBuilder ComboInst =
         BuildMI(MBB, SecondLastInst->getDebugLoc(), InstrInfo.get(OpJumpOpc))
@@ -697,14 +703,33 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
     auto actualConditionOperand = MachineOperand::CreateImm(actualCondition);
     ComboInst.add(actualConditionOperand).add(LastInst->getOperand(0));
 
-    LLVM_DEBUG(dbgs() << "OK\n"; LastInst->dump(); SecondLastInst->dump(););
+    LLVM_DEBUG({
+	dbgs() << "OK\n";
+	dbgs() << "del "; SecondLastInst->dump();
+	dbgs() << "del "; LastInst->dump();
+	dbgs() << "fused to\n";
+	dbgs() << "add "; ComboInst->dump();
+      });
+    
     LastInst->eraseFromParent();
     SecondLastInst->eraseFromParent();
 
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "after change: \n";
+	dbgs() << "** MBB "; MBB->dump();
+      });
+    
     return true;
   }
   case DPU::TmpJcci:
   case DPU::Jcci: {
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "before change: (if any)\n";
+	dbgs() << "** MBB "; MBB->dump();
+      });
+
     bool isSourceCondition = false;
 
     if (SecondLastInst->getOperand(0).getReg() !=
@@ -771,7 +796,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
       // now. This can become an issue (unnecessary spilling)
       ComboInst = BuildMI(MBB, SecondLastInst->getDebugLoc(),
                           InstrInfo.get(OpNullJumpOpc))
-                      .addReg(DPU::ZERO);
+	.addReg(DPU::ZERO);
     } else {
       if (!ImmCanBeEncodedOn8Bits) {
         LLVM_DEBUG(
@@ -804,14 +829,30 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
       break;
     }
 
-    LastInst->getOperand(0).setImm(actualCondition);
-    ComboInst.add(LastInst->getOperand(0))
+    // why modify the original instruction ???
+    // LastInst->getOperand(0).setImm(actualCondition);
+    // ComboInst.add(LastInst->getOperand(0))
+    //     .add(LastInst->getOperand(LastInst->getNumOperands() - 1));
+    ComboInst.addImm(actualCondition)
         .add(LastInst->getOperand(LastInst->getNumOperands() - 1));
 
-    LLVM_DEBUG(dbgs() << "OK\n"; LastInst->dump(); SecondLastInst->dump(););
+    LLVM_DEBUG({
+	dbgs() << "OK\n";
+	dbgs() << "del "; SecondLastInst->dump();
+	dbgs() << "del "; LastInst->dump();
+	dbgs() << "fused to\n";
+	dbgs() << "add "; ComboInst->dump();
+      });
+    
     LastInst->eraseFromParent();
     SecondLastInst->eraseFromParent();
 
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "after change: \n";
+	dbgs() << "** MBB "; MBB->dump();
+      });
+    
     return true;
   }
   case DPU::Jcc:
@@ -831,14 +872,14 @@ bool DPUMergeComboInstrPass::runOnMachineFunction(MachineFunction &MF) {
   for (auto &MFI : MF) {
     MachineBasicBlock *MBB = &MFI;
 
-    LLVM_DEBUG(MBB->dump());
+    // LLVM_DEBUG(MBB->dump());
 
     bool local_change = mergeComboInstructionsInMBB(MBB, InstrInfo);
     if (local_change) {
-      LLVM_DEBUG({
-	  dbgs() << "\nchanged to:\n";
-	  MBB->dump();
-	});
+      // LLVM_DEBUG({
+      // 	  dbgs() << "\nchanged to:\n";
+      // 	  MBB->dump();
+      // 	});
       changeMade = true;
     }
   }
