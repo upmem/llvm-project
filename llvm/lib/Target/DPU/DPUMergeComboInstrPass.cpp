@@ -660,7 +660,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
     // we morph the branch from unconditional to conditional
     // by this, we modify the CFG by creating artificially a fall through which is not declared
     // so, it's bugged
-    return false;
+    // return false;
     // 
     
     if (!ImmCanBeEncodedOn8Bits) {
