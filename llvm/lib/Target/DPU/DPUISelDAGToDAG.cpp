@@ -86,12 +86,12 @@ private:
 
   bool IsGlobalAddrInImmediateSection(SDNode *Node) const;
 
-  void processFunctionAfterISel(MachineFunction &MF);
+  // void processFunctionAfterISel(MachineFunction &MF);
 
-  bool replaceUsesWithConstantReg(MachineRegisterInfo *MRI,
-                                  const DPUInstrInfo *DII,
-                                  const TargetRegisterInfo *TRI,
-                                  const MachineInstr &MI);
+  // bool replaceUsesWithConstantReg(MachineRegisterInfo *MRI,
+  //                                 const DPUInstrInfo *DII,
+  //                                 const TargetRegisterInfo *TRI,
+  //                                 const MachineInstr &MI);
 
   bool SelectAddLikeOr(SDNode *Parent, SDValue N, SDValue &Out);
 };
@@ -102,139 +102,139 @@ StringRef DPUDAGToDAGISel::getPassName() const { return "DPUDAGToDAGISel"; }
 bool DPUDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) {
   bool Ret = SelectionDAGISel::runOnMachineFunction(MF);
 
-  processFunctionAfterISel(MF);
+  // processFunctionAfterISel(MF);
 
   return Ret;
 }
 
-void DPUDAGToDAGISel::processFunctionAfterISel(MachineFunction &MF) {
-  MachineRegisterInfo *MRI = &MF.getRegInfo();
+// void DPUDAGToDAGISel::processFunctionAfterISel(MachineFunction &MF) {
+//   MachineRegisterInfo *MRI = &MF.getRegInfo();
 
-  auto &SubTarget = static_cast<const DPUSubtarget &>(MF.getSubtarget());
-  auto InstrInfo = SubTarget.getInstrInfo();
-  auto RegInfo = SubTarget.getRegisterInfo();
+//   auto &SubTarget = static_cast<const DPUSubtarget &>(MF.getSubtarget());
+//   auto InstrInfo = SubTarget.getInstrInfo();
+//   auto RegInfo = SubTarget.getRegisterInfo();
 
-  for (MachineFunction::iterator MFI = MF.begin(), MFE = MF.end(); MFI != MFE;
-       ++MFI)
-    for (MachineBasicBlock::iterator I = MFI->begin(); I != MFI->end(); ++I) {
-      replaceUsesWithConstantReg(MRI, InstrInfo, RegInfo, *I);
-    }
-}
+//   for (MachineFunction::iterator MFI = MF.begin(), MFE = MF.end(); MFI != MFE;
+//        ++MFI)
+//     for (MachineBasicBlock::iterator I = MFI->begin(); I != MFI->end(); ++I) {
+//       replaceUsesWithConstantReg(MRI, InstrInfo, RegInfo, *I);
+//     }
+// }
 
-static inline bool canCommuteOperation(MachineInstr *MI, unsigned opNo,
-                                       unsigned &newOpNo) {
-  switch (MI->getOpcode()) {
-  case DPU::ADDrrr:
-  case DPU::ANDrrr:
-  case DPU::ORrrr:
-  case DPU::XORrrr:
-    switch (opNo) {
-    case 1:
-      newOpNo = 2;
-      break;
-    case 2:
-      newOpNo = 1;
-      break;
-    default:
-      return false;
-    }
+// static inline bool canCommuteOperation(MachineInstr *MI, unsigned opNo,
+//                                        unsigned &newOpNo) {
+//   switch (MI->getOpcode()) {
+//   case DPU::ADDrrr:
+//   case DPU::ANDrrr:
+//   case DPU::ORrrr:
+//   case DPU::XORrrr:
+//     switch (opNo) {
+//     case 1:
+//       newOpNo = 2;
+//       break;
+//     case 2:
+//       newOpNo = 1;
+//       break;
+//     default:
+//       return false;
+//     }
 
-    return true;
-  default:
-    return false;
-  }
-}
+//     return true;
+//   default:
+//     return false;
+//   }
+// }
 
-bool DPUDAGToDAGISel::replaceUsesWithConstantReg(MachineRegisterInfo *MRI,
-                                                 const DPUInstrInfo *DII,
-                                                 const TargetRegisterInfo *TRI,
-                                                 const MachineInstr &MI) {
-  // This function seems to do manual coalescing
-  //    probably we should use the proper one that probably knows better
-  //    maybe prob with MI operand constraint ... ?
-  //    probably better to educate the coalescer, or better define register class
-  unsigned DstReg = 0, CstReg = 0;
+// bool DPUDAGToDAGISel::replaceUsesWithConstantReg(MachineRegisterInfo *MRI,
+//                                                  const DPUInstrInfo *DII,
+//                                                  const TargetRegisterInfo *TRI,
+//                                                  const MachineInstr &MI) {
+//   // This function seems to do manual coalescing
+//   //    probably we should use the proper one that probably knows better
+//   //    maybe prob with MI operand constraint ... ?
+//   //    probably better to educate the coalescer, or better define register class
+//   unsigned DstReg = 0, CstReg = 0;
 
-  if (MI.getOpcode() == DPU::COPY) {
-    unsigned reg = MI.getOperand(1).getReg();
+//   if (MI.getOpcode() == DPU::COPY) {
+//     unsigned reg = MI.getOperand(1).getReg();
 
-    DstReg = MI.getOperand(0).getReg();
-    switch (reg) {
-    case DPU::ID:
-    case DPU::ID2:
-    case DPU::ID4:
-    case DPU::ID8:
-      CstReg = reg;
-      break;
-    default:
-      break;
-    }
-  } else if (((MI.getOpcode() == DPU::MOVErr) &&
-              (MI.getOperand(1).getReg() == DPU::ZERO)) ||
-             ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
-              (MI.getOperand(1).getImm() == 0))) {
-    DstReg = MI.getOperand(0).getReg();
-    CstReg = DPU::ZERO;
-  } else if (((MI.getOpcode() == DPU::MOVErr) &&
-              (MI.getOperand(1).getReg() == DPU::ONE)) ||
-             ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
-              (MI.getOperand(1).getImm() == 1))) {
-    DstReg = MI.getOperand(0).getReg();
-    CstReg = DPU::ONE;
-  } else if (((MI.getOpcode() == DPU::MOVErr) &&
-              (MI.getOperand(1).getReg() == DPU::LNEG)) ||
-             ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
-              (MI.getOperand(1).getImm() == -1))) {
-    DstReg = MI.getOperand(0).getReg();
-    CstReg = DPU::LNEG;
-  } else if (((MI.getOpcode() == DPU::MOVErr) &&
-              (MI.getOperand(1).getReg() == DPU::MNEG)) ||
-             ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
-              (MI.getOperand(1).getImm() == 0x8000000))) {
-    DstReg = MI.getOperand(0).getReg();
-    CstReg = DPU::MNEG;
-  }
+//     DstReg = MI.getOperand(0).getReg();
+//     switch (reg) {
+//     case DPU::ID:
+//     case DPU::ID2:
+//     case DPU::ID4:
+//     case DPU::ID8:
+//       CstReg = reg;
+//       break;
+//     default:
+//       break;
+//     }
+//   } else if (((MI.getOpcode() == DPU::MOVErr) &&
+//               (MI.getOperand(1).getReg() == DPU::ZERO)) ||
+//              ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
+//               (MI.getOperand(1).getImm() == 0))) {
+//     DstReg = MI.getOperand(0).getReg();
+//     CstReg = DPU::ZERO;
+//   } else if (((MI.getOpcode() == DPU::MOVErr) &&
+//               (MI.getOperand(1).getReg() == DPU::ONE)) ||
+//              ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
+//               (MI.getOperand(1).getImm() == 1))) {
+//     DstReg = MI.getOperand(0).getReg();
+//     CstReg = DPU::ONE;
+//   } else if (((MI.getOpcode() == DPU::MOVErr) &&
+//               (MI.getOperand(1).getReg() == DPU::LNEG)) ||
+//              ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
+//               (MI.getOperand(1).getImm() == -1))) {
+//     DstReg = MI.getOperand(0).getReg();
+//     CstReg = DPU::LNEG;
+//   } else if (((MI.getOpcode() == DPU::MOVErr) &&
+//               (MI.getOperand(1).getReg() == DPU::MNEG)) ||
+//              ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
+//               (MI.getOperand(1).getImm() == 0x8000000))) {
+//     DstReg = MI.getOperand(0).getReg();
+//     CstReg = DPU::MNEG;
+//   }
 
-  if (!CstReg)
-    return false;
+//   if (!CstReg)
+//     return false;
 
-  // Replace uses with CstReg.
-  for (MachineRegisterInfo::use_iterator U = MRI->use_begin(DstReg),
-                                         E = MRI->use_end();
-       U != E;) {
-    MachineOperand &MO = *U;
-    unsigned OpNo = U.getOperandNo();
-    MachineInstr *UMI = MO.getParent();
-    ++U;
+//   // Replace uses with CstReg.
+//   for (MachineRegisterInfo::use_iterator U = MRI->use_begin(DstReg),
+//                                          E = MRI->use_end();
+//        U != E;) {
+//     MachineOperand &MO = *U;
+//     unsigned OpNo = U.getOperandNo();
+//     MachineInstr *UMI = MO.getParent();
+//     ++U;
 
-    // Do not replace if it is a phi's operand or is tied to def operand.
-    if (UMI->isPHI() || UMI->isRegTiedToDefOperand(OpNo) || UMI->isPseudo())
-      continue;
+//     // Do not replace if it is a phi's operand or is tied to def operand.
+//     if (UMI->isPHI() || UMI->isRegTiedToDefOperand(OpNo) || UMI->isPseudo())
+//       continue;
 
-    // Also, we have to check that the register class of the operand
-    // contains the constant register.
-    if (!UMI->getRegClassConstraint(OpNo, DII, TRI)->contains(CstReg)) {
-      unsigned newOpNo;
+//     // Also, we have to check that the register class of the operand
+//     // contains the constant register.
+//     if (!UMI->getRegClassConstraint(OpNo, DII, TRI)->contains(CstReg)) {
+//       unsigned newOpNo;
 
-      if (canCommuteOperation(UMI, OpNo, newOpNo)) {
-        auto OtherReg = UMI->getOperand(newOpNo).getReg();
+//       if (canCommuteOperation(UMI, OpNo, newOpNo)) {
+//         auto OtherReg = UMI->getOperand(newOpNo).getReg();
 
-        if (UMI->getRegClassConstraint(newOpNo, DII, TRI)->contains(CstReg) &&
-            (!Register::isPhysicalRegister(OtherReg) ||
-             UMI->getRegClassConstraint(OpNo, DII, TRI)->contains(OtherReg))) {
-          UMI->getOperand(newOpNo).setReg(CstReg);
-          UMI->getOperand(OpNo).setReg(OtherReg);
-        }
-      }
+//         if (UMI->getRegClassConstraint(newOpNo, DII, TRI)->contains(CstReg) &&
+//             (!Register::isPhysicalRegister(OtherReg) ||
+//              UMI->getRegClassConstraint(OpNo, DII, TRI)->contains(OtherReg))) {
+//           UMI->getOperand(newOpNo).setReg(CstReg);
+//           UMI->getOperand(OpNo).setReg(OtherReg);
+//         }
+//       }
 
-      continue;
-    }
+//       continue;
+//     }
 
-    MO.setReg(CstReg);
-  }
+//     MO.setReg(CstReg);
+//   }
 
-  return true;
-}
+//   return true;
+// }
 
 bool DPUDAGToDAGISel::SelectAddrFI(SDValue Addr, SDValue &Base) {
   if (auto FIN = dyn_cast<FrameIndexSDNode>(Addr)) {

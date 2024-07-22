@@ -50,17 +50,30 @@ DPURegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
 
 BitVector DPURegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   BitVector reserved = BitVector(getNumRegs());
-  reserved.set(DPU::D22);
-  reserved.set(DPU::R22);
-  reserved.set(DPU::R23);
-  reserved.set(DPU::ZERO);
-  reserved.set(DPU::ONE);
-  reserved.set(DPU::LNEG);
-  reserved.set(DPU::MNEG);
-  reserved.set(DPU::ID);
-  reserved.set(DPU::ID2);
-  reserved.set(DPU::ID4);
-  reserved.set(DPU::ID8);
+  
+  markSuperRegs(reserved, DPU::D22);
+  markSuperRegs(reserved, DPU::R22);
+  markSuperRegs(reserved, DPU::R23);
+  markSuperRegs(reserved, DPU::ZERO);
+  markSuperRegs(reserved, DPU::ONE);
+  markSuperRegs(reserved, DPU::LNEG);
+  markSuperRegs(reserved, DPU::MNEG);
+  markSuperRegs(reserved, DPU::ID);
+  markSuperRegs(reserved, DPU::ID2);
+  markSuperRegs(reserved, DPU::ID4);
+  markSuperRegs(reserved, DPU::ID8);
+  assert(checkAllSuperRegsMarked(reserved));
+  // reserved.set(DPU::D22);
+  // reserved.set(DPU::R22);
+  // reserved.set(DPU::R23);
+  // reserved.set(DPU::ZERO);
+  // reserved.set(DPU::ONE);
+  // reserved.set(DPU::LNEG);
+  // reserved.set(DPU::MNEG);
+  // reserved.set(DPU::ID);
+  // reserved.set(DPU::ID2);
+  // reserved.set(DPU::ID4);
+  // reserved.set(DPU::ID8);
   // reserved.set(DPU::MAJ_D22);
   // reserved.set(DPU::MAJ_R22);
   // reserved.set(DPU::MAJ_R23);
@@ -176,10 +189,10 @@ bool DPURegisterInfo::isConstantPhysReg(MCRegister PhysReg) const {
   case DPU::ONE:
   case DPU::LNEG:
   case DPU::MNEG:
-  // case DPU::ID:
-  // case DPU::ID2:
-  // case DPU::ID4:
-  // case DPU::ID8:
+  case DPU::ID:
+  case DPU::ID2:
+  case DPU::ID4:
+  case DPU::ID8:
     return true;
   }
 }

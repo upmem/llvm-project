@@ -301,10 +301,10 @@ bool DPUInstrInfo::reverseBranchCondition(
 static void
 fetchUnconditionalBranchInfo(MachineInstr *Inst,
                              unsigned &targetBasicBlockOperandIndex) {
-  LLVM_DEBUG({
-      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-      dbgs() << "Inst "; Inst->dump();
-    });
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "Inst "; Inst->dump();
+  //   });
 
   switch (Inst->getOpcode()) {
   case DPU::JUMPi:
@@ -318,14 +318,14 @@ fetchUnconditionalBranchInfo(MachineInstr *Inst,
 static void fetchConditionalBranchInfo(MachineInstr *Inst,
                                        unsigned &targetBasicBlockOperandIndex,
                                        SmallVectorImpl<MachineOperand> &Cond) {
-  LLVM_DEBUG({
-      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-      dbgs() << "Inst "; Inst->dump();
-      dbgs() << "Cond.size() " << Cond.size() << "\n";
-      for (unsigned i = 0; i < Cond.size(); ++i) {
-	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
-      }
-    });
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "Inst "; Inst->dump();
+  //     dbgs() << "Cond.size() " << Cond.size() << "\n";
+  //     for (unsigned i = 0; i < Cond.size(); ++i) {
+  // 	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+  //     }
+  //   });
   
   unsigned Opc = Inst->getOpcode();
   Cond.push_back(MachineOperand::CreateImm(Opc));
@@ -346,20 +346,20 @@ static void fetchConditionalBranchInfo(MachineInstr *Inst,
   unsigned int NumOp = Inst->getNumExplicitOperands();
   // unsigned int NumOp = Inst->getNumOperands();
 
-  LLVM_DEBUG({
-      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-      dbgs() << "NumOp " << NumOp << "\n";
-    });
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "NumOp " << NumOp << "\n";
+  //   });
   for (unsigned int eachOperandIndex = 0; eachOperandIndex < NumOp;
        eachOperandIndex++) {
-    LLVM_DEBUG({
-	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-	dbgs() << "operand " << eachOperandIndex << ": ";
-      });
+    // LLVM_DEBUG({
+    // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    // 	dbgs() << "operand " << eachOperandIndex << ": ";
+    //   });
     MachineOperand &operand = Inst->getOperand(eachOperandIndex);
-    LLVM_DEBUG({
-	operand.dump();
-      });
+    // LLVM_DEBUG({
+    // 	operand.dump();
+    //   });
     if (operand.isMBB()) {
       targetBasicBlockOperandIndex = eachOperandIndex;
     } else {
@@ -373,14 +373,14 @@ static void fetchConditionalBranchInfo(MachineInstr *Inst,
   //   }
   // }
   
-  LLVM_DEBUG({
-      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-      dbgs() << "Inst "; Inst->dump();
-      dbgs() << "Cond.size() " << Cond.size() << "\n";
-      for (unsigned i = 0; i < Cond.size(); ++i) {
-	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
-      }
-    });
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "Inst "; Inst->dump();
+  //     dbgs() << "Cond.size() " << Cond.size() << "\n";
+  //     for (unsigned i = 0; i < Cond.size(); ++i) {
+  // 	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+  //     }
+  //   });
 }
 
 static inline bool isAnalyzableBranch(MachineInstr *Inst) {
@@ -393,13 +393,13 @@ bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
                                  SmallVectorImpl<MachineOperand> &Cond,
                                  bool AllowModify) const {
 
-  LLVM_DEBUG({
-      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-      dbgs() << "MBB "; MBB.dump();
-      for (unsigned i = 0; i < Cond.size(); ++i) {
-	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
-      }
-    });
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "MBB "; MBB.dump();
+  //     for (unsigned i = 0; i < Cond.size(); ++i) {
+  // 	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+  //     }
+  //   });
   
   MachineBasicBlock::reverse_iterator I = MBB.rbegin(), REnd = MBB.rend();
 
@@ -456,15 +456,15 @@ bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     if (LastInst->isConditionalBranch()) {
       unsigned int TBBOpIdx;
       fetchConditionalBranchInfo(LastInst, TBBOpIdx, Cond);
-      LLVM_DEBUG({
-	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-	  dbgs() << "MBB "; MBB.dump();
-	  dbgs() << "LastInst "; LastInst->dump();
-	  dbgs() << "TBBOpIdx " << TBBOpIdx << "\n";
-	  for (unsigned i = 0; i < Cond.size(); ++i) {
-	    dbgs() << "Cond[" << i << "] "; Cond[i].dump();
-	  }
-	});
+      // LLVM_DEBUG({
+      // 	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      // 	  dbgs() << "MBB "; MBB.dump();
+      // 	  dbgs() << "LastInst "; LastInst->dump();
+      // 	  dbgs() << "TBBOpIdx " << TBBOpIdx << "\n";
+      // 	  for (unsigned i = 0; i < Cond.size(); ++i) {
+      // 	    dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+      // 	  }
+      // 	});
       TBB = LastInst->getOperand(TBBOpIdx).getMBB();
       return false;
     }
@@ -507,17 +507,17 @@ bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     fetchConditionalBranchInfo(SecondLastInst, TBBOpIdx, Cond);
     TBB = SecondLastInst->getOperand(TBBOpIdx).getMBB();
     FBB = LastInst->getOperand(FTBBOpIdx).getMBB();
-    LLVM_DEBUG({
-	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-	dbgs() << "MBB "; MBB.dump();
-	dbgs() << "LastInst "; LastInst->dump();
-	dbgs() << "SecondLastInst "; SecondLastInst->dump();
-	dbgs() << "TBBOpIdx " << TBBOpIdx << "\n";
+    // LLVM_DEBUG({
+    // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    // 	dbgs() << "MBB "; MBB.dump();
+    // 	dbgs() << "LastInst "; LastInst->dump();
+    // 	dbgs() << "SecondLastInst "; SecondLastInst->dump();
+    // 	dbgs() << "TBBOpIdx " << TBBOpIdx << "\n";
 
-	for (unsigned i = 0; i < Cond.size(); ++i) {
-	  dbgs() << "Cond[" << i << "] "; Cond[i].dump();
-	}
-      });
+    // 	for (unsigned i = 0; i < Cond.size(); ++i) {
+    // 	  dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+    // 	}
+    //   });
     return false;
   }
 
@@ -527,10 +527,10 @@ bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 
 unsigned DPUInstrInfo::removeBranch(MachineBasicBlock &MBB,
                                     int *BytesRemoved) const {
-  LLVM_DEBUG({
-      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-      dbgs() << "MBB "; MBB.dump();
-    });
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "MBB "; MBB.dump();
+  //   });
   MachineBasicBlock::iterator I = MBB.end();
   unsigned Count = 0;
 
@@ -556,17 +556,17 @@ unsigned DPUInstrInfo::removeBranch(MachineBasicBlock &MBB,
 void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
                                           MachineBasicBlock *TBB, DebugLoc DL,
                                           ArrayRef<MachineOperand> Cond) const {
-  LLVM_DEBUG({
-      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-      dbgs() << "MBB "; MBB.dump();
-      for (unsigned i = 0; i < Cond.size(); ++i) {
-	  dbgs() << "Cond[" << i << "] "; Cond[i].dump();
-	  if (Cond[i].isReg()) {
-	    dbgs() << "Cond[" << i << "] isUse " << Cond[i].isUse() << "\n";
-	    dbgs() << "Cond[" << i << "] isDef " << Cond[i].isDef() << "\n";
-	  }
-      }
-    });
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "MBB "; MBB.dump();
+  //     for (unsigned i = 0; i < Cond.size(); ++i) {
+  // 	  dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+  // 	  if (Cond[i].isReg()) {
+  // 	    dbgs() << "Cond[" << i << "] isUse " << Cond[i].isUse() << "\n";
+  // 	    dbgs() << "Cond[" << i << "] isDef " << Cond[i].isDef() << "\n";
+  // 	  }
+  //     }
+  //   });
 
   // LLVM_DEBUG({
   //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
@@ -626,10 +626,10 @@ void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
   // }
 
   for (unsigned i = start; i < Cond.size(); ++i) {
-    LLVM_DEBUG({
-	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-	dbgs() << " working on " << i << "\n";
-      });
+    // LLVM_DEBUG({
+    // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    // 	dbgs() << " working on " << i << "\n";
+    //   });
     if (Cond[i].isReg()) {
       // LLVM_DEBUG({
       // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
@@ -674,10 +674,10 @@ void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
   //    }
   // }
 
-  LLVM_DEBUG({
-      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-      dbgs() << "MIB "; MIB->dump();
-    });
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "MIB "; MIB->dump();
+  //   });
 }
 
 unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
@@ -685,13 +685,13 @@ unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                     MachineBasicBlock *FBB,
                                     ArrayRef<MachineOperand> Cond,
                                     const DebugLoc &DL, int *BytesAdded) const {
-  LLVM_DEBUG({
-      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-      dbgs() << "MBB "; MBB.dump();
-      for (unsigned i = 0; i < Cond.size(); ++i) {
-	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
-      }
-    });
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "MBB "; MBB.dump();
+  //     for (unsigned i = 0; i < Cond.size(); ++i) {
+  // 	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+  //     }
+  //   });
   unsigned nrOfInsertedMachineInstr = 0;
   // Shouldn't be a fall through.
   assert(TBB && "InsertBranch must not be told to insert a fallthrough");

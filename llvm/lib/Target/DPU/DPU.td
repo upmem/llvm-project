@@ -71,4 +71,5 @@ def DPU : Target {
   let AssemblyParsers = [DPUAsmParser];
   let AssemblyParserVariants = [DPUAsmParserVariant];
   let AssemblyWriters = [DPUInstPrinter];
+  let AllowRegisterRenaming = 1;
 }
