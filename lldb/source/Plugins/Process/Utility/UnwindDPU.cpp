@@ -25,10 +25,8 @@
 using namespace lldb;
 using namespace lldb_private;
 
-#define ADDR_FG_MAGIC_VALUE            0x8
-#define ADDR_FG_IRAM_OVERLAY_START     0x10
-#define ADDR_FG_CURRENTLY_LOADED_GROUP 0x18
-#define FG_MAGIC_VALUE                 0xC0DE0FF10AD70015
+#define ADDR_FG_IRAM_OVERLAY_START     0x8
+#define ADDR_FG_CURRENTLY_LOADED_GROUP 0x10
 #define DPU_IRAM_BASE                  0x80000000
 #define FG_DPU_VIRAM_OFFSET            0x00100000
 
@@ -147,9 +145,8 @@ bool UnwindDPU::DoGetFrameInfoAtIndex(uint32_t frame_idx, lldb::addr_t &cfa,
   lldb::addr_t viram_bitmask = 0;
 
   Status error;
-  // FIXME : try and fetch symbol instead of trusting overlay_start_address will always be stored at the same address in the elf
-  uint64_t magic_value = 0;
-  if (m_thread.GetProcess()->ReadMemory(ADDR_FG_MAGIC_VALUE, &magic_value, 8, error) == 8 && magic_value == FG_MAGIC_VALUE) {
+  const char *using_function_groups = std::getenv("USING_FUNCTION_GROUPS");
+  if (using_function_groups != NULL && using_function_groups[0] != '\0') {
     lldb::addr_t overlay_start_address;
     if(m_thread.GetProcess()->ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 8, error) == 8) {
       overlay_start_address = FORMAT_PC(overlay_start_address);

@@ -99,14 +99,14 @@ RegisterContextDpu::GetRegisterSet(uint32_t set_index) const {
 Status FixPc(ProcessDpu *process, uint32_t *pc) {
   Status error;
   size_t bytes_read;
-  uint64_t magic_value;
+  // uint64_t magic_value;
   uint32_t initialized = 0;
   lldb::addr_t overlay_start_address = 0;
   uint32_t fg_id;
 
-  error = process->ReadMemory(ADDR_FG_MAGIC_VALUE, &magic_value, 8, bytes_read);
-  if(error.Fail() || bytes_read != 8 || magic_value != FG_MAGIC_VALUE)
-    return Status("could not find fg magic_value\n");
+  const char *using_function_groups = std::getenv("USING_FUNCTION_GROUPS");
+  if (using_function_groups == NULL || using_function_groups[0] == '\0')
+    return Status("Could not find USING_FUNCTION_GROUPS env variable\n");
   error = process->ReadMemory(ADDR_FG_INITIALIZED, &initialized, 4, bytes_read);
   if(error.Fail() || bytes_read != 4 || initialized == 0)
     return Status("fg groups not initialized\n");

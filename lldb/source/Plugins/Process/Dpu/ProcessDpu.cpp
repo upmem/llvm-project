@@ -654,13 +654,6 @@ Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
     return Status("ReadMemory: Cannot read, unknown address space");
   }
   bytes_read = size;
-  /*
-  printf("ReadMemory(0x%lx) : ", addr);
-  for (int i=0; i<size; i++) {
-    printf("%02hx ", ((unsigned char *) buf)[i]);
-  }
-  printf("\n");
-  */
 
   return Status();
 }
@@ -707,13 +700,6 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
     return Status("WriteMemory: Cannot write, unknown address space");
   }
   bytes_written = size;
-  /*
-  printf("WriteMemory(0x%lx) : ", addr);
-  for (int i=0; i<size; i++) {
-    printf("%02hx ", ((unsigned char *) buf)[i]);
-  }
-  printf("\n");
-  */
 
   return Status();
 }
@@ -721,35 +707,27 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
 Status ProcessDpu::ViramAddressToMramPhysicalAddress(lldb::addr_t viram_addr, lldb::addr_t *mram_addr) {
   Status error;
   size_t bytes_read;
-  uint64_t magic_value;
   lldb::addr_t overlay_start_address = 0;
   lldb::addr_t load_starts_table_address = 0;
   lldb::addr_t load_start_address = 0;
-  // printf("ViramAddressToMramPhysicalAddress(0x%lx)\n", viram_addr);
   size_t fg_id = ((viram_addr & k_dpu_viram_msb_mask)/k_dpu_viram_offset) - 1;
-  error = ReadMemory(ADDR_FG_MAGIC_VALUE, &magic_value, 8, bytes_read);
-  // printf("\tmagic = 0x%lx\n", magic_value);
-  if(error.Fail() || bytes_read != 8 || magic_value != FG_MAGIC_VALUE)
-    return Status("could not find fg magic_value\n");
+  const char *using_function_groups = std::getenv("USING_FUNCTION_GROUPS");
+  if (using_function_groups == NULL || using_function_groups[0] == '\0')
+    return Status("Could not find USING_FUNCTION_GROUPS env variable\n");
   error = ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 4, bytes_read);
-  // printf("\toverlay_start = 0x%x\n", overlay_start_address);
   if(error.Fail() || bytes_read != 4)
     return Status("could not read load start address\n");
   overlay_start_address <<= 3;
   lldbassert(viram_addr >= overlay_start_address);
   error = ReadMemory(ADDR_FG_LOAD_STARTS_ADDR, &load_starts_table_address, 4, bytes_read);
-  // printf("\tload_start_table = 0x%x\n", load_starts_table_address);
   if(error.Fail() || bytes_read != 4)
     return Status("could not read load starts table address\n");
   if (load_starts_table_address == 0)
     return Status("function groups not properly initialized");
   error = ReadMemory(load_starts_table_address+4*fg_id, &load_start_address, 4, bytes_read);
-  // printf("\tload_start = 0x%x\n", load_start_address);
   if(error.Fail() || bytes_read != 4)
     return Status("could not read load start address\n");
-  // *mram_addr = (viram_addr & ~k_dpu_viram_msb_mask) + 0x100090 - 0x1738 - k_dpu_iram_base + k_dpu_mram_base;
   *mram_addr = (viram_addr & ~k_dpu_viram_msb_mask) + load_start_address - overlay_start_address - k_dpu_iram_base + k_dpu_mram_base;
-  // printf("\t = 0x%lx\n", *mram_addr);
   return Status();
 }
 
