@@ -32,6 +32,20 @@ void DPUTargetInfo::getTargetDefines(const LangOptions &Opts,
                                      MacroBuilder &Builder) const {
   DefineStd(Builder, "DPU", Opts);
   Builder.defineMacro("__ELF__");
+
+  switch (getTriple().getSubArch()) {
+  case llvm::Triple::DPUSubArch_v1a: {
+    Builder.defineMacro("__dpu_v1A__");
+    break;
+  }
+  case llvm::Triple::DPUSubArch_v1b: {
+    Builder.defineMacro("__dpu_v1B__");
+    break;
+  }
+  default:
+    llvm_unreachable("Unhandled Triple.");
+    break;
+  }
 }
 
 ArrayRef<Builtin::Info> DPUTargetInfo::getTargetBuiltins() const {

@@ -101,6 +101,7 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
                           const llvm::opt::ArgList &TCArgs,
                           const char *LinkingOutput) const {
   const ToolChain &TC = getToolChain();
+  const Driver &D = getToolChain().getDriver();
   const llvm::Triple &TargetTriple = TC.getEffectiveTriple();
 
   std::string subarch_str("");
@@ -145,18 +146,16 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-L");
     CmdArgs.push_back(TCArgs.MakeArgString(builtin_path));
 
-    const std::string RtLTOLibrary = builtin_path + "/librtlto" + config_ext + ".a";
-
+    // Link rt library
+    CmdArgs.push_back("-l");
     if (TCArgs.hasArg(options::OPT_flto_EQ)) {
-      // Need to inject the RTE BC library into the whole chain.
       CmdArgs.push_back(llvm::StringSwitch<const char *>(
                             TCArgs.getLastArg(options::OPT_flto_EQ)->getValue())
-                            .Case("thin", TCArgs.MakeArgString(builtin_path + "/librtltothin" + config_ext + ".a"))
-                            .Default(TCArgs.MakeArgString(RtLTOLibrary)));
+                            .Case("thin", TCArgs.MakeArgString("rtltothin" + config_ext))
+                            .Default(TCArgs.MakeArgString("rtlto" + config_ext)));
     } else if (TCArgs.hasArg(options::OPT_flto)) {
-      CmdArgs.push_back(TCArgs.MakeArgString(RtLTOLibrary));
+      CmdArgs.push_back(TCArgs.MakeArgString("rtlto" + config_ext));
     } else {
-      CmdArgs.push_back("-l");
       CmdArgs.push_back(TCArgs.MakeArgString("rt" + config_ext));
     }
 
@@ -288,11 +287,17 @@ void Linker::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   if (!TCArgs.hasArg(options::OPT_nostartfiles)) {
-    CmdArgs.push_back(TCArgs.MakeArgString(sysroot + "/misc/crt0" + pg_ext + ".o"));
+    CmdArgs.push_back(TCArgs.MakeArgString(sysroot + "/misc/" + subarch_str + "/crt0" + pg_ext + ".o"));
   }
 
   /* Pass -L options to the linker */
   TCArgs.AddAllArgs(CmdArgs, options::OPT_L);
+
+  if (D.isUsingLTO()) {
+    assert(!Inputs.empty() && "Must have at least one input.");
+    addLTOOptions(TC, TCArgs, CmdArgs, Output, Inputs[0],
+                  D.getLTOMode() == LTOK_Thin);
+  }
 
   C.addCommand(std::make_unique<Command>(
       JA, *this, ResponseFileSupport::AtFileCurCP(), TCArgs.MakeArgString(Linker), CmdArgs, Inputs));

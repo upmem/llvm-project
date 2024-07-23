@@ -56,49 +56,51 @@ def compute_dpu_pid(rank_id, slice_id, dpu_id):
     return dpu_id + 100 * (slice_id + 100 * (rank_id + 100))
 
 
-def get_value_from_command(debugger, command, base):
-    return_obj = lldb.SBCommandReturnObject()
-    debugger.GetCommandInterpreter().HandleCommand("p/x " + command, return_obj)
-    if return_obj.GetStatus() != lldb.eReturnStatusSuccessFinishResult:
-        return False, 0
-    output = return_obj.GetOutput()
-    if output is None or len(output) == 0:
-        return True, 0
-    addr = int(re.search('.*= (.+)', return_obj.GetOutput()).group(1), base)
-    return True, addr
+def set_debug_mode(debugger, target, rank, debug_mode):
+    command = ("hw_set_debug_mode((dpu_rank_t *)" + rank.GetValue() + ", "
+               + str(debug_mode) + ")")
+    res = target.EvaluateExpression(command)
+    if res.GetError().Fail():
+        raise Exception("Command ", command, " failed.\n", res.GetError().description)
 
-
-def set_debug_mode(debugger, rank, debug_mode):
-    success, unused = get_value_from_command(
-        debugger,
-        "hw_set_debug_mode((dpu_rank_t *)"
-        + rank.GetValue() + ", " + str(debug_mode) + ")",
-        10)
+    status = res.GetValueAsUnsigned()
+    success = status == 0
     return success
 
 
+def setup_for_onboot(debugger, target, dpu_addr):
+    command = "setup_for_onboot((dpu_t *)" + dpu_addr + ")"
+    res = target.EvaluateExpression(command)
+    if res.GetError().Fail():
+        raise Exception("Command ", command, " failed.\n", res.GetError().description)
+
+    status = res.GetChildMemberWithName("status").GetValueAsUnsigned()
+    instr = res.GetChildMemberWithName("instr").GetValueAsUnsigned()
+
+    return status, instr
+
+
 def get_dpu_from_command(command, debugger, target):
-    addr = 0
+    if type(command) is lldb.SBValue:
+        return command
     try:
         addr = int(command, 16)
+        return target.CreateValueFromExpression(
+            "dpu", "(struct dpu_t *)" + str(addr))
     except ValueError:
-        success, addr = get_value_from_command(debugger, command, 16)
-        if not success:
-            command_values = command.split('.')
-            if len(command_values) == 3:
-                rank_id = command_values[0]
-                dpus = dpu_list(debugger, None, None, None)
-                if rank_id in dpus:
-                    addr = next((dpu[0] for dpu in dpus[rank_id]
-                                 if (command ==
-                                     str(rank_id) + "." + str(dpu[1]) + "." +
-                                     str(dpu[2]))),
-                                0)
-    if addr == 0:
-        print("Could not interpret command '" + command + "'")
-        return None
-    return target.CreateValueFromExpression(
-        "dpu", "(struct dpu_t *)" + str(addr))
+        command_values = command.split('.')
+        if len(command_values) == 3:
+            rank_id = command_values[0]
+            dpus = dpu_list(debugger, None, None, None)
+            if rank_id in dpus:
+                addr = next((dpu[0] for dpu in dpus[rank_id]
+                             if (command ==
+                                 str(rank_id) + "." + str(dpu[1]) + "." +
+                                 str(dpu[2]))),
+                            0)
+                return addr
+    print("Could not interpret command '" + command + "'")
+    return None
 
 
 def get_rank_id(rank, target):
@@ -185,9 +187,9 @@ def break_to_next_boot_and_get_dpus(debugger, target):
             local_dpu = rank.GetValueForExpressionPath("->dpus[" + str(each_dpu) + "]")
             _enabled = local_dpu.GetChildMemberWithName("enabled").GetValueAsUnsigned()
             if _enabled == 1:
-                dpu_list.append(int(str(local_dpu.GetAddress()), 16))
+                dpu_list.append(local_dpu)
     elif function_name == launch_dpu_function:
-        dpu_list.append(frame.FindVariable("dpu").GetValueAsUnsigned())
+        dpu_list.append(frame.FindVariable("dpu"))
 
     return dpu_list, frame
 
@@ -213,58 +215,59 @@ def dpu_attach_on_boot(debugger, command, result, internal_dict):
             print("Could not find the dpu to attach to")
             return None
         dpus_booting = list(filter(
-            lambda dpu: dpu == dpu_to_attach.GetValueAsUnsigned(),
+            lambda dpu: dpu.GetAddress() == dpu_to_attach.GetAddress(),
             dpus_booting))
-        while len(dpus_booting) == 0:
+        print("Waiting for specified DPU to boot.")
+        for i in range(10):
+            if len(dpus_booting) == 1:
+                break
+            slack_time = pow(2, i) * 0.25
+            print("Attempt", i, "failed. Retry in ", slack_time, " seconds.")
+            time.sleep(slack_time)
+
             dpus_booting, host_frame =\
                 break_to_next_boot_and_get_dpus(debugger, target)
-            if dpus_booting is None or len(dpus_booting) == 0:
-                print("Could not find the dpu booting")
-                return None
-            dpus_booting = filter(
-                lambda dpu: dpu == dpu_to_attach.GetValueAsUnsigned(),
-                dpus_booting)
+            dpus_booting = list(filter(
+                lambda dpu: dpu.GetAddress() == dpu_to_attach.GetAddress(),
+                dpus_booting))
 
-    dpu_addr = str(hex(dpus_booting[0]))
+        if len(dpus_booting) != 1:
+            print("Could not find the dpu booting")
+            return None
+
+    # As the object that represents the dpu will disapear,
+    # we capture the address here
+    dpu_addr = str(dpus_booting[0].GetAddress())
+
     print("Setting up dpu '" + dpu_addr + "' for attach on boot...")
-    target_dpu = dpu_attach(debugger, dpu_addr, None, None)
-    if target_dpu is None:
-        print("Could not attach to dpu")
+
+    # Replace first instruction for a breakpoint
+    setup_for_onboot_status, setup_for_onboot_instr = setup_for_onboot(debugger, target, dpu_addr)
+    if setup_for_onboot_status != 0: # DPU_OK
+        print("setup_for_onboot failed with",  setup_for_onboot_status, "during dpu_attach_on_boot.")
+        if setup_for_onboot_instr == 1:
+            print("Could not copy instruction from IRAM.")
+        else:
+            print("Could not set instruction to IRAM.")
         return None
 
+    # step out from frame dpu_launch_thread_on_rank or dpu_launch_thread_on_dpu
+    # we breakpoint in earlier during break_to_next_boot_and_get_dpus()
     error = lldb.SBError()
-    process_dpu = target_dpu.GetProcess()
-    dpu_first_instruction_addr = 0x80000000
-    dpu_first_instruction = process_dpu.ReadMemory(dpu_first_instruction_addr,
-                                                   8, error)
-    process_dpu.WriteMemory(dpu_first_instruction_addr,
-                            bytearray([0x00, 0x00, 0x00, 0x20,
-                                       0x63, 0x7e, 0x00, 0x00]), error)
-    pid = process_dpu.GetProcessID()
-    process_dpu.Detach()
-    debugger.DeleteTarget(target_dpu)
-
-    rank = get_rank_from_pid(debugger, pid)
-    fct_exec_success, fct_return = exec_ufi_identity(debugger, rank)
-    if not fct_exec_success:
-        print("Could not execute ufi_identity during detach")
-        return None
-
-    if fct_return != 0:
-        print("=====> ufi_identity fail with", fct_return, "during dpu_detach. <=====")
-        # return None
-
-    debugger.SetSelectedTarget(target)
-
     target.GetProcess().GetSelectedThread().StepOutOfFrame(host_frame, error)
     print("dpu '" + str(dpu_addr) + "' has booted")
 
+    # Attach to the DPU we just setup
+    # it has breakpointed at the very first instruction
     target_dpu = dpu_attach(debugger, dpu_addr, None, None)
     if target_dpu is None:
         print("Could not attach to dpu")
         return None
-    target_dpu.GetProcess().WriteMemory(dpu_first_instruction_addr,
-                                        dpu_first_instruction, error)
+
+    # Restore the first instruction
+    target_dpu.GetProcess().WriteMemory(0x80000000,
+                                        setup_for_onboot_instr.to_bytes(8, byteorder='little'),
+                                        error)
 
     return target_dpu
 
@@ -281,9 +284,14 @@ def dpu_attach(debugger, command, result, internal_dict):
     if dpu is None or not(dpu.IsValid):
         print("Could not find dpu")
         return None
-    print("Attaching to dpu '" + dpu.GetValue() + "'")
 
-    program_path = get_dpu_program_path(dpu)
+    # the dpu object can be a completelly resolved SBValue
+    # or just a wrapped pointer
+    dpu_address = dpu.GetAddress()
+    if not dpu_address.IsValid():
+        dpu_address = dpu.GetValue()
+
+    print("Attaching to dpu '" + str(dpu_address) + "'")
 
     rank = dpu.GetChildMemberWithName("rank")
     if not(rank.IsValid()):
@@ -331,7 +339,7 @@ def dpu_attach(debugger, command, result, internal_dict):
         slices_target_env += str((slice_target_dpu_group_id <<
                                   32) + slice_target_type) + "&"
 
-    if not(set_debug_mode(debugger, rank, 1)):
+    if not(set_debug_mode(debugger, target, rank, 1)):
         print("Could not set dpu in debug mode")
         return None
 
@@ -340,6 +348,8 @@ def dpu_attach(debugger, command, result, internal_dict):
     lldb_server_dpu_env["UPMEM_LLDB_SLICES_TARGET"] = slices_target_env
     lldb_server_dpu_env["UPMEM_LLDB_HOST_MUXS_MRAM_STATE"] = \
         host_muxs_mram_state_env
+
+    program_path = get_dpu_program_path(dpu)
 
     if not(program_path is None):
         module_spec = lldb.SBModuleSpec()
@@ -432,7 +442,7 @@ def dpu_attach(debugger, command, result, internal_dict):
                                             print_buffer_var_addr)
 
     debugger.SetSelectedTarget(target)
-    if not(set_debug_mode(debugger, rank, 0)):
+    if not(set_debug_mode(debugger, target, rank, 0)):
         print("Could not unset dpu from debug mode")
         return None
 
@@ -447,7 +457,7 @@ def print_list_rank(rank_id, dpus_info, verbose, status_filter, result):
                 result.PutCString(
                     "'%s'  %2u.%u.%u  %7s  '%s'" %
                     (
-                        str(hex(dpu_addr)),
+                        str(dpu_addr.GetAddress()),
                         int(rank_id),
                         slice_id,
                         dpu_id,
@@ -567,7 +577,7 @@ def get_allocated_dpus(debugger):
                                             slice_id,
                                             dpu_id)
 
-                result_list.setdefault(str(rank_id), []).append((int(str(dpu.GetAddress()), 16),
+                result_list.setdefault(str(rank_id), []).append((dpu,
                                                                  slice_id, dpu_id,
                                                                  dpu_status, program_path))
 
@@ -596,22 +606,19 @@ def dpu_attach_first(debugger, command, result, internal_dict):
         print("Could not find any dpu to attach to")
         return None
 
-    first_rank_key = list(allocated_dpus.keys())[0]
-    dpu_addr, slice_id, dpu_id, status, program = allocated_dpus[first_rank_key][0]
-    new_cmd = ".".join(str(x) for x in [first_rank_key,
-                                        slice_id,
-                                        dpu_id])
-    print("Attaching to ", new_cmd)
-    return dpu_attach(debugger, new_cmd, result, internal_dict)
+    first_dpu, _, _, _, _ = next(iter(allocated_dpus.values()))[0]
+    return dpu_attach(debugger, first_dpu, result, internal_dict)
 
 
-def exec_ufi_identity(debugger, rank):
-    success, fct_return = get_value_from_command(
-        debugger,
-        "ufi_identity((dpu_rank_t *)"
-        + rank.GetValue() + ", 0xff, lldb_dummy_results)",
-        16)
-    return success, fct_return
+def host_synchronize(debugger, target, rank):
+    command = "host_synchronize((dpu_rank_t *)" + rank.GetValue() + ")"
+
+    res = target.EvaluateExpression(command)
+    if res.GetError().Fail():
+        raise Exception("Command ", command, " failed.\n", res.GetError().description)
+
+    status = res.GetValueAsUnsigned()
+    return status
 
 
 def get_rank_from_pid(debugger, pid):
@@ -655,13 +662,10 @@ def dpu_detach(debugger, command, result, internal_dict):
     debugger.DeleteTarget(target)
     rank = get_rank_from_pid(debugger, pid)
 
-    fct_exec_success, fct_return = exec_ufi_identity(debugger, rank)
+    target = debugger.GetSelectedTarget()
+    status = host_synchronize(debugger, target, rank)
 
-    if not fct_exec_success:
-        print("Could not execute ufi_identity during detach")
-        return None
+    if status != 0:
+        print("host_synchronize fail with", status, "during dpu_detach.")
 
-    if fct_return != 0:
-        print("ufi_identity fail with", fct_return, "during dpu_detach.")
-
-    return fct_return
+    return status
