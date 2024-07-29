@@ -6,6 +6,9 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
+
+// TODO: expand to more situation of arith+comp+branch
+
 #include "DPUTargetMachine.h"
 #include <llvm/CodeGen/MachineInstrBuilder.h>
 #include <set>
@@ -653,11 +656,24 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
     LLVM_DEBUG(dbgs() << "KO: Unknown LastOpc\n");
     return false;
   case DPU::JUMPi: {
+    // this is currently wrong
+    // we morph the branch from unconditional to conditional
+    // by this, we modify the CFG by creating artificially a fall through which is not declared
+    // so, it's bugged
+    return false;
+    // 
+    
     if (!ImmCanBeEncodedOn8Bits) {
       LLVM_DEBUG(
           dbgs() << "KO: LastOpc == DPU::JUMPi && !ImmCanBeEncodedOn8Bits\n");
       return false;
     }
+
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "before change: \n";
+	dbgs() << "** MBB "; MBB->dump();
+      });
 
     int64_t actualCondition = ISD::SETTRUE2;
     MachineInstrBuilder ComboInst =
@@ -687,14 +703,33 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
     auto actualConditionOperand = MachineOperand::CreateImm(actualCondition);
     ComboInst.add(actualConditionOperand).add(LastInst->getOperand(0));
 
-    LLVM_DEBUG(dbgs() << "OK\n"; LastInst->dump(); SecondLastInst->dump(););
+    LLVM_DEBUG({
+	dbgs() << "OK\n";
+	dbgs() << "del "; SecondLastInst->dump();
+	dbgs() << "del "; LastInst->dump();
+	dbgs() << "fused to\n";
+	dbgs() << "add "; ComboInst->dump();
+      });
+    
     LastInst->eraseFromParent();
     SecondLastInst->eraseFromParent();
 
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "after change: \n";
+	dbgs() << "** MBB "; MBB->dump();
+      });
+    
     return true;
   }
-  case DPU::TmpJcci:
+  // case DPU::TmpJcci:
   case DPU::Jcci: {
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "before change: (if any)\n";
+	dbgs() << "** MBB "; MBB->dump();
+      });
+
     bool isSourceCondition = false;
 
     if (SecondLastInst->getOperand(0).getReg() !=
@@ -757,11 +792,17 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
                "&& !isSourceCondition) && (!ImmCanBeEncodedOn11Bits)\n");
         return false;
       }
+      if (SecondLastOpc == DPU::MOVEri || SecondLastOpc == DPU::MOVErr) {
+	LLVM_DEBUG(
+            dbgs()
+            << "KO: move to zero is invalid\n");
+	return false;
+      }
       // todo: this is not optimal. One register has been allocated but not used
       // now. This can become an issue (unnecessary spilling)
       ComboInst = BuildMI(MBB, SecondLastInst->getDebugLoc(),
                           InstrInfo.get(OpNullJumpOpc))
-                      .addReg(DPU::ZERO);
+	.addReg(DPU::ZERO);
     } else {
       if (!ImmCanBeEncodedOn8Bits) {
         LLVM_DEBUG(
@@ -794,14 +835,30 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
       break;
     }
 
-    LastInst->getOperand(0).setImm(actualCondition);
-    ComboInst.add(LastInst->getOperand(0))
+    // why modify the original instruction ???
+    // LastInst->getOperand(0).setImm(actualCondition);
+    // ComboInst.add(LastInst->getOperand(0))
+    //     .add(LastInst->getOperand(LastInst->getNumOperands() - 1));
+    ComboInst.addImm(actualCondition)
         .add(LastInst->getOperand(LastInst->getNumOperands() - 1));
 
-    LLVM_DEBUG(dbgs() << "OK\n"; LastInst->dump(); SecondLastInst->dump(););
+    LLVM_DEBUG({
+	dbgs() << "OK\n";
+	dbgs() << "del "; SecondLastInst->dump();
+	dbgs() << "del "; LastInst->dump();
+	dbgs() << "fused to\n";
+	dbgs() << "add "; ComboInst->dump();
+      });
+    
     LastInst->eraseFromParent();
     SecondLastInst->eraseFromParent();
 
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "after change: \n";
+	dbgs() << "** MBB "; MBB->dump();
+      });
+    
     return true;
   }
   case DPU::Jcc:
@@ -821,9 +878,19 @@ bool DPUMergeComboInstrPass::runOnMachineFunction(MachineFunction &MF) {
   for (auto &MFI : MF) {
     MachineBasicBlock *MBB = &MFI;
 
-    LLVM_DEBUG(MBB->dump());
-    changeMade |= mergeComboInstructionsInMBB(MBB, InstrInfo);
+    // LLVM_DEBUG(MBB->dump());
+
+    bool local_change = mergeComboInstructionsInMBB(MBB, InstrInfo);
+    if (local_change) {
+      // LLVM_DEBUG({
+      // 	  dbgs() << "\nchanged to:\n";
+      // 	  MBB->dump();
+      // 	});
+      changeMade = true;
+    }
   }
 
+  LLVM_DEBUG(dbgs() << "********** DPU/MergeComboInstrPass: " << MF.getName()
+                    << " done: changeMade = " << changeMade << " **********\n\n");
   return changeMade;
 }

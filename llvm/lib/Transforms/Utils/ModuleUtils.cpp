@@ -75,38 +75,52 @@ static void appendToUsedList(Module &M, StringRef Name, ArrayRef<GlobalValue *> 
   GlobalVariable *GV = M.getGlobalVariable(Name);
   SmallPtrSet<Constant *, 16> InitAsSet;
   SmallVector<Constant *, 16> Init;
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
   if (GV) {
+    // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
     auto *CA = cast<ConstantArray>(GV->getInitializer());
     for (auto &Op : CA->operands()) {
+      // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
       Constant *C = cast_or_null<Constant>(Op);
       if (InitAsSet.insert(C).second)
         Init.push_back(C);
     }
     GV->eraseFromParent();
   }
-
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
   Type *Int8PtrTy = llvm::Type::getInt8PtrTy(M.getContext());
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
   for (auto *V : Values) {
-    Constant *C = ConstantExpr::getBitCast(V, Int8PtrTy);
+    // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
+    // V->dump();
+    // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
+    // Constant *C = ConstantExpr::getBitCast(V, Int8PtrTy);
+    Constant *C = ConstantExpr::getPointerBitCastOrAddrSpaceCast(V, Int8PtrTy);
     if (InitAsSet.insert(C).second)
       Init.push_back(C);
   }
-
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
   if (Init.empty())
     return;
-
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
   ArrayType *ATy = ArrayType::get(Int8PtrTy, Init.size());
   GV = new llvm::GlobalVariable(M, ATy, false, GlobalValue::AppendingLinkage,
                                 ConstantArray::get(ATy, Init), Name);
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
   GV->setSection("llvm.metadata");
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
 }
 
 void llvm::appendToUsed(Module &M, ArrayRef<GlobalValue *> Values) {
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
   appendToUsedList(M, "llvm.used", Values);
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
 }
 
 void llvm::appendToCompilerUsed(Module &M, ArrayRef<GlobalValue *> Values) {
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
   appendToUsedList(M, "llvm.compiler.used", Values);
+  // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
 }
 
 FunctionCallee

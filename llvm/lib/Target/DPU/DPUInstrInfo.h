@@ -43,14 +43,22 @@ public:
                             const TargetRegisterInfo *TRI) const override;
 
   bool expandPostRAPseudo(MachineInstr &MI) const override;
-
+  void expand64BitRegisterAluInstruction(MachineInstr &MI,
+					 MachineBasicBlock &MBB,
+					 unsigned int LsbOpcode,
+					 unsigned int MsbOpcode) const;
+  void expand64BitImmediateAluInstruction(MachineInstr &MI,
+					  MachineBasicBlock &MBB,
+					  unsigned int LsbOpcode,
+					  unsigned int MsbOpcode) const;
+  
   void copyPhysReg(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
                    const DebugLoc &DL, MCRegister DestReg, MCRegister SrcReg,
                    bool KillSrc) const override;
 
   bool
   reverseBranchCondition(SmallVectorImpl<MachineOperand> &Cond) const override;
-
+  
   bool analyzeBranch(MachineBasicBlock &MBB, MachineBasicBlock *&TBB,
                      MachineBasicBlock *&FBB,
                      SmallVectorImpl<MachineOperand> &Cond,
@@ -65,6 +73,8 @@ public:
 
   void buildConditionalBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                               DebugLoc DL, ArrayRef<MachineOperand> Cond) const;
+
+  bool shouldSink(const MachineInstr &MI) const override;
 };
 
 } // namespace llvm

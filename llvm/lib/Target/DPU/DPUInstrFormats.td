@@ -97,6 +97,7 @@ def u5_imm  : UImmOperand< 5, i32>;
 def u8_imm  : UImmOperand< 8, i32>;
 
 def s8_i64_imm : SImmOperand<8, i64>;
+def s11_i64_imm : SImmOperand<11, i64>;
 def s16_i64_imm : SImmOperand<16, i64>;
 def s32_i64_imm : SImmOperand<32, i64>;
 def u32_i64_imm : UImmOperand<32, i64>;

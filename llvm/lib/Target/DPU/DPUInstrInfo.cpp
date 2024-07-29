@@ -53,7 +53,9 @@ void DPUInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
                                        const TargetRegisterClass *RC,
                                        const TargetRegisterInfo *TRI) const {
   DebugLoc DL = (I != MBB.end()) ? I->getDebugLoc() : DebugLoc();
-  unsigned Opcode = (RC == &DPU::GP_REGRegClass) ? DPU::SWrir : DPU::SDrir;
+  unsigned Opcode = (RC == &DPU::GP_REGRegClass
+		     || RC == &DPU::GPZ_REGRegClass
+		     ) ? DPU::SWrir : DPU::SDrir;
 
   LLVM_DEBUG({
     dbgs() << "DPU/Instr - storeRegToStackSlot DestReg="
@@ -82,7 +84,9 @@ void DPUInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   DebugLoc DL;
   if (I != MBB.end())
     DL = I->getDebugLoc();
-  unsigned Opcode = (RC == &DPU::GP_REGRegClass) ? DPU::LWrri : DPU::LDrri;
+  unsigned Opcode = (RC == &DPU::GP_REGRegClass
+		     || RC == &DPU::GPZ_REGRegClass
+		     ) ? DPU::LWrri : DPU::LDrri;
   LLVM_DEBUG({
     dbgs() << "DPU/Instr - loadRegFromStackSlot DestReg="
            << std::to_string(DestReg) << " Opcode= " << std::to_string(Opcode)
@@ -94,26 +98,148 @@ void DPUInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   BuildMI(MBB, I, DL, get(Opcode), DestReg).addFrameIndex(FI).addImm(0);
 }
 
+void DPUInstrInfo::expand64BitRegisterAluInstruction(MachineInstr &MI,
+						     MachineBasicBlock &MBB,
+						     unsigned int LsbOpcode,
+						     unsigned int MsbOpcode) const {
+  MachineFunction *MF = MBB.getParent();
+  const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
+
+  unsigned int DestReg = MI.getOperand(0).getReg();
+  unsigned int Op1Reg = MI.getOperand(1).getReg();
+  unsigned int Op2Reg = MI.getOperand(2).getReg();
+
+  unsigned int LSBDestReg = TRI->getSubReg(DestReg, DPU::sub_32bit);
+  unsigned int MSBDestReg = TRI->getSubReg(DestReg, DPU::sub_32bit_hi);
+
+  unsigned int LSBDOp1Reg = TRI->getSubReg(Op1Reg, DPU::sub_32bit);
+  unsigned int MSBDOp1Reg = TRI->getSubReg(Op1Reg, DPU::sub_32bit_hi);
+
+  unsigned int LSBOp2Reg = TRI->getSubReg(Op2Reg, DPU::sub_32bit);
+  unsigned int MSBOp2Reg = TRI->getSubReg(Op2Reg, DPU::sub_32bit_hi);
+
+  MachineInstrBuilder MIBDestLsb;
+  MIBDestLsb = BuildMI(MBB, MI, MI.getDebugLoc(), get(LsbOpcode),
+		       LSBDestReg)
+    .addReg(LSBDOp1Reg)
+    .addReg(LSBOp2Reg);
+
+  MachineInstrBuilder MIBDestMsb;
+  MIBDestMsb = BuildMI(MBB, MI, MI.getDebugLoc(), get(MsbOpcode),
+		       MSBDestReg)
+    .addReg(MSBDOp1Reg)
+    .addReg(MSBOp2Reg);
+
+  for (unsigned i = 0; i < 3; i++) {
+    if (MI.getOperand(i).isRenamable()) {
+      MIBDestLsb->getOperand(i).setIsRenamable();
+      MIBDestMsb->getOperand(i).setIsRenamable();
+    }
+    if (MI.getOperand(i).isKill()) {
+      MIBDestLsb->getOperand(i).setIsKill();
+      MIBDestMsb->getOperand(i).setIsKill();
+    }
+  }
+}
+
+void DPUInstrInfo::expand64BitImmediateAluInstruction(MachineInstr &MI,
+						      MachineBasicBlock &MBB,
+						      unsigned int LsbOpcode,
+						      unsigned int MsbOpcode) const {
+  MachineFunction *MF = MBB.getParent();
+  const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
+
+  unsigned int DestReg = MI.getOperand(0).getReg();
+  unsigned int Op1Reg = MI.getOperand(1).getReg();
+  int64_t Op2Imm = MI.getOperand(2).getImm();
+
+  unsigned int LSBDestReg = TRI->getSubReg(DestReg, DPU::sub_32bit);
+  unsigned int MSBDestReg = TRI->getSubReg(DestReg, DPU::sub_32bit_hi);
+
+  unsigned int LSBDOp1Reg = TRI->getSubReg(Op1Reg, DPU::sub_32bit);
+  unsigned int MSBDOp1Reg = TRI->getSubReg(Op1Reg, DPU::sub_32bit_hi);
+
+  int64_t LSBOp2Imm = Op2Imm & 0xFFFFFFFFl;
+  int64_t MSBOp2Imm = (Op2Imm >> 32) & 0xFFFFFFFFl;
+
+  // // what if value is zero???
+  // // probably optimizable :)
+  switch (LSBOp2Imm) {
+  case 0:
+  case 1:
+  case 0xffffffff:
+  case 0x80000000:
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "LSBOp2Imm = " << LSBOp2Imm << " could be optimized\n";
+      });
+  }
+
+  switch (MSBOp2Imm) {
+  case 0:
+  case 1:
+  case 0xffffffff:
+  case 0x80000000:
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "MSBOp2Imm = " << MSBOp2Imm << " could be optimized\n";
+      });
+  }
+  
+  MachineInstrBuilder MIBDestLsb;
+  MIBDestLsb = BuildMI(MBB, MI, MI.getDebugLoc(), get(LsbOpcode),
+		       LSBDestReg)
+    .addReg(LSBDOp1Reg)
+    .addImm(LSBOp2Imm);
+
+  MachineInstrBuilder MIBDestMsb;
+  MIBDestMsb = BuildMI(MBB, MI, MI.getDebugLoc(), get(MsbOpcode),
+		       MSBDestReg)
+    .addReg(MSBDOp1Reg)
+    .addImm(MSBOp2Imm);
+
+  for (unsigned i = 0; i < 2; i++) {
+    if (MI.getOperand(i).isRenamable()) {
+      MIBDestLsb->getOperand(i).setIsRenamable();
+      MIBDestMsb->getOperand(i).setIsRenamable();
+    }
+    if (MI.getOperand(i).isKill()) {
+      MIBDestLsb->getOperand(i).setIsKill();
+      MIBDestMsb->getOperand(i).setIsKill();
+    }
+  }
+}
+
 bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
   MachineFunction *MF = MBB.getParent();
   MachineFrameInfo &MFI = MF->getFrameInfo();
 
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to expand: "; MI.dump();
+      dbgs() << "** MBB: "; MBB.dump();
+      dbgs() << "****** \n";
+    });
   switch (MI.getDesc().getOpcode()) {
   default:
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	dbgs() << "Don't know how to expand.\n";
+      });
     return false;
   case DPU::RETi:
     BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::JUMPr)).addReg(DPU::R23);
     break;
   case DPU::CALLi:
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLri))
-        .addReg(DPU::R23)
-        .add(MI.getOperand(0));
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLri), DPU::R23)
+        .add(MI.getOperand(0))
+        .copyImplicitOps(MI);
     break;
   case DPU::CALLr:
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLrr))
-        .addReg(DPU::R23)
-        .add(MI.getOperand(0));
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLrr), DPU::R23)
+        .add(MI.getOperand(0))
+        .copyImplicitOps(MI);
     break;
   case DPU::ADD_VAStart: { // Get the first index in stack where the first
                            // vaargs is stored
@@ -122,16 +248,57 @@ bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       StackSize = MF->getFrameInfo().getStackSize();
     }
     unsigned int ResultReg = MI.getOperand(0).getReg();
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::SUBrrif))
-        .addReg(ResultReg)
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::SUBrrif), ResultReg)
         .addReg(DPU::R22)
         .addImm(StackSize + STACK_SIZE_FOR_D22)
         .addImm(DPUAsmCondition::Condition::False);
     break;
   }
+
+  case DPU::ADD64rr:
+    expand64BitRegisterAluInstruction(MI, MBB, DPU::ADDrrr, DPU::ADDCrrr);
+    break;
+  case DPU::AND64rr:
+    expand64BitRegisterAluInstruction(MI, MBB, DPU::ANDrrr, DPU::ANDrrr);
+    break;
+  case DPU::OR64rr:
+    expand64BitRegisterAluInstruction(MI, MBB, DPU::ORrrr, DPU::ORrrr);
+    break;
+  case DPU::SUB64rr:
+    expand64BitRegisterAluInstruction(MI, MBB, DPU::SUBrrr, DPU::SUBCrrr);
+    break;
+  case DPU::XOR64rr:
+    expand64BitRegisterAluInstruction(MI, MBB, DPU::XORrrr, DPU::XORrrr);
+    break;
+    
+  case DPU::ADD64ri:
+    expand64BitImmediateAluInstruction(MI, MBB, DPU::ADDrri, DPU::ADDCrri);
+    break;
+  case DPU::AND64ri:
+    expand64BitImmediateAluInstruction(MI, MBB, DPU::ANDrri, DPU::ANDrri);
+    break;
+  case DPU::OR64ri:
+    expand64BitImmediateAluInstruction(MI, MBB, DPU::ORrri, DPU::ORrri);
+    break;
+  case DPU::XOR64ri:
+    expand64BitImmediateAluInstruction(MI, MBB, DPU::XORrri, DPU::XORrri);
+    break;
+    
+  // case DPU::Jcci:
+  // case DPU::TmpJcci:
+  // case DPU::Jcc: {
+  //   // don't expand yet as they are used for late optimization
+  //   // these late optimization should be reworked and placed earlier in the pipeline
+  //   // so we could treat more cases of optim
+  //   break;
+  // }
   }
 
   MBB.erase(MI);
+
+  LLVM_DEBUG({
+      dbgs() << "** MBB: "; MBB.dump();
+    });
   return true;
 }
 
@@ -139,18 +306,24 @@ void DPUInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator I,
                                const DebugLoc &DL, MCRegister DestReg,
                                MCRegister SrcReg, bool KillSrc) const {
+  LLVM_DEBUG({ dbgs() << "DPU/Instr - copyPhysReg "; I->dump(); });
+
+  bool is_dest_renamable = I->getOperand(0).isRenamable();
+  bool is_src_renamable = I->getOperand(1).isRenamable();
+  MachineInstrBuilder MIB;
+
   if (DPU::GP_REGRegClass.contains(DestReg) &&
       DPU::OP_REGRegClass.contains(SrcReg)) {
     LLVM_DEBUG(dbgs() << "DPU/Instr - copyPhysReg from src=" << SrcReg
                       << " kill= " << KillSrc << " to dest=" << DestReg
                       << "\n");
-    BuildMI(MBB, I, DL, get(DPU::MOVErr), DestReg)
+    MIB = BuildMI(MBB, I, DL, get(DPU::MOVErr), DestReg)
         .addReg(SrcReg, getKillRegState(KillSrc));
   } else if (DPU::GP64_REGRegClass.contains(DestReg, SrcReg)) {
     LLVM_DEBUG(dbgs() << "DPU/Instr - copyPhysReg from src=" << SrcReg
                       << " kill= " << KillSrc << " to dest=" << DestReg
                       << "\n");
-    BuildMI(MBB, I, DL, get(DPU::MOVDrr), DestReg)
+    MIB = BuildMI(MBB, I, DL, get(DPU::MOVDrr), DestReg)
         .addReg(SrcReg, getKillRegState(KillSrc));
   } else if (DPU::GP64_REGRegClass.contains(SrcReg) &&
              DPU::GP_REGRegClass.contains(DestReg)) {
@@ -158,7 +331,7 @@ void DPUInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
     LLVM_DEBUG(dbgs() << "DPU/Instr - copyPhysReg from src=" << SrcReg
                       << " kill= " << KillSrc << " to dest=" << DestReg
                       << "\n");
-    BuildMI(MBB, I, DL, get(DPU::EXTRACT_SUBREG), DestReg)
+    MIB = BuildMI(MBB, I, DL, get(DPU::EXTRACT_SUBREG), DestReg)
         .addReg(SrcReg, getKillRegState(KillSrc))
         .addImm(DPU::sub_32bit);
   } else if (DPU::GP_REGRegClass.contains(SrcReg) &&
@@ -167,11 +340,16 @@ void DPUInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
     LLVM_DEBUG(dbgs() << "DPU/Instr - copyPhysReg from src=" << SrcReg
                       << " kill= " << KillSrc << " to dest=" << DestReg
                       << "\n");
-    BuildMI(MBB, I, DL, get(DPU::MOVE_Srr), DestReg)
+    MIB = BuildMI(MBB, I, DL, get(DPU::MOVE_Srr), DestReg)
         .addReg(SrcReg, getKillRegState(KillSrc));
   } else {
     llvm_unreachable("Impossible reg-to-reg copy");
   }
+
+  if (is_dest_renamable)
+    MIB->getOperand(0).setIsRenamable();
+  if (is_src_renamable)
+    MIB->getOperand(1).setIsRenamable();
 }
 
 static bool reverseBranchOpc(unsigned Opc, unsigned &ReversedOpc) {
@@ -257,6 +435,7 @@ bool DPUInstrInfo::reverseBranchCondition(
   case DPU::Jcc:
   case DPU::Jcci:
   case DPU::Jcc64:
+  // case DPU::Jcci64:
     Cond[1].setImm(ISD::getSetCCInverse(ISD::CondCode(Cond[1].getImm()), MVT::i32));
     break;
   default: {
@@ -275,6 +454,11 @@ bool DPUInstrInfo::reverseBranchCondition(
 static void
 fetchUnconditionalBranchInfo(MachineInstr *Inst,
                              unsigned &targetBasicBlockOperandIndex) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "Inst "; Inst->dump();
+    });
+
   switch (Inst->getOpcode()) {
   case DPU::JUMPi:
     targetBasicBlockOperandIndex = 0;
@@ -286,21 +470,73 @@ fetchUnconditionalBranchInfo(MachineInstr *Inst,
 
 static void fetchConditionalBranchInfo(MachineInstr *Inst,
                                        unsigned &targetBasicBlockOperandIndex,
-                                       SmallVectorImpl<MachineOperand> &Cond) {
+                                       SmallVectorImpl<MachineOperand> &Cond,
+				       bool &do_have_metadata) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "Inst "; Inst->dump();
+      dbgs() << "Cond.size() " << Cond.size() << "\n";
+      for (unsigned i = 0; i < Cond.size(); ++i) {
+	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+      }
+    });
+  
   unsigned Opc = Inst->getOpcode();
   Cond.push_back(MachineOperand::CreateImm(Opc));
 
+  // for (unsigned int eachOperandIndex = 0; eachOperandIndex < Inst->getNumOperands();
+  //      eachOperandIndex++) {
+  //   MachineOperand &operand = Inst->getOperand(eachOperandIndex);
+  //   LLVM_DEBUG({
+  // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  // 	dbgs() << "operand " << eachOperandIndex << ": "; operand.dump();
+  //     });
+  //   if (operand.isMBB()) {
+  //     targetBasicBlockOperandIndex = eachOperandIndex;
+  //   } else {
+  //     Cond.push_back(operand);
+  //   }
+  // }
   unsigned int NumOp = Inst->getNumExplicitOperands();
+  // unsigned int NumOp = Inst->getNumOperands();
 
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "NumOp " << NumOp << "\n";
+  //   });
   for (unsigned int eachOperandIndex = 0; eachOperandIndex < NumOp;
        eachOperandIndex++) {
+    // LLVM_DEBUG({
+    // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    // 	dbgs() << "operand " << eachOperandIndex << ": ";
+    //   });
     MachineOperand &operand = Inst->getOperand(eachOperandIndex);
+    // LLVM_DEBUG({
+    // 	operand.dump();
+    //   });
     if (operand.isMBB()) {
       targetBasicBlockOperandIndex = eachOperandIndex;
     } else {
       Cond.push_back(operand);
     }
   }
+
+  do_have_metadata = false;
+  for (const MachineOperand &Op : Inst->operands()) {
+    if (Op.isMetadata() && Op.getMetadata()->getOperand(0).get() == MDString::get(Inst->getMF()->getFunction().getContext(), "MySpecialMetadata")) {
+      Cond.push_back(Op);
+      do_have_metadata = true;
+    }
+  }
+  
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "Inst "; Inst->dump();
+      dbgs() << "Cond.size() " << Cond.size() << "\n";
+      for (unsigned i = 0; i < Cond.size(); ++i) {
+	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+      }
+    });
 }
 
 static inline bool isAnalyzableBranch(MachineInstr *Inst) {
@@ -312,6 +548,15 @@ bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
                                  MachineBasicBlock *&FBB,
                                  SmallVectorImpl<MachineOperand> &Cond,
                                  bool AllowModify) const {
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "MBB "; MBB.dump();
+      for (unsigned i = 0; i < Cond.size(); ++i) {
+	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+      }
+    });
+  
   MachineBasicBlock::reverse_iterator I = MBB.rbegin(), REnd = MBB.rend();
 
   // Skip all the debug instructions.
@@ -331,6 +576,9 @@ bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 
   // If not an analyzable branch (e.g., indirect jump), just leave.
   if (!isAnalyzableBranch(LastInst)) {
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " not analyzable\n";
+      });
     return true;
   }
 
@@ -366,18 +614,40 @@ bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     // Conditional branch
     if (LastInst->isConditionalBranch()) {
       unsigned int TBBOpIdx;
-      fetchConditionalBranchInfo(LastInst, TBBOpIdx, Cond);
+      bool do_have_metadata = false;
+      fetchConditionalBranchInfo(LastInst, TBBOpIdx, Cond, do_have_metadata);
+      if (do_have_metadata) {
+	LLVM_DEBUG({
+	    dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " not analyzable metadata\n";
+	  });
+	return true;
+      }
+      // LLVM_DEBUG({
+      // 	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      // 	  dbgs() << "MBB "; MBB.dump();
+      // 	  dbgs() << "LastInst "; LastInst->dump();
+      // 	  dbgs() << "TBBOpIdx " << TBBOpIdx << "\n";
+      // 	  for (unsigned i = 0; i < Cond.size(); ++i) {
+      // 	    dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+      // 	  }
+      // 	});
       TBB = LastInst->getOperand(TBBOpIdx).getMBB();
       return false;
     }
 
     // Unknown branch type
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " not analyzable\n";
+      });
     return true;
   }
 
   // If we reached here, there are two branches.
   // If there are three terminators, we don't know what sort of block this is.
   if (++I != REnd && isUnpredicatedTerminator(*I)) {
+    LLVM_DEBUG({
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " not analyzable\n";
+      });
     return true;
   }
 
@@ -386,11 +656,13 @@ bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
   if (SecondLastInst->isUnconditionalBranch()) {
     // Return if the last instruction cannot be removed.
     if (!AllowModify) {
+      LLVM_DEBUG({
+	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " not analyzable\n";
+	});
       return true;
     }
     unsigned int TBBOpIdx;
     fetchUnconditionalBranchInfo(SecondLastInst, TBBOpIdx);
-
     TBB = SecondLastInst->getOperand(TBBOpIdx).getMBB();
     LastInst->eraseFromParent();
     return false;
@@ -400,25 +672,52 @@ bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     // Conditional branch followed by an unconditional branch.
     // The last one must be unconditional.
     if (!LastInst->isUnconditionalBranch()) {
+      LLVM_DEBUG({
+	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " not analyzable\n";
+	});
       return true;
     }
     unsigned int TBBOpIdx;
     unsigned int FTBBOpIdx;
+    bool do_have_metadata = false;
 
     fetchUnconditionalBranchInfo(LastInst, FTBBOpIdx);
-    fetchConditionalBranchInfo(SecondLastInst, TBBOpIdx, Cond);
+    fetchConditionalBranchInfo(SecondLastInst, TBBOpIdx, Cond, do_have_metadata);
+    if (do_have_metadata) {
+      LLVM_DEBUG({
+	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " not analyzable metadata\n";
+	});
+      return true;
+    }
     TBB = SecondLastInst->getOperand(TBBOpIdx).getMBB();
     FBB = LastInst->getOperand(FTBBOpIdx).getMBB();
+    // LLVM_DEBUG({
+    // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    // 	dbgs() << "MBB "; MBB.dump();
+    // 	dbgs() << "LastInst "; LastInst->dump();
+    // 	dbgs() << "SecondLastInst "; SecondLastInst->dump();
+    // 	dbgs() << "TBBOpIdx " << TBBOpIdx << "\n";
 
+    // 	for (unsigned i = 0; i < Cond.size(); ++i) {
+    // 	  dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+    // 	}
+    //   });
     return false;
   }
 
   // Unknown branch type
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " not analyzable\n";
+    });
   return true;
 }
 
 unsigned DPUInstrInfo::removeBranch(MachineBasicBlock &MBB,
                                     int *BytesRemoved) const {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "MBB "; MBB.dump();
+    });
   MachineBasicBlock::iterator I = MBB.end();
   unsigned Count = 0;
 
@@ -444,22 +743,128 @@ unsigned DPUInstrInfo::removeBranch(MachineBasicBlock &MBB,
 void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
                                           MachineBasicBlock *TBB, DebugLoc DL,
                                           ArrayRef<MachineOperand> Cond) const {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "MBB "; MBB.dump();
+      for (unsigned i = 0; i < Cond.size(); ++i) {
+	  dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+	  if (Cond[i].isReg()) {
+	    dbgs() << "Cond[" << i << "] isUse " << Cond[i].isUse() << "\n";
+	    dbgs() << "Cond[" << i << "] isDef " << Cond[i].isDef() << "\n";
+	  }
+      }
+    });
+
+  // LLVM_DEBUG({
+  //     dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+  //     dbgs() << "DPU::sub_32bit " << DPU::sub_32bit << "\n";
+  //     dbgs() << "DPU::sub_32bit_hi " << DPU::sub_32bit_hi << "\n";
+  //     for (unsigned i = 0; i < Cond.size(); ++i) {
+  // 	dbgs() << "Cond[" << i << "] = "; Cond[i].dump();
+  // 	if (Cond[i].isReg()) {
+  // 	  dbgs() << "is Reg\n";
+  // 	  dbgs() << Cond[i].getReg() << "\n";
+  // 	  dbgs() << Cond[i].getSubReg() << "\n";
+
+  // 	  dbgs() << "contains " << DPU::GP64_REGRegClass.contains(Cond[i].getReg()) << "\n";
+  // 	}
+  //     }
+  //   });
+
   MachineInstrBuilder MIB;
 
   unsigned Opc = Cond[0].getImm();
 
-  MIB = BuildMI(&MBB, DL, get(Opc));
+  // treat special cases
+  // those where not well handled with LLVM SSA stuff
+  // bool have_metadata = false;
+  // TODO: find a better way to discover if it's an arithmetic+comp+jump
+  //       or simply rely solely on metadata?
+  // switch (Opc) {
+  // default:
+  //   break;
+  // case DPU::CLZ_Urrci:
+  // case DPU::MUL_UL_ULrrrci:
+  // case DPU::LSLXrrrci:
+  // case DPU::LSRXrrrci:
+  //   {
+  //     for (unsigned i = 0; i < Cond.size(); ++i) {
+  // 	if (Cond[i].isMetadata()
+  // 	    && Cond[i].getMetadata()->getOperand(0).get() == MDString::get(MBB.getParent()->getFunction().getContext(), "MySpecialMetadata")) {
+  // 	  have_metadata = true;
+  // 	}
+  //     }
+  //     break;
+  //   }
+  // }
 
-  for (unsigned i = 1; i < Cond.size(); ++i) {
-    if (Cond[i].isReg())
-      MIB.addReg(Cond[i].getReg());
-    else if (Cond[i].isImm())
+  MIB = BuildMI(&MBB, DL, get(Opc));
+  // for (unsigned i = 1; i < Cond.size(); ++i) {
+  //   MIB->addOperand(Cond[i]);
+  // }
+  
+  
+  unsigned start = 1;
+  // if (have_metadata) {
+  //   MIB = BuildMI(&MBB, DL, get(Opc), Cond[start].getReg());
+  //   start++;
+  // } else {
+  //   MIB = BuildMI(&MBB, DL, get(Opc));
+  // }
+
+  for (unsigned i = start; i < Cond.size(); ++i) {
+    // LLVM_DEBUG({
+    // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    // 	dbgs() << " working on " << i << "\n";
+    //   });
+    if (Cond[i].isReg()) {
+      // LLVM_DEBUG({
+      // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      // });
+      // MIB.addReg(Cond[i].getReg());
+      // LLVM_DEBUG({
+      // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      // });
+      MIB->addOperand(Cond[i]);
+      // if (Cond[i].isDef()) {
+      // 	// The register in question could potentially be a
+      // 	// subreg hi/lo of a 64-bit vreg
+      // 	if (unsigned SubReg = Cond[i].getSubReg()) {
+      // 	  MIB.addDef(Cond[i].getReg(), 0, SubReg);
+      // 	} else {
+      // 	  MIB.addDef(Cond[i].getReg());
+      // 	}
+      // } else {
+      // 	// The register in question could potentially be a
+      // 	// subreg hi/lo of a 64-bit vreg
+      // 	if (unsigned SubReg = Cond[i].getSubReg()) {
+      // 	  MIB.addReg(Cond[i].getReg(), 0, SubReg);
+      // 	} else {
+      // 	  MIB.addReg(Cond[i].getReg());
+      // 	}
+      // }
+    } else if (Cond[i].isImm()) {
       MIB.addImm(Cond[i].getImm());
-    else
+    } else if (Cond[i].isMetadata()) {
+      // MIB.addMetadata(Cond[i].getMetadata());
+    } else {
       assert(false && "Cannot copy operand");
+    }
   }
 
   MIB.addMBB(TBB);
+
+  // add back remaining metadata
+  for (unsigned i = 0; i < Cond.size(); ++i) {
+     if (Cond[i].isMetadata()) {
+      MIB.addMetadata(Cond[i].getMetadata());
+     }
+  }
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "MIB "; MIB->dump();
+    });
 }
 
 unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
@@ -467,6 +872,13 @@ unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
                                     MachineBasicBlock *FBB,
                                     ArrayRef<MachineOperand> Cond,
                                     const DebugLoc &DL, int *BytesAdded) const {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "MBB "; MBB.dump();
+      for (unsigned i = 0; i < Cond.size(); ++i) {
+	dbgs() << "Cond[" << i << "] "; Cond[i].dump();
+      }
+    });
   unsigned nrOfInsertedMachineInstr = 0;
   // Shouldn't be a fall through.
   assert(TBB && "InsertBranch must not be told to insert a fallthrough");
@@ -492,5 +904,47 @@ unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
   // to instructions added.
   if (BytesAdded)
     *BytesAdded = nrOfInsertedMachineInstr;
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "MBB "; MBB.dump();
+    });
   return nrOfInsertedMachineInstr;
+}
+
+bool DPUInstrInfo::shouldSink(const MachineInstr &MI) const {
+  switch (MI.getDesc().getOpcode()) {
+  default:
+    break;
+  case DPU::CLZ_Urr:
+  case DPU::LSLXrrr:
+  case DPU::LSRXrrr:
+  case DPU::ANDrri:
+  case DPU::JEQrii:
+  case DPU::JNEQrii:
+  // case DPU::ADDrrr:
+  // case DPU::ADDCrrr:
+  case DPU::SUBrrr:
+  case DPU::SUBCrrr:
+    {
+      //   return false;
+      for (const MachineOperand &Op : MI.operands()) {
+	if (Op.isMetadata() && Op.getMetadata()->getOperand(0).get() == MDString::get(MI.getMF()->getFunction().getContext(), "MySpecialMetadata")) {
+	  LLVM_DEBUG({
+	      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " Don't sink because I have MySpecialMetadata.\n";
+	      MI.dump();
+	    });
+	  return false; // Do not sink this instruction
+	}
+      }
+      LLVM_DEBUG({
+	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " I'm potentially something used in arith+cond+jump from EmitInstrWithCustomInserter but I allow sink because I don't have MySpecialMetadata.\n";
+	  MI.dump();
+	});
+      break;
+    }
+  }
+
+  // return true;
+  return TargetInstrInfo::shouldSink(MI);
 }

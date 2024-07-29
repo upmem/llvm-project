@@ -7,6 +7,16 @@
 //
 //===----------------------------------------------------------------------===//
 
+// possibly move that earlier in the pipeline
+//   all simple arithmetic could be moved to in EmitInstrWithCustomInserter pre regalloc and other optim
+//   here I needed to add some option again, because we tweak it postRA
+//       if we do that express them directly during ISEL, we would benefit more natural optimization earlier
+//          also, possibility of FastIsel and GlobalSel instead of InstructionSel ...
+
+// TODO: expand test cases for splicing stuff
+//       need_splice = 0/1  x  canFallThrough = 0/1
+//     and/or doing Jcc and Setcc earlier as well
+
 #include "DPU.h"
 #include "DPUInstrInfo.h"
 #include "DPUSubtarget.h"
@@ -119,6 +129,13 @@ static void resolve64BitImmediateAluInstruction(
     MachineBasicBlock *MBB, MachineBasicBlock::iterator MBBIter,
     const DPUInstrInfo &InstrInfo, unsigned int LsbOpcode,
     unsigned int MsbOpcode) {
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+    });
+
   MachineFunction *MF = MBB->getParent();
   const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
 
@@ -143,12 +160,23 @@ static void resolve64BitImmediateAluInstruction(
           MSBDestReg)
       .addReg(MSBDOp1Reg)
       .addImm(MSBOp2Imm);
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** MBB: "; MBB->dump();
+    });
 }
 
 static void resolve64BitRegisterAluInstruction(
     MachineBasicBlock *MBB, MachineBasicBlock::iterator MBBIter,
     const DPUInstrInfo &InstrInfo, unsigned int LsbOpcode,
     unsigned int MsbOpcode) {
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+    });
   MachineFunction *MF = MBB->getParent();
   const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
 
@@ -165,14 +193,33 @@ static void resolve64BitRegisterAluInstruction(
   unsigned int LSBOp2Reg = TRI->getSubReg(Op2Reg, DPU::sub_32bit);
   unsigned int MSBOp2Reg = TRI->getSubReg(Op2Reg, DPU::sub_32bit_hi);
 
-  BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(LsbOpcode),
+  MachineInstrBuilder MIBDestLsb;
+  MIBDestLsb = BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(LsbOpcode),
           LSBDestReg)
       .addReg(LSBDOp1Reg)
       .addReg(LSBOp2Reg);
-  BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(MsbOpcode),
+
+  MachineInstrBuilder MIBDestMsb;
+  MIBDestMsb = BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(MsbOpcode),
           MSBDestReg)
       .addReg(MSBDOp1Reg)
       .addReg(MSBOp2Reg);
+
+  for (unsigned i = 0; i < 3; i++) {
+    if (MBBIter->getOperand(i).isRenamable()) {
+      MIBDestLsb->getOperand(i).setIsRenamable();
+      MIBDestMsb->getOperand(i).setIsRenamable();
+    }
+    if (MBBIter->getOperand(i).isKill()) {
+      MIBDestLsb->getOperand(i).setIsKill();
+      MIBDestMsb->getOperand(i).setIsKill();
+    }
+  }
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** MBB: "; MBB->dump();
+    });
 }
 
 static void resolveJeq64(MachineBasicBlock *MBB,
@@ -181,21 +228,48 @@ static void resolveJeq64(MachineBasicBlock *MBB,
   const BasicBlock *LLVM_BB = MBB->getBasicBlock();
   MachineFunction::iterator I = ++MBB->getIterator();
   MachineFunction *F = MBB->getParent();
+
+  bool need_splice = std::next(MBBIter) != MBB->end();
+
+  MachineBasicBlock *FTMBB = MBB->getFallThrough();
+  MachineBasicBlock *JumpMBB = MBBIter->getOperand(3).getMBB();
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "** need_splice: " << need_splice << "\n";
+      dbgs() << "** canFallThrough: " << MBB->canFallThrough() << "\n";
+      if (MBB->canFallThrough()) {
+	dbgs() << "** FTMBB: "; FTMBB->dump();
+      }
+      dbgs() << "** JumpMBB: "; JumpMBB->dump();
+      dbgs() << "****** \n";
+    });
+
   MachineBasicBlock *trueMBB = F->CreateMachineBasicBlock(LLVM_BB);
-  MachineBasicBlock *endMBB = F->CreateMachineBasicBlock(LLVM_BB);
+  MachineBasicBlock *endMBB;
+
   F->insert(I, trueMBB);
-  F->insert(I, endMBB);
-  // Update machine-CFG edges by transferring all successors of the current
-  // block to the new block which will contain the Phi node for the select.
-  endMBB->splice(endMBB->begin(), MBB, std::next(MBBIter), MBB->end());
-  endMBB->transferSuccessorsAndUpdatePHIs(MBB);
+  if (need_splice) {
+    endMBB = F->CreateMachineBasicBlock(LLVM_BB);
+    F->insert(I, endMBB);
+    // Update machine-CFG edges by transferring all successors of the current
+    // block to the new block which will contain the Phi node for the select.
+    endMBB->splice(endMBB->begin(), MBB, std::next(MBBIter), MBB->end());
+    endMBB->transferSuccessorsAndUpdatePHIs(MBB);
+    MBB->addSuccessor(endMBB);
+    endMBB->removeSuccessor(JumpMBB, /* NormalizeSuccProbs = */ true);
+  } else {
+    endMBB = FTMBB;
+    MBB->removeSuccessor(JumpMBB, /* NormalizeSuccProbs = */ true);
+  }
+
   // Next, add the true and fallthrough blocks as its successors.
-  auto JumpMBB = MBBIter->getOperand(3).getMBB();
   MBB->addSuccessor(trueMBB);
-  MBB->addSuccessor(endMBB);
   trueMBB->addSuccessor(JumpMBB);
   trueMBB->addSuccessor(endMBB);
-
+  
   unsigned int Op1Reg = MBBIter->getOperand(1).getReg();
   unsigned int Op2Reg = MBBIter->getOperand(2).getReg();
 
@@ -215,6 +289,20 @@ static void resolveJeq64(MachineBasicBlock *MBB,
       .addReg(MsbOp1Reg)
       .addReg(MsbOp2Reg)
       .addMBB(JumpMBB);
+
+  trueMBB->addLiveIn(MsbOp1Reg);
+  trueMBB->addLiveIn(MsbOp2Reg);
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** need_splice: " << need_splice << "\n";
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "** trueMBB: "; trueMBB->dump();
+      dbgs() << "** endMBB: "; endMBB->dump();
+      dbgs() << "** FTMBB: "; FTMBB->dump();
+      dbgs() << "** JumpMBB: "; JumpMBB->dump();
+      dbgs() << "****** \n";
+    });
 }
 
 static void resolveJneq64(MachineBasicBlock *MBB,
@@ -223,18 +311,44 @@ static void resolveJneq64(MachineBasicBlock *MBB,
   const BasicBlock *LLVM_BB = MBB->getBasicBlock();
   MachineFunction::iterator I = ++MBB->getIterator();
   MachineFunction *F = MBB->getParent();
+
+  bool need_splice = std::next(MBBIter) != MBB->end();
+  bool canFallThrough = MBB->canFallThrough();
+  MachineBasicBlock *FTMBB = MBB->getFallThrough();
+  MachineBasicBlock *JumpMBB = MBBIter->getOperand(3).getMBB();
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "** need_splice: " << need_splice << "\n";
+      dbgs() << "** canFallThrough: " << canFallThrough << "\n";
+      if (canFallThrough) {
+	dbgs() << "** FTMBB: "; FTMBB->dump();
+      }
+      dbgs() << "** JumpMBB: "; JumpMBB->dump();
+      dbgs() << "****** \n";
+    });
+
   MachineBasicBlock *trueMBB = F->CreateMachineBasicBlock(LLVM_BB);
-  MachineBasicBlock *endMBB = F->CreateMachineBasicBlock(LLVM_BB);
+  MachineBasicBlock *endMBB;
   F->insert(I, trueMBB);
-  F->insert(I, endMBB);
-  // Update machine-CFG edges by transferring all successors of the current
-  // block to the new block which will contain the Phi node for the select.
-  endMBB->splice(endMBB->begin(), MBB, std::next(MBBIter), MBB->end());
-  endMBB->transferSuccessorsAndUpdatePHIs(MBB);
-  // Next, add the true and fallthrough blocks as its successors.
-  auto JumpMBB = MBBIter->getOperand(3).getMBB();
+
+  if (need_splice) {
+    endMBB = F->CreateMachineBasicBlock(LLVM_BB);
+    F->insert(I, endMBB);
+    // Update machine-CFG edges by transferring all successors of the current
+    // block to the new block which will contain the Phi node for the select.
+    endMBB->splice(endMBB->begin(), MBB, std::next(MBBIter), MBB->end());
+    endMBB->transferSuccessorsAndUpdatePHIs(MBB);
+    MBB->addSuccessor(JumpMBB);
+    endMBB->removeSuccessor(JumpMBB, /* NormalizeSuccProbs = */ true);
+  } else {
+    endMBB = FTMBB;
+    MBB->removeSuccessor(endMBB, /* NormalizeSuccProbs = */ true);
+  }
+
   MBB->addSuccessor(trueMBB);
-  MBB->addSuccessor(JumpMBB);
   trueMBB->addSuccessor(JumpMBB);
   trueMBB->addSuccessor(endMBB);
 
@@ -257,12 +371,35 @@ static void resolveJneq64(MachineBasicBlock *MBB,
       .addReg(MsbOp1Reg)
       .addReg(MsbOp2Reg)
       .addMBB(JumpMBB);
+  
+  trueMBB->addLiveIn(MsbOp1Reg);
+  trueMBB->addLiveIn(MsbOp2Reg);
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** need_splice: " << need_splice << "\n";
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "** trueMBB: "; trueMBB->dump();
+      dbgs() << "** endMBB: "; endMBB->dump();
+      if (canFallThrough) {
+	dbgs() << "** FTMBB: "; FTMBB->dump();
+      }
+      dbgs() << "** JumpMBB: "; JumpMBB->dump();
+      dbgs() << "****** \n";
+    });
 }
 
 static void resolveJcc64AsSub64(MachineBasicBlock *MBB,
                                 MachineBasicBlock::iterator MBBIter,
                                 const DPUInstrInfo &InstrInfo,
                                 DPUAsmCondition::Condition Cond) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "****** \n";
+    });
+  
   unsigned int Op1Reg = MBBIter->getOperand(1).getReg();
   unsigned int Op2Reg = MBBIter->getOperand(2).getReg();
   auto JumpMBB = MBBIter->getOperand(3).getMBB();
@@ -284,11 +421,20 @@ static void resolveJcc64AsSub64(MachineBasicBlock *MBB,
       .addReg(MsbOp2Reg)
       .addImm(Cond)
       .addMBB(JumpMBB);
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** MBB: "; MBB->dump();
+    });
 }
 
 static void resolveJcc64(MachineBasicBlock *MBB,
                          MachineBasicBlock::iterator MBBIter,
                          const DPUInstrInfo &InstrInfo) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    });
+
   switch (MBBIter->getOperand(0).getImm()) {
   default:
     llvm_unreachable("invalid condition");
@@ -304,43 +450,212 @@ static void resolveJcc64(MachineBasicBlock *MBB,
     break;
   case ISD::SETOGT:
   case ISD::SETGT:
+    LLVM_DEBUG({ dbgs() << "GT " << ISD::SETOGT << " " << ISD::SETGT << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::ExtendedGreaterThanSigned);
     break;
   case ISD::SETOGE:
   case ISD::SETGE:
+    LLVM_DEBUG({ dbgs() << "GE " << ISD::SETOGE << " " << ISD::SETGE << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::GreaterOrEqualSigned);
     break;
   case ISD::SETOLT:
   case ISD::SETLT:
+    LLVM_DEBUG({ dbgs() << "LT " << ISD::SETOLT << " " << ISD::SETLT << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::LessThanSigned);
     break;
   case ISD::SETOLE:
   case ISD::SETLE:
+    LLVM_DEBUG({ dbgs() << "GE " << ISD::SETOLE << " " << ISD::SETLE << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::ExtendedLessOrEqualSigned);
     break;
   case ISD::SETUGT:
-    resolveJcc64AsSub64(
-        MBB, MBBIter, InstrInfo,
-        DPUAsmCondition::Condition::ExtendedGreaterThanUnsigned);
+    LLVM_DEBUG({ dbgs() << "UGT " << ISD::SETUGT << "\n"; });
+    resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
+			DPUAsmCondition::Condition::ExtendedGreaterThanUnsigned);
+    
     break;
   case ISD::SETUGE:
+    LLVM_DEBUG({ dbgs() << "UGE " << ISD::SETUGE << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::GreaterOrEqualUnsigned);
     break;
   case ISD::SETULT:
+    LLVM_DEBUG({ dbgs() << "ULT " << ISD::SETULT << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::LessThanUnsigned);
     break;
   case ISD::SETULE:
-    resolveJcc64AsSub64(
-        MBB, MBBIter, InstrInfo,
-        DPUAsmCondition::Condition::ExtendedLessOrEqualUnsigned);
+    LLVM_DEBUG({ dbgs() << "ULE " << ISD::SETULE << "\n"; });
+    resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
+			DPUAsmCondition::Condition::ExtendedLessOrEqualUnsigned);
     break;
   }
+}
+
+static void resolveJcci64(MachineBasicBlock *MBB,
+		       MachineBasicBlock::iterator MBBIter,
+		       const DPUInstrInfo &InstrInfo) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "****** \n";
+    });
+
+  unsigned int OpCode =
+    findJumpOpcodeForCondition(MBBIter->getOperand(0).getImm(), true);
+  const MachineInstrBuilder &MIB =
+    BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(OpCode));
+  MIB.add(MBBIter->getOperand(1)).add(MBBIter->getOperand(2));
+
+  for (unsigned int i = MBBIter->getNumOperands() - 1; i >= 3; --i) {
+    MachineOperand &Operand = MBBIter->getOperand(i);
+
+    if (Operand.isMBB()) {
+      MIB.add(Operand);
+      break;
+    }
+  }
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** MBB: "; MBB->dump();
+    });
+}
+
+static void resolveMOVE64ri(MachineBasicBlock *MBB,
+			    MachineBasicBlock::iterator MBBIter,
+			    const DPUInstrInfo &InstrInfo) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "****** \n";
+    });
+ 
+  MachineFunction *MF = MBB->getParent();
+  const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
+
+  unsigned int DestReg = MBBIter->getOperand(0).getReg();
+  int64_t Op1Imm = MBBIter->getOperand(1).getImm();
+
+  int64_t LSBOp1Imm = Op1Imm & 0xFFFFFFFFl;
+  int64_t MSBOp1Imm = (Op1Imm >> 32) & 0xFFFFFFFFl;
+  unsigned int LSBDestReg = TRI->getSubReg(DestReg, DPU::sub_32bit);
+  unsigned int MSBDestReg = TRI->getSubReg(DestReg, DPU::sub_32bit_hi);
+
+  BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(DPU::MOVEri),
+	  LSBDestReg)
+    .addImm(LSBOp1Imm);
+  BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(DPU::MOVEri),
+	  MSBDestReg)
+    .addImm(MSBOp1Imm);
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** MBB: "; MBB->dump();
+    });
+}
+
+static void resolveSET64cc(MachineBasicBlock *MBB,
+			   MachineBasicBlock::iterator MBBIter,
+			   const DPUInstrInfo &InstrInfo) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "****** \n";
+    });
+
+  MachineFunction *MF = MBB->getParent();
+  const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
+
+  unsigned int DestReg = MBBIter->getOperand(0).getReg();
+  auto ImmCond = static_cast<DPUAsmCondition::Condition>(MBBIter->getOperand(1).getImm());
+  unsigned int Op1Reg = MBBIter->getOperand(2).getReg();
+  unsigned int Op2Reg = MBBIter->getOperand(3).getReg();
+
+  DPUAsmCondition::Condition SetCondition =
+    findSelect64SetConditionFor(ImmCond);
+
+  unsigned int LSBDOp1Reg = TRI->getSubReg(Op1Reg, DPU::sub_32bit);
+  unsigned int MSBDOp1Reg = TRI->getSubReg(Op1Reg, DPU::sub_32bit_hi);
+
+  unsigned int LSBOp2Reg = TRI->getSubReg(Op2Reg, DPU::sub_32bit);
+  unsigned int MSBOp2Reg = TRI->getSubReg(Op2Reg, DPU::sub_32bit_hi);
+
+  BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(DPU::SUBzrr))
+    .addReg(DPU::ZERO)
+    .addReg(LSBDOp1Reg)
+    .addReg(LSBOp2Reg);
+  BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(),
+	  InstrInfo.get(DPU::SUBCrrrc), DestReg)
+    .addReg(MSBDOp1Reg)
+    .addReg(MSBOp2Reg)
+    .addImm(SetCondition);
+  
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** MBB: "; MBB->dump();
+    });
+}
+
+static void resolveJcc(MachineBasicBlock *MBB,
+		       MachineBasicBlock::iterator MBBIter,
+		       const DPUInstrInfo &InstrInfo) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "****** \n";
+    });
+
+  unsigned int OpCode =
+    findJumpOpcodeForCondition(MBBIter->getOperand(0).getImm(), false);
+  BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(OpCode))
+    .add(MBBIter->getOperand(1))
+    .add(MBBIter->getOperand(2))
+    .add(MBBIter->getOperand(3));
+  
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** MBB: "; MBB->dump();
+    });
+}
+
+static void resolveJcci(MachineBasicBlock *MBB,
+		       MachineBasicBlock::iterator MBBIter,
+		       const DPUInstrInfo &InstrInfo) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "****** \n";
+    });
+
+  unsigned int OpCode =
+    findJumpOpcodeForCondition(MBBIter->getOperand(0).getImm(), true);
+  const MachineInstrBuilder &MIB =
+    BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(OpCode));
+  MIB.add(MBBIter->getOperand(1)).add(MBBIter->getOperand(2));
+
+  for (unsigned int i = MBBIter->getNumOperands() - 1; i >= 3; --i) {
+    MachineOperand &Operand = MBBIter->getOperand(i);
+
+    if (Operand.isMBB()) {
+      MIB.add(Operand);
+      break;
+    }
+  }
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** MBB: "; MBB->dump();
+    });
 }
 
 static bool resolveMacroInstructionsInMBB(MachineBasicBlock *MBB,
@@ -355,130 +670,77 @@ static bool resolveMacroInstructionsInMBB(MachineBasicBlock *MBB,
     default:
       InstrModified = false;
       break;
-    case DPU::Jcc: {
-      unsigned int OpCode =
-          findJumpOpcodeForCondition(MBBIter->getOperand(0).getImm(), false);
-      BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(OpCode))
-          .add(MBBIter->getOperand(1))
-          .add(MBBIter->getOperand(2))
-          .add(MBBIter->getOperand(3));
+
+    case DPU::Jcc:
+      resolveJcc(MBB, MBBIter, InstrInfo);
       break;
-    }
-    case DPU::TmpJcci:
-    case DPU::Jcci: {
-      unsigned int OpCode =
-          findJumpOpcodeForCondition(MBBIter->getOperand(0).getImm(), true);
-      const MachineInstrBuilder &MIB =
-          BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(OpCode));
-      MIB.add(MBBIter->getOperand(1)).add(MBBIter->getOperand(2));
 
-      for (unsigned int i = MBBIter->getNumOperands() - 1; i >= 3; --i) {
-        MachineOperand &Operand = MBBIter->getOperand(i);
-
-        if (Operand.isMBB()) {
-          MIB.add(Operand);
-          break;
-        }
-      }
-
+    // case DPU::TmpJcci:
+    case DPU::Jcci:
+      resolveJcci(MBB, MBBIter, InstrInfo);
       break;
-    }
+
     case DPU::Jcc64:
       resolveJcc64(MBB, MBBIter, InstrInfo);
       break;
-    case DPU::SET64cc: {
-      MachineFunction *MF = MBB->getParent();
-      const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
 
-      unsigned int DestReg = MBBIter->getOperand(0).getReg();
-      auto ImmCond = static_cast<DPUAsmCondition::Condition>(
-          MBBIter->getOperand(1).getImm());
-      unsigned int Op1Reg = MBBIter->getOperand(2).getReg();
-      unsigned int Op2Reg = MBBIter->getOperand(3).getReg();
+    // case DPU::Jcci64:
+    //   resolveJcci64(MBB, MBBIter, InstrInfo);
+    //   break;
+      
+    // case DPU::SET64cc:
+    //   resolveSET64cc(MBB, MBBIter, InstrInfo);
+    //   break;
 
-      DPUAsmCondition::Condition SetCondition =
-          findSelect64SetConditionFor(ImmCond);
+    // case DPU::MOVE64ri:
+    //   resolveMOVE64ri(MBB, MBBIter, InstrInfo);
+    //   break;
 
-      unsigned int LSBDOp1Reg = TRI->getSubReg(Op1Reg, DPU::sub_32bit);
-      unsigned int MSBDOp1Reg = TRI->getSubReg(Op1Reg, DPU::sub_32bit_hi);
+    // case DPU::ADD64rr:
+    //   resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ADDrrr,
+    //                                      DPU::ADDCrrr);
+    //   break;
+    // case DPU::AND64rr:
+    //   resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ANDrrr,
+    //                                      DPU::ANDrrr);
+    //   break;
+    // case DPU::OR64rr:
+    //   resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ORrrr,
+    //                                      DPU::ORrrr);
+    //   break;
+    // case DPU::SUB64rr:
+    //   resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::SUBrrr,
+    //                                      DPU::SUBCrrr);
+    //   break;
+    // case DPU::XOR64rr:
+    //   resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::XORrrr,
+    //                                      DPU::XORrrr);
+    //   break;
 
-      unsigned int LSBOp2Reg = TRI->getSubReg(Op2Reg, DPU::sub_32bit);
-      unsigned int MSBOp2Reg = TRI->getSubReg(Op2Reg, DPU::sub_32bit_hi);
+    // case DPU::AND64ri:
+    //   resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ANDrri,
+    //                                       DPU::ANDrri);
+    //   break;
+    // case DPU::ADD64ri:
+    //   resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ADDrri,
+    //                                       DPU::ADDCrri);
+    //   break;
+    // case DPU::OR64ri:
+    //   resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ORrri,
+    //                                       DPU::ORrri);
+    //   break;
+    // case DPU::XOR64ri:
+    //   resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::XORrri,
+    //                                       DPU::XORrri);
+    //   break;
 
-      BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(DPU::SUBzrr))
-          .addReg(DPU::ZERO)
-          .addReg(LSBDOp1Reg)
-          .addReg(LSBOp2Reg);
-      BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(),
-              InstrInfo.get(DPU::SUBCrrrc), DestReg)
-          .addReg(MSBDOp1Reg)
-          .addReg(MSBOp2Reg)
-          .addImm(SetCondition);
-
-      break;
-    }
-    case DPU::MOVE64ri: {
-      MachineFunction *MF = MBB->getParent();
-      const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
-
-      unsigned int DestReg = MBBIter->getOperand(0).getReg();
-      int64_t Op1Imm = MBBIter->getOperand(1).getImm();
-
-      int64_t LSBOp1Imm = Op1Imm & 0xFFFFFFFFl;
-      int64_t MSBOp1Imm = (Op1Imm >> 32) & 0xFFFFFFFFl;
-      unsigned int LSBDestReg = TRI->getSubReg(DestReg, DPU::sub_32bit);
-      unsigned int MSBDestReg = TRI->getSubReg(DestReg, DPU::sub_32bit_hi);
-
-      BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(DPU::MOVEri),
-              LSBDestReg)
-          .addImm(LSBOp1Imm);
-      BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(DPU::MOVEri),
-              MSBDestReg)
-          .addImm(MSBOp1Imm);
-      break;
-    }
-    case DPU::ADD64rr:
-      resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ADDrrr,
-                                         DPU::ADDCrrr);
-      break;
-    case DPU::ADD64ri:
-      resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ADDrri,
-                                          DPU::ADDCrri);
-      break;
-    case DPU::SUB64rr:
-      resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::SUBrrr,
-                                         DPU::SUBCrrr);
-      break;
-    case DPU::OR64rr:
-      resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ORrrr,
-                                         DPU::ORrrr);
-      break;
-    case DPU::OR64ri:
-      resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ORrri,
-                                          DPU::ORrri);
-      break;
-    case DPU::AND64rr:
-      resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ANDrrr,
-                                         DPU::ANDrrr);
-      break;
-    case DPU::AND64ri:
-      resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ANDrri,
-                                          DPU::ANDrri);
-      break;
-    case DPU::XOR64rr:
-      resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::XORrrr,
-                                         DPU::XORrrr);
-      break;
-    case DPU::XOR64ri:
-      resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::XORrri,
-                                          DPU::XORrri);
-      break;
     }
 
     if (InstrModified) {
       MBB->erase(MBBIter++);
-      Modified = true;
-    } else {
+      Modified |= true;
+    }
+    else {
       ++MBBIter;
     }
   }
@@ -499,5 +761,7 @@ bool DPUResolveMacroInstrPass::runOnMachineFunction(MachineFunction &MF) {
     changeMade |= resolveMacroInstructionsInMBB(MBB, InstrInfo);
   }
 
+  LLVM_DEBUG(dbgs() << "********** DPU/ResolveMacroInstrPass: " << MF.getName()
+	     << " done: changeMade = " << changeMade << " **********\n\n");
   return changeMade;
 }

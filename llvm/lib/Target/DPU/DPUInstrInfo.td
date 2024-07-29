@@ -217,58 +217,66 @@ defm : WramStoreImmPat<store, SDrii, s16_i64_imm>;
 
 def : Pat<(i32 (trunc DoubleReg:$src)), (EXTRACT_SUBREG DoubleReg:$src, sub_32bit)>;
 
-let isMoveImm = 1, isAsCheapAsAMove = 0 in {
+let isMoveImm = 1, isAsCheapAsAMove = 0
+, usesCustomInserter = 1
+in {
   def MOVE64ri: PseudoDPUInstruction<
                     (outs GP64_REG:$dc), (ins i64imm:$imm),
                     "",
                     [(set i64:$dc, (i64 imm:$imm))]>;
 }
 
-let isAsCheapAsAMove = 0 in {
-def ADD64rr: PseudoDPUInstruction<
-                  (outs GP64_REG:$dc), (ins GP64_REG:$da, GP64_REG:$db),
-                  "",
-                  [(set i64:$dc, (add i64:$da, i64:$db))]>;
-
+let isAsCheapAsAMove = 0
+// , usesCustomInserter = 1
+in {
 def ADD64ri: PseudoDPUInstruction<
                   (outs GP64_REG:$dc), (ins GP64_REG:$da, i64imm:$imm),
                   "",
                   [(set i64:$dc, (add i64:$da, (i64 imm:$imm)))]>;
-
-def SUB64rr: PseudoDPUInstruction<
-                  (outs GP64_REG:$dc), (ins GP64_REG:$da, GP64_REG:$db),
-                  "",
-                  [(set i64:$dc, (sub i64:$da, i64:$db))]>;
-
-def OR64rr: PseudoDPUInstruction<
-                  (outs GP64_REG:$dc), (ins GP64_REG:$da, GP64_REG:$db),
-                  "",
-                  [(set i64:$dc, (or i64:$da, i64:$db))]>;
-
-def OR64ri: PseudoDPUInstruction<
-                  (outs GP64_REG:$dc), (ins GP64_REG:$da, i64imm:$imm),
-                  "",
-                  [(set i64:$dc, (or i64:$da, (i64 imm:$imm)))]>;
-
-def AND64rr: PseudoDPUInstruction<
-                  (outs GP64_REG:$dc), (ins GP64_REG:$da, GP64_REG:$db),
-                  "",
-                  [(set i64:$dc, (and i64:$da, i64:$db))]>;
 
 def AND64ri: PseudoDPUInstruction<
                   (outs GP64_REG:$dc), (ins GP64_REG:$da, i64imm:$imm),
                   "",
                   [(set i64:$dc, (and i64:$da, (i64 imm:$imm)))]>;
 
-def XOR64rr: PseudoDPUInstruction<
-                  (outs GP64_REG:$dc), (ins GP64_REG:$da, GP64_REG:$db),
+def OR64ri: PseudoDPUInstruction<
+                  (outs GP64_REG:$dc), (ins GP64_REG:$da, i64imm:$imm),
                   "",
-                  [(set i64:$dc, (xor i64:$da, i64:$db))]>;
+                  [(set i64:$dc, (or i64:$da, (i64 imm:$imm)))]>;
 
 def XOR64ri: PseudoDPUInstruction<
                   (outs GP64_REG:$dc), (ins GP64_REG:$da, i64imm:$imm),
                   "",
                   [(set i64:$dc, (xor i64:$da, (i64 imm:$imm)))]>;
+}
+
+let isAsCheapAsAMove = 0
+// , usesCustomInserter = 1
+in {
+def ADD64rr: PseudoDPUInstruction<
+                  (outs GP64_REG:$dc), (ins GP64_REG:$da, GP64_REG:$db),
+                  "",
+                  [(set i64:$dc, (add i64:$da, i64:$db))]>;
+
+def AND64rr: PseudoDPUInstruction<
+                  (outs GP64_REG:$dc), (ins GP64_REG:$da, GP64_REG:$db),
+                  "",
+                  [(set i64:$dc, (and i64:$da, i64:$db))]>;
+
+def OR64rr: PseudoDPUInstruction<
+                  (outs GP64_REG:$dc), (ins GP64_REG:$da, GP64_REG:$db),
+                  "",
+                  [(set i64:$dc, (or i64:$da, i64:$db))]>;
+
+def SUB64rr: PseudoDPUInstruction<
+                  (outs GP64_REG:$dc), (ins GP64_REG:$da, GP64_REG:$db),
+                  "",
+                  [(set i64:$dc, (sub i64:$da, i64:$db))]>;
+
+def XOR64rr: PseudoDPUInstruction<
+                  (outs GP64_REG:$dc), (ins GP64_REG:$da, GP64_REG:$db),
+                  "",
+                  [(set i64:$dc, (xor i64:$da, i64:$db))]>;
 }
 
 // Bit operations: 64 bits emulation.
@@ -454,26 +462,36 @@ def Jcci: PseudoDPUInstruction<
                 [(DPUBrCCi (i32 imm:$cc), i32:$ra, (s11_imm:$immediate), bb:$dst)]
                 >;
 
-def TmpJcci: PseudoDPUInstruction<
-                (outs), (ins ccopcode:$cc, OP_REG:$ra, s11_imm:$immediate, GP_REG:$dependency, pcoffset:$dst),
-                "",
-                []
-                >;
+// def TmpJcci: PseudoDPUInstruction<
+//                 (outs), (ins ccopcode:$cc, OP_REG:$ra, s11_imm:$immediate, GP_REG:$dependency, pcoffset:$dst),
+//                 "",
+//                 []
+//                 >;
 }
 
-let isBranch = 1, isTerminator = 1, isCompare = 1, isBarrier = 0, isIndirectBranch = 0, isAsCheapAsAMove = 0 in {
+let isBranch = 1, isTerminator = 1, isCompare = 1, isBarrier = 0, isIndirectBranch = 0, isAsCheapAsAMove = 0
+// , usesCustomInserter = 1
+in {
 def Jcc64: PseudoDPUInstruction<
                 (outs), (ins ccopcode:$cc, GP64_REG:$da, GP64_REG:$db, pcoffset:$dst),
                 "",
                 [(DPUBrCC (i32 imm:$cc), i64:$da, i64:$db, bb:$dst)]
                 >;
+
+// def Jcci64: PseudoDPUInstruction<
+//                 (outs), (ins ccopcode:$cc, GP64_REG:$da, s11_i64_imm:$immediate, pcoffset:$dst),
+//                 "",
+//                 [(DPUBrCCi (i32 imm:$cc), i64:$da, (s11_i64_imm:$immediate), bb:$dst)]
+//                 >;
 }
 
 // -----------------------------------------------------------------------------
 // SETCC
 // -----------------------------------------------------------------------------
 
-let isAsCheapAsAMove = 0 in {
+let isAsCheapAsAMove = 0
+, usesCustomInserter = 1
+in {
 def SET64cc: PseudoDPUInstruction<
                     (outs GP_REG:$rc), (ins ccopcode:$cc, GP64_REG:$lhs, GP64_REG:$rhs),
                     "",
@@ -634,3 +652,15 @@ let usesCustomInserter = 1 in {
     def MRAM_LOAD64_X32mr : MRAM_LOAD64_X_mr<mram_extloadi32>;
     def MRAM_LOAD_DOUBLEmr: MRAM_LOAD64_X_mr<mram_load>;
 }
+
+//===----------------------------------------------------------------------===//
+// Bit manipulation instructions
+//===----------------------------------------------------------------------===//
+
+// ((1 << n) - 1)
+def : Pat<(sub (shl (i32 1), GP_REG:$n), (i32 1)),
+          (LSLXrrr LNEG, GP_REG:$n)>;
+	  
+def : Pat<(xor (shl (i32 -1), GP_REG:$n), (i32 -1)),
+          (LSLXrrr LNEG, GP_REG:$n)>;
+// ====
