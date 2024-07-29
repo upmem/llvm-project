@@ -448,10 +448,8 @@ void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
   MIB = BuildMI(&MBB, DL, get(Opc));
 
   for (unsigned i = 1; i < Cond.size(); ++i) {
-    if (Cond[i].isReg())
-      MIB.addReg(Cond[i].getReg());
-    else if (Cond[i].isImm())
-      MIB.addImm(Cond[i].getImm());
+    if (Cond[i].isReg() || Cond[i].isImm())
+      MIB->addOperand(Cond[i]);
     else
       assert(false && "Cannot copy operand");
   }
