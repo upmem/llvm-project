@@ -106,13 +106,11 @@ bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::JUMPr)).addReg(DPU::R23);
     break;
   case DPU::CALLi:
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLri))
-        .addReg(DPU::R23)
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLri), DPU::R23)
         .add(MI.getOperand(0));
     break;
   case DPU::CALLr:
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLrr))
-        .addReg(DPU::R23)
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLrr), DPU::R23)
         .add(MI.getOperand(0));
     break;
   case DPU::ADD_VAStart: { // Get the first index in stack where the first
@@ -122,8 +120,7 @@ bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       StackSize = MF->getFrameInfo().getStackSize();
     }
     unsigned int ResultReg = MI.getOperand(0).getReg();
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::SUBrrif))
-        .addReg(ResultReg)
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::SUBrrif), ResultReg)
         .addReg(DPU::R22)
         .addImm(StackSize + STACK_SIZE_FOR_D22)
         .addImm(DPUAsmCondition::Condition::False);
