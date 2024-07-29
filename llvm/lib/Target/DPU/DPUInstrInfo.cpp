@@ -107,11 +107,13 @@ bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     break;
   case DPU::CALLi:
     BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLri), DPU::R23)
-        .add(MI.getOperand(0));
+        .add(MI.getOperand(0))
+        .copyImplicitOps(MI);
     break;
   case DPU::CALLr:
     BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLrr), DPU::R23)
-        .add(MI.getOperand(0));
+        .add(MI.getOperand(0))
+        .copyImplicitOps(MI);
     break;
   case DPU::ADD_VAStart: { // Get the first index in stack where the first
                            // vaargs is stored
