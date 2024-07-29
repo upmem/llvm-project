@@ -86,12 +86,12 @@ private:
 
   bool IsGlobalAddrInImmediateSection(SDNode *Node) const;
 
-  // void processFunctionAfterISel(MachineFunction &MF);
+  void processFunctionAfterISel(MachineFunction &MF);
 
-  // bool replaceUsesWithConstantReg(MachineRegisterInfo *MRI,
-  //                                 const DPUInstrInfo *DII,
-  //                                 const TargetRegisterInfo *TRI,
-  //                                 const MachineInstr &MI);
+  bool replaceUsesWithConstantReg(MachineRegisterInfo *MRI,
+                                  const DPUInstrInfo *DII,
+                                  const TargetRegisterInfo *TRI,
+                                  const MachineInstr &MI);
 
   bool SelectAddLikeOr(SDNode *Parent, SDValue N, SDValue &Out);
 };
@@ -100,141 +100,170 @@ private:
 StringRef DPUDAGToDAGISel::getPassName() const { return "DPUDAGToDAGISel"; }
 
 bool DPUDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    });
+  
   bool Ret = SelectionDAGISel::runOnMachineFunction(MF);
 
-  // processFunctionAfterISel(MF);
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    });
+
+  processFunctionAfterISel(MF);
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    });
 
   return Ret;
 }
 
-// void DPUDAGToDAGISel::processFunctionAfterISel(MachineFunction &MF) {
-//   MachineRegisterInfo *MRI = &MF.getRegInfo();
+void DPUDAGToDAGISel::processFunctionAfterISel(MachineFunction &MF) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    });
 
-//   auto &SubTarget = static_cast<const DPUSubtarget &>(MF.getSubtarget());
-//   auto InstrInfo = SubTarget.getInstrInfo();
-//   auto RegInfo = SubTarget.getRegisterInfo();
+  MachineRegisterInfo *MRI = &MF.getRegInfo();
 
-//   for (MachineFunction::iterator MFI = MF.begin(), MFE = MF.end(); MFI != MFE;
-//        ++MFI)
-//     for (MachineBasicBlock::iterator I = MFI->begin(); I != MFI->end(); ++I) {
-//       replaceUsesWithConstantReg(MRI, InstrInfo, RegInfo, *I);
-//     }
-// }
+  auto &SubTarget = static_cast<const DPUSubtarget &>(MF.getSubtarget());
+  auto InstrInfo = SubTarget.getInstrInfo();
+  auto RegInfo = SubTarget.getRegisterInfo();
 
-// static inline bool canCommuteOperation(MachineInstr *MI, unsigned opNo,
-//                                        unsigned &newOpNo) {
-//   switch (MI->getOpcode()) {
-//   case DPU::ADDrrr:
-//   case DPU::ANDrrr:
-//   case DPU::ORrrr:
-//   case DPU::XORrrr:
-//     switch (opNo) {
-//     case 1:
-//       newOpNo = 2;
-//       break;
-//     case 2:
-//       newOpNo = 1;
-//       break;
-//     default:
-//       return false;
-//     }
+  for (MachineFunction::iterator MFI = MF.begin(), MFE = MF.end(); MFI != MFE; ++MFI) {
+    LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+    });
 
-//     return true;
-//   default:
-//     return false;
-//   }
-// }
+    for (MachineBasicBlock::iterator I = MFI->begin(); I != MFI->end(); ++I) {
+      LLVM_DEBUG({
+	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+	});
 
-// bool DPUDAGToDAGISel::replaceUsesWithConstantReg(MachineRegisterInfo *MRI,
-//                                                  const DPUInstrInfo *DII,
-//                                                  const TargetRegisterInfo *TRI,
-//                                                  const MachineInstr &MI) {
-//   // This function seems to do manual coalescing
-//   //    probably we should use the proper one that probably knows better
-//   //    maybe prob with MI operand constraint ... ?
-//   //    probably better to educate the coalescer, or better define register class
-//   unsigned DstReg = 0, CstReg = 0;
+      bool res = replaceUsesWithConstantReg(MRI, InstrInfo, RegInfo, *I);
+      if (res) {
+	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " YES did something.\n";
+      }
+    }
+  }
+}
 
-//   if (MI.getOpcode() == DPU::COPY) {
-//     unsigned reg = MI.getOperand(1).getReg();
+static inline bool canCommuteOperation(MachineInstr *MI, unsigned opNo,
+                                       unsigned &newOpNo) {
+  switch (MI->getOpcode()) {
+  case DPU::ADDrrr:
+  case DPU::ANDrrr:
+  case DPU::ORrrr:
+  case DPU::XORrrr:
+    switch (opNo) {
+    case 1:
+      newOpNo = 2;
+      break;
+    case 2:
+      newOpNo = 1;
+      break;
+    default:
+      return false;
+    }
 
-//     DstReg = MI.getOperand(0).getReg();
-//     switch (reg) {
-//     case DPU::ID:
-//     case DPU::ID2:
-//     case DPU::ID4:
-//     case DPU::ID8:
-//       CstReg = reg;
-//       break;
-//     default:
-//       break;
-//     }
-//   } else if (((MI.getOpcode() == DPU::MOVErr) &&
-//               (MI.getOperand(1).getReg() == DPU::ZERO)) ||
-//              ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
-//               (MI.getOperand(1).getImm() == 0))) {
-//     DstReg = MI.getOperand(0).getReg();
-//     CstReg = DPU::ZERO;
-//   } else if (((MI.getOpcode() == DPU::MOVErr) &&
-//               (MI.getOperand(1).getReg() == DPU::ONE)) ||
-//              ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
-//               (MI.getOperand(1).getImm() == 1))) {
-//     DstReg = MI.getOperand(0).getReg();
-//     CstReg = DPU::ONE;
-//   } else if (((MI.getOpcode() == DPU::MOVErr) &&
-//               (MI.getOperand(1).getReg() == DPU::LNEG)) ||
-//              ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
-//               (MI.getOperand(1).getImm() == -1))) {
-//     DstReg = MI.getOperand(0).getReg();
-//     CstReg = DPU::LNEG;
-//   } else if (((MI.getOpcode() == DPU::MOVErr) &&
-//               (MI.getOperand(1).getReg() == DPU::MNEG)) ||
-//              ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
-//               (MI.getOperand(1).getImm() == 0x8000000))) {
-//     DstReg = MI.getOperand(0).getReg();
-//     CstReg = DPU::MNEG;
-//   }
+    return true;
+  default:
+    return false;
+  }
+}
 
-//   if (!CstReg)
-//     return false;
+bool DPUDAGToDAGISel::replaceUsesWithConstantReg(MachineRegisterInfo *MRI,
+                                                 const DPUInstrInfo *DII,
+                                                 const TargetRegisterInfo *TRI,
+                                                 const MachineInstr &MI) {
+  // This function seems to do manual coalescing
+  //    probably we should use the proper one that probably knows better
+  //    maybe prob with MI operand constraint ... ?
+  //    probably better to educate the coalescer, or better define register class
+  unsigned DstReg = 0, CstReg = 0;
 
-//   // Replace uses with CstReg.
-//   for (MachineRegisterInfo::use_iterator U = MRI->use_begin(DstReg),
-//                                          E = MRI->use_end();
-//        U != E;) {
-//     MachineOperand &MO = *U;
-//     unsigned OpNo = U.getOperandNo();
-//     MachineInstr *UMI = MO.getParent();
-//     ++U;
+  if (MI.getOpcode() == DPU::COPY) {
+    unsigned reg = MI.getOperand(1).getReg();
 
-//     // Do not replace if it is a phi's operand or is tied to def operand.
-//     if (UMI->isPHI() || UMI->isRegTiedToDefOperand(OpNo) || UMI->isPseudo())
-//       continue;
+    DstReg = MI.getOperand(0).getReg();
+    switch (reg) {
+    case DPU::ID:
+    case DPU::ID2:
+    case DPU::ID4:
+    case DPU::ID8:
+      CstReg = reg;
+      break;
+    default:
+      break;
+    }
+  } else if (((MI.getOpcode() == DPU::MOVErr) &&
+              (MI.getOperand(1).getReg() == DPU::ZERO)) ||
+             ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
+              (MI.getOperand(1).getImm() == 0))) {
+    DstReg = MI.getOperand(0).getReg();
+    CstReg = DPU::ZERO;
+  } else if (((MI.getOpcode() == DPU::MOVErr) &&
+              (MI.getOperand(1).getReg() == DPU::ONE)) ||
+             ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
+              (MI.getOperand(1).getImm() == 1))) {
+    DstReg = MI.getOperand(0).getReg();
+    CstReg = DPU::ONE;
+  } else if (((MI.getOpcode() == DPU::MOVErr) &&
+              (MI.getOperand(1).getReg() == DPU::LNEG)) ||
+             ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
+              (MI.getOperand(1).getImm() == -1))) {
+    DstReg = MI.getOperand(0).getReg();
+    CstReg = DPU::LNEG;
+  } else if (((MI.getOpcode() == DPU::MOVErr) &&
+              (MI.getOperand(1).getReg() == DPU::MNEG)) ||
+             ((MI.getOpcode() == DPU::MOVEri) && (MI.getOperand(1).isImm()) &&
+              (MI.getOperand(1).getImm() == 0x8000000))) {
+    DstReg = MI.getOperand(0).getReg();
+    CstReg = DPU::MNEG;
+  }
 
-//     // Also, we have to check that the register class of the operand
-//     // contains the constant register.
-//     if (!UMI->getRegClassConstraint(OpNo, DII, TRI)->contains(CstReg)) {
-//       unsigned newOpNo;
+  if (!CstReg)
+    return false;
 
-//       if (canCommuteOperation(UMI, OpNo, newOpNo)) {
-//         auto OtherReg = UMI->getOperand(newOpNo).getReg();
+  // Replace uses with CstReg.
+  for (MachineRegisterInfo::use_iterator U = MRI->use_begin(DstReg),
+                                         E = MRI->use_end();
+       U != E;) {
+    MachineOperand &MO = *U;
+    unsigned OpNo = U.getOperandNo();
+    MachineInstr *UMI = MO.getParent();
+    ++U;
 
-//         if (UMI->getRegClassConstraint(newOpNo, DII, TRI)->contains(CstReg) &&
-//             (!Register::isPhysicalRegister(OtherReg) ||
-//              UMI->getRegClassConstraint(OpNo, DII, TRI)->contains(OtherReg))) {
-//           UMI->getOperand(newOpNo).setReg(CstReg);
-//           UMI->getOperand(OpNo).setReg(OtherReg);
-//         }
-//       }
+    // Do not replace if it is a phi's operand or is tied to def operand.
+    if (UMI->isPHI() || UMI->isRegTiedToDefOperand(OpNo) || UMI->isPseudo())
+      continue;
 
-//       continue;
-//     }
+    // Also, we have to check that the register class of the operand
+    // contains the constant register.
+    if (!UMI->getRegClassConstraint(OpNo, DII, TRI)->contains(CstReg)) {
+      unsigned newOpNo;
 
-//     MO.setReg(CstReg);
-//   }
+      if (canCommuteOperation(UMI, OpNo, newOpNo)) {
+        auto OtherReg = UMI->getOperand(newOpNo).getReg();
 
-//   return true;
-// }
+        if (UMI->getRegClassConstraint(newOpNo, DII, TRI)->contains(CstReg) &&
+            (!Register::isPhysicalRegister(OtherReg) ||
+             UMI->getRegClassConstraint(OpNo, DII, TRI)->contains(OtherReg))) {
+          UMI->getOperand(newOpNo).setReg(CstReg);
+          UMI->getOperand(OpNo).setReg(OtherReg);
+
+	  dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << " YES did something.\n";
+        }
+      }
+
+      continue;
+    }
+
+    MO.setReg(CstReg);
+  }
+
+  return true;
+}
 
 bool DPUDAGToDAGISel::SelectAddrFI(SDValue Addr, SDValue &Base) {
   if (auto FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
@@ -392,7 +421,11 @@ void DPUDAGToDAGISel::Select(SDNode *Node) {
   }
 
   EVT VT = Node->getValueType(0);
+  SDLoc DL(Node);
 
+  MachineFunction &MF = CurDAG->getMachineFunction();
+  MachineRegisterInfo &MRI = MF.getRegInfo();
+  
   switch (Opcode) {
   case ISD::Constant: {
     LLVM_DEBUG({dbgs() << "a constant: "; Node->dump();});
@@ -401,25 +434,21 @@ void DPUDAGToDAGISel::Select(SDNode *Node) {
       // This allows the coalescer to propagate these into other instructions.
       ConstantSDNode *ConstNode = cast<ConstantSDNode>(Node);
       if (ConstNode->isNullValue()) {
-	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
-					     DPU::ZERO, MVT::i32);
+	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), DL, DPU::ZERO, MVT::i32);
 	ReplaceNode(Node, New.getNode());
 	return;
       } else if (ConstNode->isOne()) {
-	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
-					     DPU::ONE, MVT::i32);
+	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), DL, DPU::ONE, MVT::i32);
 	ReplaceNode(Node, New.getNode());
 	return;
       } else if (ConstNode->isAllOnesValue()) {
-	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
-					     DPU::LNEG, MVT::i32);
+	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), DL, DPU::LNEG, MVT::i32);
 	ReplaceNode(Node, New.getNode());
 	return;
       } else {
 	const ConstantInt *Cst = ConstNode->getConstantIntValue();
 	if (Cst->isMinValue(/* signed = */ true)) {
-	  SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
-					       DPU::MNEG, MVT::i32);
+	  SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), DL, DPU::MNEG, MVT::i32);
 	  ReplaceNode(Node, New.getNode());
 	  return;
 	}
@@ -427,18 +456,27 @@ void DPUDAGToDAGISel::Select(SDNode *Node) {
     } else if (VT == MVT::i64) {
       ConstantSDNode *ConstNode = cast<ConstantSDNode>(Node);
       if (ConstNode->isNullValue()) {
-	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
-					     DPU::ZERO, MVT::i32);
-	auto *NewMove = CurDAG->getMachineNode(DPU::MOVE_Srr, SDLoc(Node), VT,
-					       New);
-	ReplaceNode(Node, NewMove);
+	// // Create a new virtual register of type i64
+	// SDValue ImpDef = SDValue(CurDAG->getMachineNode(DPU::IMPLICIT_DEF, DL, MVT::i64), 0);
+	// // Insert the low part into the virtual register
+	// SDValue InsertLo = CurDAG->getTargetInsertSubreg(DPU::sub_32bit, DL, MVT::i64, 
+	// 						 ImpDef,
+	// 						 CurDAG->getRegister(DPU::ZERO, MVT::i32));
+	// // Insert the high part into the virtual register
+	// SDValue InsertHi = CurDAG->getTargetInsertSubreg(DPU::sub_32bit_hi, DL, MVT::i64, 
+	// 						 InsertLo,
+	// 						 CurDAG->getRegister(DPU::ZERO, MVT::i32));
+	// // Replace the old node with the new virtual register value
+	// ReplaceNode(Node, InsertHi.getNode());
+
+	SDValue truc = SDValue(CurDAG->getMachineNode(DPU::MOVE_Srr, DL, MVT::i64,
+						      CurDAG->getRegister(DPU::ZERO, MVT::i32)), 0);
+	ReplaceNode(Node, truc.getNode());
 	return;
       } else if (ConstNode->isOne()) {
-	SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(), SDLoc(Node),
-					     DPU::ONE, MVT::i32);
-	auto *NewMove = CurDAG->getMachineNode(DPU::MOVE_Srr, SDLoc(Node), VT,
-					       New);
-	ReplaceNode(Node, NewMove);
+	SDValue truc = SDValue(CurDAG->getMachineNode(DPU::MOVE_Srr, DL, MVT::i64,
+						      CurDAG->getRegister(DPU::ONE, MVT::i32)), 0);
+	ReplaceNode(Node, truc.getNode());
 	return;
       }
     }

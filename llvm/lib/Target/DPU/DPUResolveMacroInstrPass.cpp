@@ -9,9 +9,13 @@
 
 // possibly move that earlier in the pipeline
 //   all simple arithmetic could be moved to in EmitInstrWithCustomInserter pre regalloc and other optim
+//   here I needed to add some option again, because we tweak it postRA
+//       if we do that express them directly during ISEL, we would benefit more natural optimization earlier
+//          also, possibility of FastIsel and GlobalSel instead of InstructionSel ...
 
-// TODO: expand test cases for splicing
+// TODO: expand test cases for splicing stuff
 //       need_splice = 0/1  x  canFallThrough = 0/1
+//     and/or doing Jcc and Setcc earlier as well
 
 #include "DPU.h"
 #include "DPUInstrInfo.h"
@@ -189,14 +193,28 @@ static void resolve64BitRegisterAluInstruction(
   unsigned int LSBOp2Reg = TRI->getSubReg(Op2Reg, DPU::sub_32bit);
   unsigned int MSBOp2Reg = TRI->getSubReg(Op2Reg, DPU::sub_32bit_hi);
 
-  BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(LsbOpcode),
+  MachineInstrBuilder MIBDestLsb;
+  MIBDestLsb = BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(LsbOpcode),
           LSBDestReg)
       .addReg(LSBDOp1Reg)
       .addReg(LSBOp2Reg);
-  BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(MsbOpcode),
+
+  MachineInstrBuilder MIBDestMsb;
+  MIBDestMsb = BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(MsbOpcode),
           MSBDestReg)
       .addReg(MSBDOp1Reg)
       .addReg(MSBOp2Reg);
+
+  for (unsigned i = 0; i < 3; i++) {
+    if (MBBIter->getOperand(i).isRenamable()) {
+      MIBDestLsb->getOperand(i).setIsRenamable();
+      MIBDestMsb->getOperand(i).setIsRenamable();
+    }
+    if (MBBIter->getOperand(i).isKill()) {
+      MIBDestLsb->getOperand(i).setIsKill();
+      MIBDestMsb->getOperand(i).setIsKill();
+    }
+  }
 
   LLVM_DEBUG({
       dbgs() << "** instruction replaced, but still need removal\n";
@@ -432,46 +450,84 @@ static void resolveJcc64(MachineBasicBlock *MBB,
     break;
   case ISD::SETOGT:
   case ISD::SETGT:
+    LLVM_DEBUG({ dbgs() << "GT " << ISD::SETOGT << " " << ISD::SETGT << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::ExtendedGreaterThanSigned);
     break;
   case ISD::SETOGE:
   case ISD::SETGE:
+    LLVM_DEBUG({ dbgs() << "GE " << ISD::SETOGE << " " << ISD::SETGE << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::GreaterOrEqualSigned);
     break;
   case ISD::SETOLT:
   case ISD::SETLT:
+    LLVM_DEBUG({ dbgs() << "LT " << ISD::SETOLT << " " << ISD::SETLT << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::LessThanSigned);
     break;
   case ISD::SETOLE:
   case ISD::SETLE:
+    LLVM_DEBUG({ dbgs() << "GE " << ISD::SETOLE << " " << ISD::SETLE << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::ExtendedLessOrEqualSigned);
     break;
   case ISD::SETUGT:
-    resolveJcc64AsSub64(
-        MBB, MBBIter, InstrInfo,
-        DPUAsmCondition::Condition::ExtendedGreaterThanUnsigned);
+    LLVM_DEBUG({ dbgs() << "UGT " << ISD::SETUGT << "\n"; });
+    resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
+			DPUAsmCondition::Condition::ExtendedGreaterThanUnsigned);
+    
     break;
   case ISD::SETUGE:
+    LLVM_DEBUG({ dbgs() << "UGE " << ISD::SETUGE << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::GreaterOrEqualUnsigned);
     break;
   case ISD::SETULT:
+    LLVM_DEBUG({ dbgs() << "ULT " << ISD::SETULT << "\n"; });
     resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
                         DPUAsmCondition::Condition::LessThanUnsigned);
     break;
   case ISD::SETULE:
-    resolveJcc64AsSub64(
-        MBB, MBBIter, InstrInfo,
-        DPUAsmCondition::Condition::ExtendedLessOrEqualUnsigned);
+    LLVM_DEBUG({ dbgs() << "ULE " << ISD::SETULE << "\n"; });
+    resolveJcc64AsSub64(MBB, MBBIter, InstrInfo,
+			DPUAsmCondition::Condition::ExtendedLessOrEqualUnsigned);
     break;
   }
 }
 
-static void resolveMOVE64rr(MachineBasicBlock *MBB,
+static void resolveJcci64(MachineBasicBlock *MBB,
+		       MachineBasicBlock::iterator MBBIter,
+		       const DPUInstrInfo &InstrInfo) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "****** \n";
+    });
+
+  unsigned int OpCode =
+    findJumpOpcodeForCondition(MBBIter->getOperand(0).getImm(), true);
+  const MachineInstrBuilder &MIB =
+    BuildMI(*MBB, MBBIter, MBBIter->getDebugLoc(), InstrInfo.get(OpCode));
+  MIB.add(MBBIter->getOperand(1)).add(MBBIter->getOperand(2));
+
+  for (unsigned int i = MBBIter->getNumOperands() - 1; i >= 3; --i) {
+    MachineOperand &Operand = MBBIter->getOperand(i);
+
+    if (Operand.isMBB()) {
+      MIB.add(Operand);
+      break;
+    }
+  }
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** MBB: "; MBB->dump();
+    });
+}
+
+static void resolveMOVE64ri(MachineBasicBlock *MBB,
 			    MachineBasicBlock::iterator MBBIter,
 			    const DPUInstrInfo &InstrInfo) {
   LLVM_DEBUG({
@@ -519,8 +575,7 @@ static void resolveSET64cc(MachineBasicBlock *MBB,
   const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
 
   unsigned int DestReg = MBBIter->getOperand(0).getReg();
-  auto ImmCond = static_cast<DPUAsmCondition::Condition>(
-							 MBBIter->getOperand(1).getImm());
+  auto ImmCond = static_cast<DPUAsmCondition::Condition>(MBBIter->getOperand(1).getImm());
   unsigned int Op1Reg = MBBIter->getOperand(2).getReg();
   unsigned int Op2Reg = MBBIter->getOperand(3).getReg();
 
@@ -620,7 +675,7 @@ static bool resolveMacroInstructionsInMBB(MachineBasicBlock *MBB,
       resolveJcc(MBB, MBBIter, InstrInfo);
       break;
 
-    case DPU::TmpJcci:
+    // case DPU::TmpJcci:
     case DPU::Jcci:
       resolveJcci(MBB, MBBIter, InstrInfo);
       break;
@@ -629,50 +684,56 @@ static bool resolveMacroInstructionsInMBB(MachineBasicBlock *MBB,
       resolveJcc64(MBB, MBBIter, InstrInfo);
       break;
 
-    case DPU::SET64cc:
-      resolveSET64cc(MBB, MBBIter, InstrInfo);
-      break;
+    // case DPU::Jcci64:
+    //   resolveJcci64(MBB, MBBIter, InstrInfo);
+    //   break;
+      
+    // case DPU::SET64cc:
+    //   resolveSET64cc(MBB, MBBIter, InstrInfo);
+    //   break;
 
-    case DPU::MOVE64ri:
-      resolveMOVE64rr(MBB, MBBIter, InstrInfo);
-      break;
+    // case DPU::MOVE64ri:
+    //   resolveMOVE64ri(MBB, MBBIter, InstrInfo);
+    //   break;
 
-    case DPU::ADD64rr:
-      resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ADDrrr,
-                                         DPU::ADDCrrr);
-      break;
-    case DPU::ADD64ri:
-      resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ADDrri,
-                                          DPU::ADDCrri);
-      break;
-    case DPU::SUB64rr:
-      resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::SUBrrr,
-                                         DPU::SUBCrrr);
-      break;
-    case DPU::OR64rr:
-      resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ORrrr,
-                                         DPU::ORrrr);
-      break;
-    case DPU::OR64ri:
-      resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ORrri,
-                                          DPU::ORrri);
-      break;
-    case DPU::AND64rr:
-      resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ANDrrr,
-                                         DPU::ANDrrr);
-      break;
-    case DPU::AND64ri:
-      resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ANDrri,
-                                          DPU::ANDrri);
-      break;
-    case DPU::XOR64rr:
-      resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::XORrrr,
-                                         DPU::XORrrr);
-      break;
-    case DPU::XOR64ri:
-      resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::XORrri,
-                                          DPU::XORrri);
-      break;
+    // case DPU::ADD64rr:
+    //   resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ADDrrr,
+    //                                      DPU::ADDCrrr);
+    //   break;
+    // case DPU::AND64rr:
+    //   resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ANDrrr,
+    //                                      DPU::ANDrrr);
+    //   break;
+    // case DPU::OR64rr:
+    //   resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::ORrrr,
+    //                                      DPU::ORrrr);
+    //   break;
+    // case DPU::SUB64rr:
+    //   resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::SUBrrr,
+    //                                      DPU::SUBCrrr);
+    //   break;
+    // case DPU::XOR64rr:
+    //   resolve64BitRegisterAluInstruction(MBB, MBBIter, InstrInfo, DPU::XORrrr,
+    //                                      DPU::XORrrr);
+    //   break;
+
+    // case DPU::AND64ri:
+    //   resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ANDrri,
+    //                                       DPU::ANDrri);
+    //   break;
+    // case DPU::ADD64ri:
+    //   resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ADDrri,
+    //                                       DPU::ADDCrri);
+    //   break;
+    // case DPU::OR64ri:
+    //   resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::ORrri,
+    //                                       DPU::ORrri);
+    //   break;
+    // case DPU::XOR64ri:
+    //   resolve64BitImmediateAluInstruction(MBB, MBBIter, InstrInfo, DPU::XORrri,
+    //                                       DPU::XORrri);
+    //   break;
+
     }
 
     if (InstrModified) {

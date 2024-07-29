@@ -247,17 +247,17 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
   default:
     LLVM_DEBUG(dbgs() << "KO: Unknown SecondLastOpc\n");
     return false;
-  // case DPU::MOVEri:
-  //   OpPrototype = OpriLimited;
-  //   OpJumpOpc = DPU::MOVErici;
-  //   OpNullJumpOpc = DPU::MOVErici; // should not be used
-  //   usableConditions = normalConditionsSet;
-  //   break;
-  // case DPU::MOVErr:
-  //   OpPrototype = Oprr;
-  //   OpJumpOpc = DPU::MOVErrci;
-  //   OpNullJumpOpc = DPU::MOVErrci; // should not be used
-  //   usableConditions = normalConditionsSet;
+  case DPU::MOVEri:
+    OpPrototype = OpriLimited;
+    OpJumpOpc = DPU::MOVErici;
+    OpNullJumpOpc = DPU::MOVErici; // should not be used
+    usableConditions = normalConditionsSet;
+    break;
+  case DPU::MOVErr:
+    OpPrototype = Oprr;
+    OpJumpOpc = DPU::MOVErrci;
+    OpNullJumpOpc = DPU::MOVErrci; // should not be used
+    usableConditions = normalConditionsSet;
     break;
   case DPU::SUBrrr:
     OpPrototype = Oprrr;
@@ -660,7 +660,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
     // we morph the branch from unconditional to conditional
     // by this, we modify the CFG by creating artificially a fall through which is not declared
     // so, it's bugged
-    // return false;
+    return false;
     // 
     
     if (!ImmCanBeEncodedOn8Bits) {
@@ -722,7 +722,7 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
     
     return true;
   }
-  case DPU::TmpJcci:
+  // case DPU::TmpJcci:
   case DPU::Jcci: {
     LLVM_DEBUG({
 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
@@ -791,6 +791,12 @@ static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
             << "KO: LastOpc == DPU::Jcci && (LastInst->getOperand(1).isKill() "
                "&& !isSourceCondition) && (!ImmCanBeEncodedOn11Bits)\n");
         return false;
+      }
+      if (SecondLastOpc == DPU::MOVEri || SecondLastOpc == DPU::MOVErr) {
+	LLVM_DEBUG(
+            dbgs()
+            << "KO: move to zero is invalid\n");
+	return false;
       }
       // todo: this is not optimal. One register has been allocated but not used
       // now. This can become an issue (unnecessary spilling)

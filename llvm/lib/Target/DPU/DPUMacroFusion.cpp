@@ -56,7 +56,7 @@ static bool shouldScheduleAdjacent(const TargetInstrInfo &TII,
       });
     return false;
   case DPU::JUMPi:
-  case DPU::TmpJcci:
+  // case DPU::TmpJcci:
     break;
   case DPU::JNEQrii:
   case DPU::JEQrii:

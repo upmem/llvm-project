@@ -1103,23 +1103,51 @@ bool MachineSinking::hasStoreBetween(MachineBasicBlock *From,
 bool MachineSinking::SinkInstruction(MachineInstr &MI, bool &SawStore,
                                      AllSuccsCache &AllSuccessors) {
   // Don't sink instructions that the target prefers not to sink.
-  if (!TII->shouldSink(MI))
+  if (!TII->shouldSink(MI)) {
+    // LLVM_DEBUG({
+    // 	dbgs() << "shouldSink false "; MI.dump();
+    //   });
     return false;
-
+  }
+  
   // Check if it's safe to move the instruction.
-  if (!MI.isSafeToMove(AA, SawStore))
+  if (!MI.isSafeToMove(AA, SawStore)) {
+    // LLVM_DEBUG({
+    // 	dbgs() << "not safe "; MI.dump();
+    // 	dbgs() << "mayStore(): " << MI.mayStore() << "\n";
+    // 	dbgs() << "mayLoad(): " << MI.mayLoad() << "\n";
+    // 	dbgs() << "isCall(): " << MI.isCall() << "\n";
+    // 	dbgs() << "isPHI(): " << MI.isPHI() << "\n";
+    // 	dbgs() << "hasOrderedMemoryRef(): " << MI.hasOrderedMemoryRef() << "\n";
+    // 	dbgs() << "isPosition(): " << MI.isPosition() << "\n";
+    // 	dbgs() << "isDebugInstr(): " << MI.isDebugInstr() << "\n";
+    // 	dbgs() << "isTerminator(): " << MI.isTerminator() << "\n";
+    // 	dbgs() << "mayRaiseFPException(): " << MI.mayRaiseFPException() << "\n";
+    // 	dbgs() << "hasUnmodeledSideEffects(): " << MI.hasUnmodeledSideEffects() << "\n";
+    // 	dbgs() << "isDereferenceableInvariantLoad(AA): " << MI.isDereferenceableInvariantLoad(AA) << "\n";
+    // 	dbgs() << "SawStore: " << SawStore << "\n";
+    //   });
     return false;
-
+  }
+  
   // Convergent operations may not be made control-dependent on additional
   // values.
-  if (MI.isConvergent())
+  if (MI.isConvergent()) {
+    // LLVM_DEBUG({
+    // 	dbgs() << "isconvergent "; MI.dump();
+    //   });
     return false;
-
+  }
+  
   // Don't break implicit null checks.  This is a performance heuristic, and not
   // required for correctness.
-  if (SinkingPreventsImplicitNullCheck(MI, TII, TRI))
+  if (SinkingPreventsImplicitNullCheck(MI, TII, TRI)) {
+    LLVM_DEBUG({
+	dbgs() << "nullcheck "; MI.dump();
+      });
     return false;
-
+  }
+  
   // FIXME: This should include support for sinking instructions within the
   // block they are currently in to shorten the live ranges.  We often get
   // instructions sunk into the top of a large block, but it would be better to
@@ -1134,9 +1162,12 @@ bool MachineSinking::SinkInstruction(MachineInstr &MI, bool &SawStore,
       FindSuccToSinkTo(MI, ParentBlock, BreakPHIEdge, AllSuccessors);
 
   // If there are no outputs, it must have side-effects.
-  if (!SuccToSinkTo)
+  if (!SuccToSinkTo) {
+    // LLVM_DEBUG({
+    // 	dbgs() << "no succ "; MI.dump();
+    //   });
     return false;
-
+  }
   // If the instruction to move defines a dead physical register which is live
   // when leaving the basic block, don't move it because it could turn into a
   // "zombie" define of that preg. E.g., EFLAGS. (<rdar://problem/8030636>)
@@ -1146,8 +1177,12 @@ bool MachineSinking::SinkInstruction(MachineInstr &MI, bool &SawStore,
     Register Reg = MO.getReg();
     if (Reg == 0 || !Register::isPhysicalRegister(Reg))
       continue;
-    if (SuccToSinkTo->isLiveIn(Reg))
+    if (SuccToSinkTo->isLiveIn(Reg)) {
+      // LLVM_DEBUG({
+      // 	  dbgs() << "zombie "; MI.dump();
+      // 	});
       return false;
+    }
   }
 
   LLVM_DEBUG(dbgs() << "Sink instr " << MI << "\tinto block " << *SuccToSinkTo);

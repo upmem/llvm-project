@@ -72,8 +72,8 @@ static bool runOnMachineBB(MachineBasicBlock *MBB,
   MachineInstr *LastInst, *SecondLastInst;
   unsigned int LastOpc, SecondLastOpc;
 
-  LLVMContext &Context = MBB->getParent()->getFunction().getContext();
-  MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
+  // LLVMContext &Context = MBB->getParent()->getFunction().getContext();
+  // MDNode *N = MDNode::get(Context, MDString::get(Context, "MySpecialMetadata"));
 
   LastInst = getLastNonDebugInstrFrom(I, REnd);
   if (LastInst == NULL) {
@@ -87,6 +87,10 @@ static bool runOnMachineBB(MachineBasicBlock *MBB,
     return false;
   }
 
+  if (!do_have_special_metadata(LastInst)
+      || !do_have_special_metadata(SecondLastInst))
+    return false;
+  
   LastOpc = LastInst->getOpcode();
   SecondLastOpc = SecondLastInst->getOpcode();
 
@@ -100,17 +104,19 @@ static bool runOnMachineBB(MachineBasicBlock *MBB,
   //     and why not tackle other possible optim that may have introduce this code
   //        event from user maybe
   // original code is JEQrii, but JNEQrii could be introduce by analyzeBranch
-  if ((LastOpc == DPU::JEQrii || LastOpc == DPU::JNEQrii) && do_have_special_metadata(LastInst)
-      && SecondLastOpc == DPU::ANDrri && do_have_special_metadata(SecondLastInst)) {
+  if ((LastOpc == DPU::JEQrii || LastOpc == DPU::JNEQrii) 
+      && SecondLastOpc == DPU::ANDrri) {
     I++;
     MachineInstr *ThirdLastInst = getLastNonDebugInstrFrom(I, REnd);
     if (ThirdLastInst == NULL) {
       // LLVM_DEBUG(dbgs() << "KO: I++ == REnd\n");
       return false;
     }
+    if (!do_have_special_metadata(ThirdLastInst))
+      return false;
+    
     unsigned int ThirdLastOpc = ThirdLastInst->getOpcode();
-    if ((ThirdLastOpc == DPU::LSLXrrr || ThirdLastOpc == DPU::LSRXrrr)
-	&& do_have_special_metadata(ThirdLastInst)) {
+    if ((ThirdLastOpc == DPU::LSLXrrr || ThirdLastOpc == DPU::LSRXrrr)) {
 
       LLVM_DEBUG({
 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
@@ -121,13 +127,13 @@ static bool runOnMachineBB(MachineBasicBlock *MBB,
       unsigned int new_opcode = (ThirdLastOpc == DPU::LSLXrrr ?
 				 DPU::LSLXrrrci : DPU::LSRXrrrci);
       MachineInstrBuilder ComboInst = BuildMI(MBB, ThirdLastInst->getDebugLoc(),
-					      InstrInfo.get(new_opcode),
-					      ThirdLastInst->getOperand(0).getReg());
+					      InstrInfo.get(new_opcode));
+      ComboInst.add(ThirdLastInst->getOperand(0));
       ComboInst.add(ThirdLastInst->getOperand(1));
       ComboInst.add(ThirdLastInst->getOperand(2));
       ComboInst.addImm(DPUAsmCondition::Condition::Shift32);
       ComboInst.addMBB(LastInst->getOperand(2).getMBB());
-      ComboInst.addMetadata(N);
+      // ComboInst.addMetadata(N); now that we merge, we don't need to prohibe sink
       
       LLVM_DEBUG({
 	  dbgs() << "OK\n";
@@ -152,8 +158,8 @@ static bool runOnMachineBB(MachineBasicBlock *MBB,
 
   // attempt to optimize MUL_UL_ULrrr + comp res 256 + branch
   // original code is JLTUrii, but JGEUrii could be introduce by analyzeBranch
-  if ((LastOpc == DPU::JLTUrii || LastOpc == DPU::JGEUrii) && do_have_special_metadata(LastInst)
-      && SecondLastOpc == DPU::MUL_UL_ULrrr && do_have_special_metadata(SecondLastInst)) {
+  if ((LastOpc == DPU::JLTUrii || LastOpc == DPU::JGEUrii)
+      && SecondLastOpc == DPU::MUL_UL_ULrrr) {
 
     LLVM_DEBUG({
 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
@@ -162,13 +168,13 @@ static bool runOnMachineBB(MachineBasicBlock *MBB,
       });
       
     MachineInstrBuilder ComboInst = BuildMI(MBB, SecondLastInst->getDebugLoc(),
-					    InstrInfo.get(DPU::MUL_UL_ULrrrci),
-					    SecondLastInst->getOperand(0).getReg());
+					    InstrInfo.get(DPU::MUL_UL_ULrrrci));
+    ComboInst.add(SecondLastInst->getOperand(0));
     ComboInst.add(SecondLastInst->getOperand(1));
-    ComboInst.add(SecondLastInst->getOperand(1));
+    ComboInst.add(SecondLastInst->getOperand(2));
     ComboInst.addImm(DPUAsmCondition::Small);
-    ComboInst.addMBB(LastInst->getOperand(2).getMBB());
-    ComboInst.addMetadata(N);
+    ComboInst.add(LastInst->getOperand(2));
+    // ComboInst.addMetadata(N); now that we merge, we don't need to prohibe sink
     
     LLVM_DEBUG({
 	dbgs() << "OK\n";
@@ -190,8 +196,8 @@ static bool runOnMachineBB(MachineBasicBlock *MBB,
   }
 
   // original code is JNEQrii, but JEQrii could be introduce by analyzeBranch
-  if ((LastOpc == DPU::JNEQrii || LastOpc == DPU::JEQrii) && do_have_special_metadata(LastInst)
-      && SecondLastOpc == DPU::CLZ_Urr && do_have_special_metadata(SecondLastInst)) {
+  if ((LastOpc == DPU::JNEQrii || LastOpc == DPU::JEQrii)
+      && SecondLastOpc == DPU::CLZ_Urr) {
 
     LLVM_DEBUG({
 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
@@ -200,12 +206,13 @@ static bool runOnMachineBB(MachineBasicBlock *MBB,
       });
 
     MachineInstrBuilder ComboInst = BuildMI(MBB, SecondLastInst->getDebugLoc(),
-					    InstrInfo.get(DPU::CLZ_Urrci),
-					    SecondLastInst->getOperand(0).getReg());
+					    InstrInfo.get(DPU::CLZ_Urrci));
+    ComboInst.add(SecondLastInst->getOperand(0));
     ComboInst.add(SecondLastInst->getOperand(1));
-    ComboInst.addImm(DPUAsmCondition::Condition::NotMaximum);
-    ComboInst.addMBB(LastInst->getOperand(2).getMBB());
-    ComboInst.addMetadata(N);
+    ComboInst.addImm((LastOpc == DPU::JNEQrii) ?
+		     DPUAsmCondition::Condition::NotMaximum : DPUAsmCondition::Condition::Maximum);
+    ComboInst.add(LastInst->getOperand(2));
+    // ComboInst.addMetadata(N); now that we merge, we don't need to prohibe sink
 
     LLVM_DEBUG({
 	dbgs() << "OK\n";
@@ -227,53 +234,6 @@ static bool runOnMachineBB(MachineBasicBlock *MBB,
     return true;
   }
 
-  // switch (SecondLastOpc) {
-  // default:
-  //   LLVM_DEBUG(dbgs() << "KO: Unknown SecondLastOpc\n");
-  //   return false;
-  // case DPU::CLZ_Urr: {
-  //   LLVM_DEBUG({
-  // 	dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
-  // 	dbgs() << "study CLZ_Urr to CLZ_Urrci\n";
-  // 	SecondLastInst->dump();
-  // 	LastInst->dump();
-  //     });
-    
-  //   bool do_def_reg_alias = false;
-  //   const TargetRegisterInfo *TRI = MBB->getParent()->getSubtarget().getRegisterInfo();
-  //   for (MCRegAliasIterator Alias(SecondLastInst->getOperand(0).getReg(), TRI, true); Alias.isValid(); ++Alias) {
-  //     Register AliasReg = *Alias;
-  //     if (LastInst->getOperand(0).getReg() == AliasReg) {
-  // 	// dbgs() << "yep it's alias\n";
-  // 	do_def_reg_alias = true;
-  //     }
-  //   }
-  //   if (LastInst->getOpcode() == DPU::JNEQrii
-  // 	&& LastInst->getOperand(1).getImm() == 32
-  // 	&& do_def_reg_alias
-  // 	) {
-  //     LLVM_DEBUG({dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";});
-      
-  //     MachineInstrBuilder ComboInst = BuildMI(MBB, SecondLastInst->getDebugLoc(), InstrInfo.get(DPU::CLZ_Urrci), SecondLastInst->getOperand(0).getReg())
-  // 	.add(SecondLastInst->getOperand(1))
-  // 	.addImm(DPUAsmCondition::Condition::NotMaximum)
-  // 	.addMBB(LastInst->getOperand(2).getMBB());
-
-  //     LLVM_DEBUG({
-  // 	  dbgs() << "OK\n";
-  // 	  dbgs() << "del "; SecondLastInst->dump();
-  // 	  dbgs() << "del "; LastInst->dump();
-  // 	  dbgs() << "fused to\n";
-  // 	  dbgs() << "add "; ComboInst->dump();
-  // 	});
-  //     LastInst->eraseFromParent();
-  //     SecondLastInst->eraseFromParent();
-  //     LLVM_DEBUG({dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";});
-  //     return true;
-  //   }
-  // }
-  // }
-  
   return false;
 }
 

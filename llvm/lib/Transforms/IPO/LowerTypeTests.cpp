@@ -367,13 +367,19 @@ struct ScopedSaveAliaseesAndUsed {
   }
 
   ~ScopedSaveAliaseesAndUsed() {
+    // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
     appendToUsed(M, std::vector<GlobalValue *>(Used.begin(), Used.end()));
+    // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
     appendToCompilerUsed(M, std::vector<GlobalValue *>(CompilerUsed.begin(),
                                                        CompilerUsed.end()));
+    // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
 
-    for (auto P : FunctionAliases)
+    for (auto P : FunctionAliases) {
+      // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
       P.first->setIndirectSymbol(
           ConstantExpr::getBitCast(P.second, P.first->getType()));
+      // LLVM_DEBUG({ dbgs() << __FILE__ << __LINE__ << __func__ << "\n"; });
+    }
   }
 };
 

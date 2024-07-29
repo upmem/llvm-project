@@ -54,6 +54,7 @@ DPUTargetMachine::DPUTargetMachine(const Target &T, const Triple &TT,
                         getEffectiveCodeModel(CM, CodeModel::Small), OL),
       TLOF(std::make_unique<TargetLoweringObjectFileELF>()),
       Subtarget(TT, CPU, FS, *this) {
+  // setRequiresStructuredCFG(true);
   initAsmInfo();
 }
 
@@ -84,7 +85,7 @@ public:
 
   bool addInstSelector() override;
 
-  // void addPostRegAlloc() override;
+  void addPostRegAlloc() override;
   void addPreEmitPass() override;
   void addPreEmitPass2() override;
 };
@@ -104,10 +105,10 @@ bool DPUPassConfig::addInstSelector() {
   return false;
 }
 
-// void DPUPassConfig::addPostRegAlloc() {
-//   DPUTargetMachine &TM = getDPUTargetMachine();
-//   addPass(createDPUPostRAFusionPass(TM));
-// }
+void DPUPassConfig::addPostRegAlloc() {
+  DPUTargetMachine &TM = getDPUTargetMachine();
+  addPass(createDPUPostRAFusionPass(TM));
+}
 
 void DPUPassConfig::addPreEmitPass() {
   DPUTargetMachine &TM = getDPUTargetMachine();
