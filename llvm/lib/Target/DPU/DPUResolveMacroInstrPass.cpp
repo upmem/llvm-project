@@ -149,6 +149,11 @@ static void resolve64BitRegisterAluInstruction(
     MachineBasicBlock *MBB, MachineBasicBlock::iterator MBBIter,
     const DPUInstrInfo &InstrInfo, unsigned int LsbOpcode,
     unsigned int MsbOpcode) {
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+    });
   MachineFunction *MF = MBB->getParent();
   const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
 
@@ -173,6 +178,11 @@ static void resolve64BitRegisterAluInstruction(
           MSBDestReg)
       .addReg(MSBDOp1Reg)
       .addReg(MSBOp2Reg);
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** MBB: "; MBB->dump();
+    });
 }
 
 static void resolveJeq64(MachineBasicBlock *MBB,
@@ -181,6 +191,25 @@ static void resolveJeq64(MachineBasicBlock *MBB,
   const BasicBlock *LLVM_BB = MBB->getBasicBlock();
   MachineFunction::iterator I = ++MBB->getIterator();
   MachineFunction *F = MBB->getParent();
+
+  bool need_splice = std::next(MBBIter) != MBB->end();
+
+  MachineBasicBlock *FTMBB = MBB->getFallThrough();
+  MachineBasicBlock *JumpMBB = MBBIter->getOperand(3).getMBB();
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "** need_splice: " << need_splice << "\n";
+      dbgs() << "** canFallThrough: " << MBB->canFallThrough() << "\n";
+      if (MBB->canFallThrough()) {
+        dbgs() << "** FTMBB: "; FTMBB->dump();
+      }
+      dbgs() << "** JumpMBB: "; JumpMBB->dump();
+      dbgs() << "****** \n";
+    });
+
   MachineBasicBlock *trueMBB = F->CreateMachineBasicBlock(LLVM_BB);
   MachineBasicBlock *endMBB = F->CreateMachineBasicBlock(LLVM_BB);
   F->insert(I, trueMBB);
@@ -190,11 +219,12 @@ static void resolveJeq64(MachineBasicBlock *MBB,
   endMBB->splice(endMBB->begin(), MBB, std::next(MBBIter), MBB->end());
   endMBB->transferSuccessorsAndUpdatePHIs(MBB);
   // Next, add the true and fallthrough blocks as its successors.
-  auto JumpMBB = MBBIter->getOperand(3).getMBB();
   MBB->addSuccessor(trueMBB);
   MBB->addSuccessor(endMBB);
   trueMBB->addSuccessor(JumpMBB);
   trueMBB->addSuccessor(endMBB);
+
+  endMBB->removeSuccessor(JumpMBB, /* NormalizeSuccProbs = */ true);
 
   unsigned int Op1Reg = MBBIter->getOperand(1).getReg();
   unsigned int Op2Reg = MBBIter->getOperand(2).getReg();
@@ -215,6 +245,19 @@ static void resolveJeq64(MachineBasicBlock *MBB,
       .addReg(MsbOp1Reg)
       .addReg(MsbOp2Reg)
       .addMBB(JumpMBB);
+  trueMBB->addLiveIn(MsbOp1Reg);
+  trueMBB->addLiveIn(MsbOp2Reg);
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** need_splice: " << need_splice << "\n";
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "** trueMBB: "; trueMBB->dump();
+      dbgs() << "** endMBB: "; endMBB->dump();
+      dbgs() << "** FTMBB: "; FTMBB->dump();
+      dbgs() << "** JumpMBB: "; JumpMBB->dump();
+      dbgs() << "****** \n";
+    });
 }
 
 static void resolveJneq64(MachineBasicBlock *MBB,
@@ -223,6 +266,25 @@ static void resolveJneq64(MachineBasicBlock *MBB,
   const BasicBlock *LLVM_BB = MBB->getBasicBlock();
   MachineFunction::iterator I = ++MBB->getIterator();
   MachineFunction *F = MBB->getParent();
+
+  bool need_splice = std::next(MBBIter) != MBB->end();
+  bool canFallThrough = MBB->canFallThrough();
+  MachineBasicBlock *FTMBB = MBB->getFallThrough();
+  MachineBasicBlock * JumpMBB = MBBIter->getOperand(3).getMBB();
+
+  LLVM_DEBUG({
+      dbgs() << __FILE__ << " " << __LINE__ << " " << __func__ << "\n";
+      dbgs() << "instruction to replace: "; MBBIter->dump();
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "** need_splice: " << need_splice << "\n";
+      dbgs() << "** canFallThrough: " << canFallThrough << "\n";
+      if (canFallThrough) {
+        dbgs() << "** FTMBB: "; FTMBB->dump();
+      }
+      dbgs() << "** JumpMBB: "; JumpMBB->dump();
+      dbgs() << "****** \n";
+    });
+
   MachineBasicBlock *trueMBB = F->CreateMachineBasicBlock(LLVM_BB);
   MachineBasicBlock *endMBB = F->CreateMachineBasicBlock(LLVM_BB);
   F->insert(I, trueMBB);
@@ -232,11 +294,12 @@ static void resolveJneq64(MachineBasicBlock *MBB,
   endMBB->splice(endMBB->begin(), MBB, std::next(MBBIter), MBB->end());
   endMBB->transferSuccessorsAndUpdatePHIs(MBB);
   // Next, add the true and fallthrough blocks as its successors.
-  auto JumpMBB = MBBIter->getOperand(3).getMBB();
   MBB->addSuccessor(trueMBB);
   MBB->addSuccessor(JumpMBB);
   trueMBB->addSuccessor(JumpMBB);
   trueMBB->addSuccessor(endMBB);
+
+  endMBB->removeSuccessor(JumpMBB, /* NormalizeSuccProbs = */ true);
 
   unsigned int Op1Reg = MBBIter->getOperand(1).getReg();
   unsigned int Op2Reg = MBBIter->getOperand(2).getReg();
@@ -257,6 +320,21 @@ static void resolveJneq64(MachineBasicBlock *MBB,
       .addReg(MsbOp1Reg)
       .addReg(MsbOp2Reg)
       .addMBB(JumpMBB);
+  trueMBB->addLiveIn(MsbOp1Reg);
+  trueMBB->addLiveIn(MsbOp2Reg);
+
+  LLVM_DEBUG({
+      dbgs() << "** instruction replaced, but still need removal\n";
+      dbgs() << "** need_splice: " << need_splice << "\n";
+      dbgs() << "** MBB: "; MBB->dump();
+      dbgs() << "** trueMBB: "; trueMBB->dump();
+      dbgs() << "** endMBB: "; endMBB->dump();
+      if (canFallThrough) {
+        dbgs() << "** FTMBB: "; FTMBB->dump();
+      }
+      dbgs() << "** JumpMBB: "; JumpMBB->dump();
+      dbgs() << "****** \n";
+    });
 }
 
 static void resolveJcc64AsSub64(MachineBasicBlock *MBB,
@@ -498,6 +576,9 @@ bool DPUResolveMacroInstrPass::runOnMachineFunction(MachineFunction &MF) {
     MachineBasicBlock *MBB = &MFI;
     changeMade |= resolveMacroInstructionsInMBB(MBB, InstrInfo);
   }
+
+  LLVM_DEBUG(dbgs() << "********** DPU/ResolveMacroInstrPass: " << MF.getName()
+                    << " done: changeMade = " << changeMade << " **********\n\n");
 
   return changeMade;
 }
