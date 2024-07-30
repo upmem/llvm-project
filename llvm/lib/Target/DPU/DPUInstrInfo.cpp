@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "DPUHelper.h"
 #include "DPUInstrInfo.h"
 #include "DPUTargetMachine.h"
 
@@ -300,10 +301,20 @@ static void fetchConditionalBranchInfo(MachineInstr *Inst,
       Cond.push_back(operand);
     }
   }
+
+  for (const MachineOperand &Op : Inst->operands()) {
+    if (Op.isMetadata()) {
+      Cond.push_back(Op);
+    }
+  }
 }
 
 static inline bool isAnalyzableBranch(MachineInstr *Inst) {
-  return Inst->isBranch() && !Inst->isIndirectBranch();
+  return (Inst->isBranch() && !Inst->isIndirectBranch()
+	  // We intentionally know that those will be optimized by us
+	  // during DPUPostRAFusion, don't let split the critical edge
+	  // && !hasPostRAFusionMetadata(Inst)
+	  );
 }
 
 bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
@@ -450,13 +461,22 @@ void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
   MIB = BuildMI(&MBB, DL, get(Opc));
 
   for (unsigned i = 1; i < Cond.size(); ++i) {
-    if (Cond[i].isReg() || Cond[i].isImm())
+    if (Cond[i].isReg() || Cond[i].isImm()) {
       MIB->addOperand(Cond[i]);
-    else
+    } else if (Cond[i].isMetadata()) {
+      // skip
+    } else {
       assert(false && "Cannot copy operand");
+    }
   }
 
   MIB.addMBB(TBB);
+
+  for (unsigned i = 0; i < Cond.size(); ++i) {
+     if (Cond[i].isMetadata()) {
+      MIB.addMetadata(Cond[i].getMetadata());
+     }
+  }
 }
 
 unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
@@ -490,4 +510,11 @@ unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
   if (BytesAdded)
     *BytesAdded = nrOfInsertedMachineInstr;
   return nrOfInsertedMachineInstr;
+}
+
+bool DPUInstrInfo::shouldSink(const MachineInstr &MI) const {
+  if (hasPostRAFusionMetadata(&MI))
+    return false;
+
+  return TargetInstrInfo::shouldSink(MI);
 }

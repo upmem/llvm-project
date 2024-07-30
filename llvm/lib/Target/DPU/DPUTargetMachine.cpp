@@ -7,12 +7,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "DPUTargetMachine.h"
 #include "DPU.h"
 #include "DPUISelDAGToDAG.h"
 #include "DPUMacroFusion.h"
+#include "DPUTargetMachine.h"
 #include "DPUTargetTransformInfo.h"
 #include "MCTargetDesc/DPUMCAsmInfo.h"
+
 #include "llvm/CodeGen/MachineScheduler.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/CodeGen/TargetLoweringObjectFileImpl.h"
@@ -84,6 +85,8 @@ public:
 
   bool addInstSelector() override;
 
+  void addPostRegAlloc() override;
+
   void addPreEmitPass() override;
   void addPreEmitPass2() override;
 };
@@ -101,6 +104,15 @@ void DPUPassConfig::addIRPasses() {
 bool DPUPassConfig::addInstSelector() {
   addPass(createDPUISelDag(getDPUTargetMachine(), getOptLevel()));
   return false;
+}
+
+void DPUPassConfig::addPostRegAlloc() {
+  // TODO: add CFGOptimizer
+  // if (addPass(&TailDuplicateID))
+  //   printAndVerify("After Post-RegAlloc TailDuplicate");
+
+  DPUTargetMachine &TM = getDPUTargetMachine();
+  addPass(createDPUPostRAFusionPass(TM));
 }
 
 void DPUPassConfig::addPreEmitPass() {

@@ -65,6 +65,8 @@ public:
 
   void buildConditionalBranch(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                               DebugLoc DL, ArrayRef<MachineOperand> Cond) const;
+
+  bool shouldSink(const MachineInstr &MI) const override;
 };
 
 } // namespace llvm

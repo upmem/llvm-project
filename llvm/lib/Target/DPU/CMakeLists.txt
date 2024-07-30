@@ -16,12 +16,14 @@ add_public_tablegen_target(DPUCommonTableGen)
 add_llvm_target(DPUCodeGen
         DPUAsmPrinter.cpp
         DPUFrameLowering.cpp
+        DPUHelper.cpp
         DPUInstrInfo.cpp
         DPUISelDAGToDAG.cpp
         DPUMachineFunctionInfo.cpp
         DPUMacroFusion.cpp
         DPUMergeComboInstrPass.cpp
         DPUMCInstLower.cpp
+        DPUPostRAFusion.cpp
         DPURegisterInfo.cpp
         DPUResolveMacroInstrPass.cpp
         DPUSelectionDAGInfo.cpp
