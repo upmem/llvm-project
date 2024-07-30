@@ -121,8 +121,6 @@ private:
 
   SDValue LowerDMA(SDValue Op, SelectionDAG &DAG, int DPUISD) const;
 
-  SDValue LowerSeqreadGet(SDValue Op, SelectionDAG &DAG) const;
-
   SDValue LowerIntrinsic(SDValue Op, SelectionDAG &DAG,
                          int IntrinsicType) const;
 
