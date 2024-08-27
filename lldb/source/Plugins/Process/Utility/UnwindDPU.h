@@ -39,6 +39,8 @@ protected:
 
   uint32_t DoGetFrameCount() override;
 
+  bool FixPcForOverlay(lldb::addr_t &pc);
+
   bool DoGetFrameInfoAtIndex(uint32_t frame_idx, lldb::addr_t &cfa,
                              lldb::addr_t &pc, bool &behaves_like_zeroth_frame) override;
 

@@ -142,12 +142,6 @@ unsigned int DpuContext::GetExitStatus() {
 
 lldb::addr_t DpuContext::GetPcOfThread(dpu_thread_t thread) {
   uint32_t raw_pc = m_context->pcs[thread];
-  uint32_t adjusted_pc = InstIdx2InstAddr(raw_pc);
-  if (adjusted_pc >= 0x80001658)
-  {
-    adjusted_pc |= 0x00200000;
-    return adjusted_pc;
-  }
   return InstIdx2InstAddr(raw_pc);
 }
 

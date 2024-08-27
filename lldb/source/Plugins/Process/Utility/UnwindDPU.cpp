@@ -134,6 +134,29 @@ uint32_t UnwindDPU::DoGetFrameCount() {
   return m_frames.size();
 }
 
+bool UnwindDPU::FixPcForOverlay(lldb::addr_t &pc) {
+  Status error;
+  lldb::addr_t overlay_start_address;
+  lldb::addr_t viram_bitmask = 0;
+  const char *using_function_groups = std::getenv("USING_FUNCTION_GROUPS");
+
+  if (using_function_groups == NULL || using_function_groups[0] == '\0')
+    return true;
+
+  if(m_thread.GetProcess()->ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 8, error) != 8)
+    return false;
+  overlay_start_address = FORMAT_PC(overlay_start_address);
+  if (pc >= overlay_start_address && overlay_start_address != DPU_IRAM_BASE) {
+    uint32_t loaded_group_value;
+    // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
+    if(m_thread.GetProcess()->ReadMemory(ADDR_FG_CURRENTLY_LOADED_GROUP, &loaded_group_value, 4, error) != 4)
+      return false;
+    viram_bitmask = FG_DPU_VIRAM_OFFSET*(loaded_group_value+1);
+  }
+  pc |= viram_bitmask;
+  return true;
+}
+
 bool UnwindDPU::DoGetFrameInfoAtIndex(uint32_t frame_idx, lldb::addr_t &cfa,
                                       lldb::addr_t &pc, bool &behaves_like_zeroth_frame) {
   if (frame_idx >= DoGetFrameCount())
@@ -142,26 +165,8 @@ bool UnwindDPU::DoGetFrameInfoAtIndex(uint32_t frame_idx, lldb::addr_t &cfa,
   behaves_like_zeroth_frame = frame_idx == 0;
   cfa = m_frames[frame_idx]->cfa;
   pc = m_frames[frame_idx]->pc;
-  lldb::addr_t viram_bitmask = 0;
 
-  Status error;
-  const char *using_function_groups = std::getenv("USING_FUNCTION_GROUPS");
-  if (using_function_groups != NULL && using_function_groups[0] != '\0') {
-    lldb::addr_t overlay_start_address;
-    if(m_thread.GetProcess()->ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 8, error) == 8) {
-      overlay_start_address = FORMAT_PC(overlay_start_address);
-      if (pc >= overlay_start_address && overlay_start_address != DPU_IRAM_BASE) {
-        uint32_t loaded_group_value;
-        // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
-        if(m_thread.GetProcess()->ReadMemory(ADDR_FG_CURRENTLY_LOADED_GROUP, &loaded_group_value, 4, error) == 4) {
-          viram_bitmask = FG_DPU_VIRAM_OFFSET*(loaded_group_value+1);
-        }
-      }
-    }
-  }
-  pc |= viram_bitmask;
-
-  return true;
+  return FixPcForOverlay(pc);
 }
 
 lldb::RegisterContextSP

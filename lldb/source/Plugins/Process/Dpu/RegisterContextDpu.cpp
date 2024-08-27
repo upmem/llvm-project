@@ -119,7 +119,7 @@ Status FixPc(ProcessDpu *process, uint32_t *pc) {
   error = process->ReadMemory(ADDR_FG_CURRENTLY_LOADED_GROUP, &fg_id, 4, bytes_read);
   if(error.Fail() || bytes_read != 4)
     return Status("could not read load start address\n");
-  *pc |= k_dpu_viram_offset*(1+fg_id);
+  *pc |= k_dpu_viram_offset * (1 + fg_id);
   return Status();
 }
 
