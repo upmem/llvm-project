@@ -28,6 +28,7 @@ using namespace lldb_private::process_dpu;
 namespace {
 
 constexpr lldb::addr_t k_dpu_iram_base = 0x80000000;
+constexpr lldb::addr_t k_dpu_viram_offset = 0x00100000;
 
 } // end of anonymous namespace
 
@@ -78,6 +79,7 @@ RegisterContextDpu::RegisterContextDpu(ThreadDpu &thread, ProcessDpu &process)
   process.GetThreadContext(thread.GetIndex(), m_context_reg, m_context_pc,
                            m_context_zf, m_context_cf,
                            m_registers_has_been_modified);
+  m_process = &process;
 }
 
 uint32_t RegisterContextDpu::GetRegisterSetCount() const { return 1; }
@@ -94,6 +96,38 @@ RegisterContextDpu::GetRegisterSet(uint32_t set_index) const {
   return &g_reg_sets_dpu;
 }
 
+Status FixPc(ProcessDpu *process, uint32_t *pc) {
+  Status error;
+  size_t bytes_read;
+  // uint64_t magic_value;
+  uint32_t initialized = 0;
+  lldb::addr_t overlay_start_address = 0;
+  uint32_t fg_id;
+
+  const char *using_function_groups = std::getenv("USING_FUNCTION_GROUPS");
+  if (using_function_groups == NULL || using_function_groups[0] == '\0')
+    return Status("Could not find USING_FUNCTION_GROUPS env variable\n");
+
+  error = process->ReadMemory(ADDR_FG_INITIALIZED, &initialized, 4, bytes_read);
+  if(error.Fail() || bytes_read != 4 || initialized == 0)
+    return Status("fg groups not initialized\n");
+
+  error = process->ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 4, bytes_read);
+  if(error.Fail() || bytes_read != 4)
+    return Status("could not read load start address\n");
+
+  overlay_start_address <<= 3;
+  if((*pc) < k_dpu_iram_base + overlay_start_address)
+    return Status("pc below overlay_start_address\n");
+
+  error = process->ReadMemory(ADDR_FG_CURRENTLY_LOADED_GROUP, &fg_id, 4, bytes_read);
+  if(error.Fail() || bytes_read != 4)
+    return Status("could not read load start address\n");
+
+  *pc |= k_dpu_viram_offset * (1 + fg_id);
+  return Status();
+}
+
 Status RegisterContextDpu::ReadRegister(const RegisterInfo *info,
                                         RegisterValue &value) {
   if (!info)
@@ -106,6 +140,7 @@ Status RegisterContextDpu::ReadRegister(const RegisterInfo *info,
         *m_context_pc * 8 /*sizeof(iram_instruction_t)*/ + k_dpu_iram_base;
     if (m_thread.GetState() == eStateSuspended)
       pc++;
+    FixPc(m_process, &pc);
     value.SetUInt32(pc);
   } else if (reg == zf_dpu)
     value.SetUInt32(*m_context_zf ? 1 : 0);

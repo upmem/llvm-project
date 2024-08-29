@@ -50,6 +50,10 @@
 #include "Plugins/Process/POSIX/ProcessPOSIXLog.h"
 #include "ThreadDpu.h"
 
+extern "C" {
+#include <dpu_program.h>
+}
+
 #include <linux/unistd.h>
 #include <sys/timerfd.h> /* TODO only exists on Linux */
 #include <sys/types.h>
@@ -351,7 +355,7 @@ ProcessDpu::ProcessDpu(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
   SetState(StateType::eStateStopped, false);
 
   m_iram_region.GetRange().SetRangeBase(k_dpu_iram_base);
-  m_iram_region.GetRange().SetRangeEnd(k_dpu_iram_base + m_iram_size);
+  m_iram_region.GetRange().SetRangeEnd(k_dpu_iram_base + k_dpu_viram_offset*6 + m_iram_size);
   m_iram_region.SetReadable(MemoryRegionInfo::eYes);
   m_iram_region.SetWritable(MemoryRegionInfo::eYes);
   m_iram_region.SetExecutable(MemoryRegionInfo::eYes);
@@ -374,6 +378,8 @@ ProcessDpu::ProcessDpu(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
 
 void ProcessDpu::InterfaceTimerCallback() {
   unsigned int exit_status;
+  Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_PROCESS));
+  LLDB_LOG(log, "========= this is a log test ===========");
   StateType current_state = m_dpu->PollStatus(&exit_status);
   if (current_state != StateType::eStateInvalid) {
     if (current_state == StateType::eStateExited) {
@@ -546,6 +552,7 @@ Status ProcessDpu::GetMemoryRegionInfo(lldb::addr_t load_addr,
     range_info = m_mram_region;
   } else if (m_iram_region.GetRange().Contains(load_addr)) {
     range_info = m_iram_region;
+    // FIXME : add viram ranges
   } else {
     range_info.GetRange().SetRangeBase(load_addr);
     range_info.GetRange().SetRangeEnd(LLDB_INVALID_ADDRESS);
@@ -578,8 +585,10 @@ size_t ProcessDpu::UpdateThreads() { return m_threads.size(); }
 
 Status ProcessDpu::SetBreakpoint(lldb::addr_t addr, uint32_t size,
                                  bool hardware) {
+  size_t bytes_read;
+  Log *log(GetLogIfAnyCategoriesSet(POSIX_LOG_BREAKPOINTS));
   if (hardware)
-    return SetHardwareBreakpoint(addr, size);
+      return SetHardwareBreakpoint(addr, size);
   else
     return SetSoftwareBreakpoint(addr, size);
 }
@@ -593,7 +602,9 @@ Status ProcessDpu::RemoveBreakpoint(lldb::addr_t addr, bool hardware) {
 
 ProcessDpu::eMemoryAddressSpace
 ProcessDpu::ComputeMemoryAddressSpace(lldb::addr_t addr, size_t size) {
-  if (addr >= k_dpu_iram_base &&
+  if (addr >= k_dpu_iram_base + k_dpu_viram_offset && ((addr & (~k_dpu_viram_msb_mask)) + size) <= (k_dpu_iram_base + m_iram_size)) {
+    return eMemoryAddressSpaceVIRAM;
+  } else if (addr >= k_dpu_iram_base &&
       (addr + size) <= (k_dpu_iram_base + m_iram_size)) {
     return eMemoryAddressSpaceIRAM;
   } else if (addr >= k_dpu_mram_base &&
@@ -610,10 +621,20 @@ ProcessDpu::ComputeMemoryAddressSpace(lldb::addr_t addr, size_t size) {
 Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
                               size_t &bytes_read) {
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_MEMORY));
+  Status error;
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
 
   bytes_read = 0;
   switch (ComputeMemoryAddressSpace(addr, size)) {
+  case eMemoryAddressSpaceVIRAM:
+    // expected behaviour : if can fetch symbols, read correct mram location. Otherwise, read iram
+    lldb::addr_t mram_addr;
+    error = ViramAddressToMramPhysicalAddress(addr, &mram_addr);
+    if (error.Fail())
+      return Status("ReadMemory: cannot convert viram to mram physical address");
+    if (!m_dpu->ReadMRAM(mram_addr - k_dpu_mram_base, buf, size))
+      return Status("ReadMemory: Cannot copy from MRAM");
+    break;
   case eMemoryAddressSpaceIRAM:
     if (!m_dpu->ReadIRAM(addr - k_dpu_iram_base, buf, size))
       return Status("ReadMemory: Cannot copy from IRAM");
@@ -640,10 +661,26 @@ Status ProcessDpu::ReadMemory(lldb::addr_t addr, void *buf, size_t size,
 Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
                                size_t &bytes_written) {
   Log *log(ProcessPOSIXLog::GetLogIfAllCategoriesSet(POSIX_LOG_MEMORY));
+  Status error;
   LLDB_LOG(log, "addr = {0:X}, buf = {1}, size = {2}", addr, buf, size);
 
   bytes_written = 0;
   switch (ComputeMemoryAddressSpace(addr, size)) {
+  case eMemoryAddressSpaceVIRAM:
+    // expected behaviour : if can fetch symbols, write to correct mram location and if fg is loaded, write to iram. Otherwise, only write to iram
+    lldb::addr_t mram_addr;
+    lldb::addr_t iram_addr;
+    error = ViramAddressToMramPhysicalAddress(addr, &mram_addr);
+    if (error.Fail())
+      return Status("WriteMemory: cannot convert viram to mram physical address");
+    if (!m_dpu->WriteMRAM(mram_addr - k_dpu_mram_base, buf, size))
+      return Status("WriteMemory: Cannot copy to MRAM");
+    error = ViramAddressToLoadedIramAddress(addr, &iram_addr);
+    if (error.Fail()) {
+      LLDB_LOG(log, "WriteMemory: Could not write viram to iram as this function group is not currently loaded");
+    } else if (!m_dpu->WriteIRAM(iram_addr - k_dpu_iram_base, buf, size))
+      return Status("WriteMemory: Cannot copy to IRAM");
+    break;
   case eMemoryAddressSpaceIRAM:
     if (!m_dpu->WriteIRAM(addr - k_dpu_iram_base, buf, size))
       return Status("WriteMemory: Cannot copy to IRAM");
@@ -665,6 +702,57 @@ Status ProcessDpu::WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
   bytes_written = size;
 
   return Status();
+}
+
+Status ProcessDpu::ViramAddressToMramPhysicalAddress(lldb::addr_t viram_addr, lldb::addr_t *mram_addr) {
+  Status error;
+  size_t bytes_read;
+  lldb::addr_t overlay_start_address = 0;
+  lldb::addr_t load_starts_table_address = 0;
+  lldb::addr_t load_start_address = 0;
+  size_t fg_id = ((viram_addr & k_dpu_viram_msb_mask)/k_dpu_viram_offset) - 1;
+  const char *using_function_groups = std::getenv("USING_FUNCTION_GROUPS");
+  if (using_function_groups == NULL || using_function_groups[0] == '\0')
+    return Status("Could not find USING_FUNCTION_GROUPS env variable\n");
+  error = ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 4, bytes_read);
+  if(error.Fail() || bytes_read != 4)
+    return Status("could not read load start address\n");
+  overlay_start_address <<= 3;
+  lldbassert(viram_addr >= overlay_start_address);
+  error = ReadMemory(ADDR_FG_LOAD_STARTS_ADDR, &load_starts_table_address, 4, bytes_read);
+  if(error.Fail() || bytes_read != 4)
+    return Status("could not read load starts table address\n");
+  if (load_starts_table_address == 0)
+    return Status("function groups not properly initialized");
+  error = ReadMemory(load_starts_table_address+4*fg_id, &load_start_address, 4, bytes_read);
+  if(error.Fail() || bytes_read != 4)
+    return Status("could not read load start address\n");
+  *mram_addr = (viram_addr & ~k_dpu_viram_msb_mask) + load_start_address - overlay_start_address - k_dpu_iram_base + k_dpu_mram_base;
+  return Status();
+}
+
+Status ProcessDpu::ViramAddressToLoadedIramAddress(lldb::addr_t viram_addr, lldb::addr_t *iram_addr) {
+  Status error;
+  size_t bytes_read;
+  lldb::addr_t overlay_start_address;
+  // FIXME : try and fetch symbol instead of trusting overlay_start_address will always be stored at the same address in the elf
+  error = ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 4, bytes_read);
+  if(!error.Fail() && bytes_read == 4) {
+    overlay_start_address <<= 3;
+    overlay_start_address += 0x80000000;
+    if (viram_addr >= overlay_start_address && overlay_start_address != 0x80000000) {
+      uint32_t loaded_group_value;
+      // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
+      error = ReadMemory(ADDR_FG_CURRENTLY_LOADED_GROUP, &loaded_group_value, 4, bytes_read);
+      if(!error.Fail() && bytes_read == 4) {
+        if ((viram_addr & k_dpu_viram_msb_mask) ==  k_dpu_viram_offset*(loaded_group_value+1)) {
+          *iram_addr =  viram_addr & ~k_dpu_viram_msb_mask;
+          return Status();
+        }
+      }
+    }
+  }
+  return Status("This function group is not currently loaded in iram\n");
 }
 
 Status ProcessDpu::GetLoadedModuleFileSpec(const char *module_path,

@@ -25,6 +25,11 @@
 #include "ThreadDpu.h"
 #include "lldb/Host/common/NativeProcessProtocol.h"
 
+#define ADDR_FG_IRAM_OVERLAY_START     0x8
+#define ADDR_FG_CURRENTLY_LOADED_GROUP 0x10
+#define ADDR_FG_LOAD_STARTS_ADDR       0x18
+#define ADDR_FG_INITIALIZED            0x20
+
 namespace lldb_private {
 class Status;
 class Scalar;
@@ -39,6 +44,8 @@ const ArchSpec k_dpu_arch("dpu-upmem-dpurte");
 constexpr lldb::addr_t k_dpu_wram_base = 0x00000000;
 constexpr lldb::addr_t k_dpu_mram_base = 0x08000000;
 constexpr lldb::addr_t k_dpu_iram_base = 0x80000000;
+constexpr lldb::addr_t k_dpu_viram_offset = 0x00100000;
+constexpr lldb::addr_t k_dpu_viram_msb_mask = k_dpu_viram_offset*0xf;
 } // namespace dpu
 
 namespace process_dpu {
@@ -95,6 +102,10 @@ public:
 
   Status WriteMemory(lldb::addr_t addr, const void *buf, size_t size,
                      size_t &bytes_written) override;
+
+  Status ViramAddressToMramPhysicalAddress(lldb::addr_t viram_addr, lldb::addr_t *mram_addr);
+
+  Status ViramAddressToLoadedIramAddress(lldb::addr_t viram_addr, lldb::addr_t *iram_addr);
 
   virtual llvm::Expected<lldb::addr_t>
   AllocateMemory(size_t size, uint32_t permissions) override;
@@ -167,6 +178,7 @@ private:
   Status DpuErrorStatus(const char *message);
 
   enum eMemoryAddressSpace {
+    eMemoryAddressSpaceVIRAM,
     eMemoryAddressSpaceIRAM,
     eMemoryAddressSpaceMRAM,
     eMemoryAddressSpaceWRAM,

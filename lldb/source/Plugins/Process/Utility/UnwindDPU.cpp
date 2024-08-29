@@ -25,11 +25,16 @@
 using namespace lldb;
 using namespace lldb_private;
 
+#define ADDR_FG_IRAM_OVERLAY_START     0x8
+#define ADDR_FG_CURRENTLY_LOADED_GROUP 0x10
+#define DPU_IRAM_BASE                  0x80000000
+#define FG_DPU_VIRAM_OFFSET            0x00100000
+
 UnwindDPU::UnwindDPU(Thread &thread) : Unwind(thread), m_frames() {}
 
 void UnwindDPU::DoClear() { m_frames.clear(); }
 
-#define FORMAT_PC(pc) (0x80000000 | ((pc)*8))
+#define FORMAT_PC(pc) (DPU_IRAM_BASE | ((pc)*8))
 
 bool UnwindDPU::SetFrame(CursorSP *prev_frame, lldb::addr_t cfa,
                          lldb::addr_t pc, Address &fct_base_addr) {
@@ -129,6 +134,29 @@ uint32_t UnwindDPU::DoGetFrameCount() {
   return m_frames.size();
 }
 
+bool UnwindDPU::FixPcForOverlay(lldb::addr_t &pc) {
+  Status error;
+  lldb::addr_t overlay_start_address;
+  lldb::addr_t viram_bitmask = 0;
+  const char *using_function_groups = std::getenv("USING_FUNCTION_GROUPS");
+
+  if (using_function_groups == NULL || using_function_groups[0] == '\0')
+    return true;
+
+  if(m_thread.GetProcess()->ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 8, error) != 8)
+    return false;
+  overlay_start_address = FORMAT_PC(overlay_start_address);
+  if (pc >= overlay_start_address && overlay_start_address != DPU_IRAM_BASE) {
+    uint32_t loaded_group_value;
+    // FIXME : try and fetch symbol instead of trusting the loaded_group will always be stored at the same address in the elf
+    if(m_thread.GetProcess()->ReadMemory(ADDR_FG_CURRENTLY_LOADED_GROUP, &loaded_group_value, 4, error) != 4)
+      return false;
+    viram_bitmask = FG_DPU_VIRAM_OFFSET*(loaded_group_value+1);
+  }
+  pc |= viram_bitmask;
+  return true;
+}
+
 bool UnwindDPU::DoGetFrameInfoAtIndex(uint32_t frame_idx, lldb::addr_t &cfa,
                                       lldb::addr_t &pc, bool &behaves_like_zeroth_frame) {
   if (frame_idx >= DoGetFrameCount())
@@ -137,7 +165,8 @@ bool UnwindDPU::DoGetFrameInfoAtIndex(uint32_t frame_idx, lldb::addr_t &cfa,
   behaves_like_zeroth_frame = frame_idx == 0;
   cfa = m_frames[frame_idx]->cfa;
   pc = m_frames[frame_idx]->pc;
-  return true;
+
+  return FixPcForOverlay(pc);
 }
 
 lldb::RegisterContextSP

@@ -141,7 +141,8 @@ unsigned int DpuContext::GetExitStatus() {
 }
 
 lldb::addr_t DpuContext::GetPcOfThread(dpu_thread_t thread) {
-  return InstIdx2InstAddr(m_context->pcs[thread]);
+  uint32_t raw_pc = m_context->pcs[thread];
+  return InstIdx2InstAddr(raw_pc);
 }
 
 bool DpuContext::ScheduledThread(uint32_t thread) {

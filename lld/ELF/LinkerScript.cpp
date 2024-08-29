@@ -856,7 +856,7 @@ void LinkerScript::switchTo(OutputSection *sec) {
     // ctx->outSec->alignment is the max of ALIGN and the maximum of input
     // section alignments.
     ctx->outSec->addr = advance(0, ctx->outSec->alignment);
-    expandMemoryRegions(ctx->outSec->addr - pos);
+    expandMemoryRegions(ctx->outSec->addr - pos);// TODO : check if this doesn't require some modification for overlay case
   }
 }
 
@@ -907,6 +907,10 @@ void LinkerScript::assignOffsets(OutputSection *sec) {
   const uint64_t savedDot = dot;
   ctx->memRegion = sec->memRegion;
   ctx->lmaRegion = sec->lmaRegion;
+
+  if (sec->inOverlay && ctx->inOverlay && sec->addrExpr().getValue() == ctx->outSec->addrExpr().getValue())
+      ctx->memRegion->curPos -= ctx->outSec->size;
+  ctx->inOverlay = sec->inOverlay;
 
   if (sec->flags & SHF_ALLOC) {
     if (ctx->memRegion)

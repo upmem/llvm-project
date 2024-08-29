@@ -81,6 +81,8 @@ public:
   bool WriteMRAM(uint32_t offset, const void *buf, size_t size);
   bool ReadMRAM(uint32_t offset, void *buf, size_t size);
 
+  bool GetSymbol(const char *symbol_name, dpu_symbol_t *symbol);
+
   bool AllocIRAMBuffer(uint8_t **iram, uint32_t *iram_size);
   bool FreeIRAMBuffer(uint8_t *iram);
   bool GenerateSaveCore(const char *exe_path, const char *core_file_path,
