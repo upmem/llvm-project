@@ -107,18 +107,23 @@ Status FixPc(ProcessDpu *process, uint32_t *pc) {
   const char *using_function_groups = std::getenv("USING_FUNCTION_GROUPS");
   if (using_function_groups == NULL || using_function_groups[0] == '\0')
     return Status("Could not find USING_FUNCTION_GROUPS env variable\n");
+
   error = process->ReadMemory(ADDR_FG_INITIALIZED, &initialized, 4, bytes_read);
   if(error.Fail() || bytes_read != 4 || initialized == 0)
     return Status("fg groups not initialized\n");
+
   error = process->ReadMemory(ADDR_FG_IRAM_OVERLAY_START, &overlay_start_address, 4, bytes_read);
   if(error.Fail() || bytes_read != 4)
     return Status("could not read load start address\n");
+
   overlay_start_address <<= 3;
   if((*pc) < k_dpu_iram_base + overlay_start_address)
     return Status("pc below overlay_start_address\n");
+
   error = process->ReadMemory(ADDR_FG_CURRENTLY_LOADED_GROUP, &fg_id, 4, bytes_read);
   if(error.Fail() || bytes_read != 4)
     return Status("could not read load start address\n");
+
   *pc |= k_dpu_viram_offset * (1 + fg_id);
   return Status();
 }
