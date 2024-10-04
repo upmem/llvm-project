@@ -444,7 +444,7 @@ StateType Dpu::StepThread(uint32_t thread_index, unsigned int *exit_status) {
   return StateType::eStateStopped;
 }
 
-bool Dpu::WriteWRAM(uint32_t offset, const void *buf, size_t size) {
+bool Dpu::WriteWRAMHandlingAlignment(uint32_t offset, const void *buf, size_t size) {
   std::lock_guard<std::recursive_mutex> guard(m_rank->GetLock());
 
   dpu_error_t ret;
@@ -488,6 +488,38 @@ bool Dpu::WriteWRAM(uint32_t offset, const void *buf, size_t size) {
 
   delete[] words;
   return ret == DPU_OK;
+}
+
+bool Dpu::WriteWRAM(uint32_t offset, const void *buf, size_t size) {
+  uint32_t locationInWRAM = offset;
+  size_t pointerOffsetBuf = 0;
+  size_t offsetToAlignLocation = sizeof(dpuword_t) - (locationInWRAM % sizeof(dpuword_t));
+
+  // align addr
+  if ((offsetToAlignLocation != sizeof(dpuword_t)) && (offsetToAlignLocation < size)) {
+    if (!WriteWRAMHandlingAlignment(locationInWRAM, buf, offsetToAlignLocation)) {
+      return false;
+    }
+    locationInWRAM += offsetToAlignLocation;
+    size -= offsetToAlignLocation;
+    pointerOffsetBuf += offsetToAlignLocation;
+  }
+
+  // align size
+  size_t sizeToAlignSize = size % sizeof(dpuword_t);
+  if (sizeToAlignSize != 0) {
+    const void *localBufPointer = (static_cast<const char*>(buf) +
+                                   pointerOffsetBuf + (size - sizeToAlignSize));
+
+    if (!WriteWRAMHandlingAlignment((locationInWRAM + size) - sizeToAlignSize,
+                                    localBufPointer, sizeToAlignSize)) {
+      return false;
+    }
+    size -= sizeToAlignSize;
+  }
+
+  const void *localBufPointer = static_cast<const char*>(buf) + pointerOffsetBuf;
+  return WriteWRAMHandlingAlignment(locationInWRAM, localBufPointer, size);
 }
 
 bool Dpu::ReadWRAM(uint32_t offset, void *buf, size_t size) {
@@ -617,7 +649,7 @@ bool Dpu::ReadIRAM(uint32_t offset, void *buf, size_t size) {
   return ret == DPU_OK;
 }
 
-bool Dpu::WriteMRAM(uint32_t offset, const void *buf, size_t size) {
+bool Dpu::WriteMRAMHandlingAlignment(uint32_t offset, const void *buf, size_t size) {
   std::lock_guard<std::recursive_mutex> guard(m_rank->GetLock());
 
   dpu_error_t ret;
@@ -652,6 +684,38 @@ bool Dpu::WriteMRAM(uint32_t offset, const void *buf, size_t size) {
 
   delete[] bytes;
   return ret == DPU_OK;
+}
+
+bool Dpu::WriteMRAM(uint32_t offset, const void *buf, size_t size) {
+  uint32_t locationInMRAM = offset;
+  size_t pointerOffsetBuf = 0;
+  size_t offsetToAlignLocation = mram_aligned - (locationInMRAM % mram_aligned);
+
+  // align addr
+  if ((offsetToAlignLocation != mram_aligned) && (offsetToAlignLocation < size)) {
+    if (!WriteMRAMHandlingAlignment(locationInMRAM, buf, offsetToAlignLocation)) {
+      return false;
+    }
+    locationInMRAM += offsetToAlignLocation;
+    size -= offsetToAlignLocation;
+    pointerOffsetBuf += offsetToAlignLocation;
+  }
+
+  // align size
+  size_t sizeToAlignSize = size % mram_aligned;
+  if (sizeToAlignSize != 0) {
+    const void *localBufPointer = (static_cast<const char*>(buf) +
+                                   pointerOffsetBuf + (size - sizeToAlignSize));
+
+    if (!WriteMRAMHandlingAlignment((locationInMRAM + size) - sizeToAlignSize,
+                                    localBufPointer, sizeToAlignSize)) {
+      return false;
+    }
+    size -= sizeToAlignSize;
+  }
+
+  const void *localBufPointer = static_cast<const char*>(buf) + pointerOffsetBuf;
+  return WriteMRAMHandlingAlignment(locationInMRAM, localBufPointer, size);
 }
 
 bool Dpu::ReadMRAM(uint32_t offset, void *buf, size_t size) {
