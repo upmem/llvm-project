@@ -110,6 +110,9 @@ public:
   lldb::addr_t GetClosePrintfSequenceAddr();
 
 private:
+  bool WriteWRAMHandlingAlignment(uint32_t offset, const void *buf, size_t size);
+  bool WriteMRAMHandlingAlignment(uint32_t offset, const void *buf, size_t size);
+
   bool WriteIRAMUntraced(uint32_t offset, const void *buf, size_t size);
 
   DpuRank *m_rank;
