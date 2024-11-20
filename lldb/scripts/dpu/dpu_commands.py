@@ -374,9 +374,13 @@ def dpu_attach(debugger, command, result, internal_dict):
     # normal lldb GDBRemote packet. Instead, we set an environment variable with the value that we
     # have looked up from the loaded bianry. If we cannot find one, then this environment variable
     # remains unset, and we cannot detach and re-attach within different processes.
+    # NOTE: The value of `storage.location` is a *HEX ENCODED* address.
     storage = target_dpu.FindFirstGlobalVariable("error_storage")
     if storage.IsValid():
         lldb_server_dpu_env["UPMEM_LLDB_ERROR_STORE_ADDR"] = str(storage.location)
+    else:
+        print("Could not find valid storage location for `error_storage` variable in `target_dpu`")
+        return None
 
     sub_lldb = subprocess.Popen(['lldb-server-dpu',
                                  'gdbserver',

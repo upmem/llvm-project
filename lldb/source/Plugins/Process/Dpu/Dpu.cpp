@@ -117,8 +117,12 @@ bool Dpu::SetPrintfSequenceAddrsFromRuntimeInfo(dpu_program_t *runtime) {
 }
 
 bool Dpu::SetErrorStoreAddr(const uint32_t _error_store_addr) {
-  error_store_addr = _error_store_addr;
-  return true;
+  if (_error_store_addr != 0 /*nullptr*/) {
+    error_store_addr = _error_store_addr;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 bool Dpu::SetErrorStoreAddrFromRuntimeInfo(dpu_program_t *runtime) {
@@ -154,9 +158,9 @@ bool Dpu::LoadElf(const FileSpec &elf_file_path) {
   // we *don't* want to fail. This needs to be refactored so that we either a)
   // warn the user, or b) integrate the failure in the same way as the
   // SetPrintfSequence... does.
-  // if (!SetErrorStoreAddrFromRuntimeInfo(runtime))
-  //   return false;
-  SetErrorStoreAddrFromRuntimeInfo(runtime);
+  // NOTE: For now we are disregarding this, in order to fail more effectively.
+  if (!SetErrorStoreAddrFromRuntimeInfo(runtime))
+    return false;
 
   return true;
 }
