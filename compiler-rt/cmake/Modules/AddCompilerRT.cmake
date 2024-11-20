@@ -158,11 +158,11 @@ function(add_compiler_rt_runtime name type)
   set(libnames)
   # Until we support this some other way, build compiler-rt runtime without LTO
   # to allow non-LTO projects to link with it.
-  if(COMPILER_RT_HAS_FNO_LTO_FLAG)
-    set(NO_LTO_FLAGS "-fno-lto")
-  else()
-    set(NO_LTO_FLAGS "")
-  endif()
+  # if(COMPILER_RT_HAS_FNO_LTO_FLAG)
+  #   set(NO_LTO_FLAGS "-fno-lto")
+  # else()
+  #   set(NO_LTO_FLAGS "")
+  # endif()
 
   # By default do not instrument or use profdata for compiler-rt.
   set(NO_PGO_FLAGS "")
