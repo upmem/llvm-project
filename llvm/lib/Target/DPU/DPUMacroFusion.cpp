@@ -7,8 +7,10 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "DPUHelper.h"
 #include "DPUMacroFusion.h"
 #include "DPUSubtarget.h"
+
 #include "llvm/CodeGen/MacroFusion.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
 #include "llvm/Support/Debug.h"
@@ -28,14 +30,13 @@ static bool shouldScheduleAdjacent(const TargetInstrInfo &TII,
   // We are mainly interested in merging a simple operation with a simple
   // conditional/unconditional branch
   LLVM_DEBUG({
-    dbgs() << "DPU/Merge: checking macro fusion:\n\t";
-    if (!FirstMI)
-      dbgs() << "<NONE>";
-    else
-      FirstMI->dump();
-    dbgs() << "\n\t";
-    SecondMI.dump();
-    dbgs() << "\n";
+    dbgs() << "DPU/Merge: checking macro fusion:\n";
+    if (!FirstMI) {
+      dbgs() << "\t<NONE>\n";
+    } else {
+      dbgs() << "\t"; FirstMI->dump();
+    }
+    dbgs() << "\t"; SecondMI.dump();
   });
 
   if (!FirstMI) {
@@ -43,6 +44,26 @@ static bool shouldScheduleAdjacent(const TargetInstrInfo &TII,
     // preceding block. Return true to trigger a test against any other
     // instruction.
     return true;
+  }
+
+  // check if they are candidate for PostRAFusion
+  if (hasPostRAFusionMetadata(FirstMI)
+      && hasPostRAFusionMetadata(&SecondMI)) {
+    // and if they share operands
+    for (auto &FirstMIOperands : FirstMI->operands()) {
+      if (!FirstMIOperands.isReg())
+	continue;
+
+      for (auto &SecondMIOperands : SecondMI.operands()) {
+	if (!SecondMIOperands.isReg())
+	  continue;
+
+	if (FirstMIOperands.getReg() == SecondMIOperands.getReg()) {
+	  LLVM_DEBUG({ dbgs() << "DPU/Merge: the two instructions can be fused in PostRA\n"; });
+	  return true;
+	}
+      }
+    }
   }
 
   unsigned firstOpc = FirstMI->getOpcode();

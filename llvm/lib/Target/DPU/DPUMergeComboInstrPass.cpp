@@ -6,12 +6,14 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-#include "DPUTargetMachine.h"
-#include <llvm/CodeGen/MachineInstrBuilder.h>
-#include <set>
-
 #include "DPU.h"
+#include "DPUHelper.h"
+#include "DPUTargetMachine.h"
+
 #include "llvm/CodeGen/MachineFunctionPass.h"
+#include <llvm/CodeGen/MachineInstrBuilder.h>
+
+#include <set>
 
 #define GET_INSTRINFO_ENUM
 
@@ -187,20 +189,6 @@ static const ISD::CondCode extendedConditions[] = {
 static const ISD::CondCode sourceConditions[] = {
     ISD::SETOEQ, ISD::SETOGE, ISD::SETOLT, ISD::SETONE, ISD::SETUEQ,
     ISD::SETEQ,  ISD::SETGE,  ISD::SETLT,  ISD::SETNE};
-
-static MachineInstr *
-getLastNonDebugInstrFrom(MachineBasicBlock::reverse_iterator &I,
-                         MachineBasicBlock::reverse_iterator REnd) {
-  // Skip all the debug instructions.
-  while (I != REnd &&
-         (I->isDebugValue() || I->getOpcode() == TargetOpcode::DBG_VALUE)) {
-    ++I;
-  }
-  if (I == REnd) {
-    return NULL;
-  }
-  return &*I;
-}
 
 static bool mergeComboInstructionsInMBB(MachineBasicBlock *MBB,
                                         const DPUInstrInfo &InstrInfo) {

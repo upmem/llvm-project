@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "DPUHelper.h"
 #include "DPUInstrInfo.h"
 #include "DPUTargetMachine.h"
 
@@ -106,14 +107,14 @@ bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
     BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::JUMPr)).addReg(DPU::R23);
     break;
   case DPU::CALLi:
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLri))
-        .addReg(DPU::R23)
-        .add(MI.getOperand(0));
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLri), DPU::R23)
+        .add(MI.getOperand(0))
+        .copyImplicitOps(MI);
     break;
   case DPU::CALLr:
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLrr))
-        .addReg(DPU::R23)
-        .add(MI.getOperand(0));
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::CALLrr), DPU::R23)
+        .add(MI.getOperand(0))
+        .copyImplicitOps(MI);
     break;
   case DPU::ADD_VAStart: { // Get the first index in stack where the first
                            // vaargs is stored
@@ -122,8 +123,7 @@ bool DPUInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
       StackSize = MF->getFrameInfo().getStackSize();
     }
     unsigned int ResultReg = MI.getOperand(0).getReg();
-    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::SUBrrif))
-        .addReg(ResultReg)
+    BuildMI(MBB, MI, MI.getDebugLoc(), get(DPU::SUBrrif), ResultReg)
         .addReg(DPU::R22)
         .addImm(StackSize + STACK_SIZE_FOR_D22)
         .addImm(DPUAsmCondition::Condition::False);
@@ -301,10 +301,20 @@ static void fetchConditionalBranchInfo(MachineInstr *Inst,
       Cond.push_back(operand);
     }
   }
+
+  for (const MachineOperand &Op : Inst->operands()) {
+    if (Op.isMetadata()) {
+      Cond.push_back(Op);
+    }
+  }
 }
 
 static inline bool isAnalyzableBranch(MachineInstr *Inst) {
-  return Inst->isBranch() && !Inst->isIndirectBranch();
+  return (Inst->isBranch() && !Inst->isIndirectBranch()
+	  // We intentionally know that those will be optimized by us
+	  // during DPUPostRAFusion, don't let split the critical edge
+	  // && !hasPostRAFusionMetadata(Inst)
+	  );
 }
 
 bool DPUInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
@@ -451,15 +461,22 @@ void DPUInstrInfo::buildConditionalBranch(MachineBasicBlock &MBB,
   MIB = BuildMI(&MBB, DL, get(Opc));
 
   for (unsigned i = 1; i < Cond.size(); ++i) {
-    if (Cond[i].isReg())
-      MIB.addReg(Cond[i].getReg());
-    else if (Cond[i].isImm())
-      MIB.addImm(Cond[i].getImm());
-    else
+    if (Cond[i].isReg() || Cond[i].isImm()) {
+      MIB->addOperand(Cond[i]);
+    } else if (Cond[i].isMetadata()) {
+      // skip
+    } else {
       assert(false && "Cannot copy operand");
+    }
   }
 
   MIB.addMBB(TBB);
+
+  for (unsigned i = 0; i < Cond.size(); ++i) {
+     if (Cond[i].isMetadata()) {
+      MIB.addMetadata(Cond[i].getMetadata());
+     }
+  }
 }
 
 unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
@@ -493,4 +510,11 @@ unsigned DPUInstrInfo::insertBranch(MachineBasicBlock &MBB,
   if (BytesAdded)
     *BytesAdded = nrOfInsertedMachineInstr;
   return nrOfInsertedMachineInstr;
+}
+
+bool DPUInstrInfo::shouldSink(const MachineInstr &MI) const {
+  if (hasPostRAFusionMetadata(&MI))
+    return false;
+
+  return TargetInstrInfo::shouldSink(MI);
 }

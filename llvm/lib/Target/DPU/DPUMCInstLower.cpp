@@ -102,6 +102,7 @@ void DPUMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
       break;
 
     case MachineOperand::MO_RegisterMask:
+    case MachineOperand::MO_Metadata:
       continue;
 
     case MachineOperand::MO_GlobalAddress:

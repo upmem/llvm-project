@@ -458,7 +458,7 @@ static const struct TestVector vectors[] = {
     {__builtin_inff(),__builtin_inff(),0,0,0,0,0,0,0},
 };    
 
-int main(int argc, char *argv[]) {
+int main() {
     const int numVectors = sizeof vectors / sizeof vectors[0];
     int i;
     for (i = 0; i<numVectors; ++i) {

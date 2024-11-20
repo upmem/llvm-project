@@ -2,32 +2,34 @@ add_llvm_component_group(DPU)
 
 set(LLVM_TARGET_DEFINITIONS DPU.td)
 
-tablegen(LLVM DPUGenRegisterInfo.inc -gen-register-info)
-tablegen(LLVM DPUGenInstrInfo.inc -gen-instr-info)
 tablegen(LLVM DPUGenAsmWriter.inc -gen-asm-writer)
 tablegen(LLVM DPUGenAsmMatcher.inc -gen-asm-matcher)
-tablegen(LLVM DPUGenSubtargetInfo.inc -gen-subtarget)
-tablegen(LLVM DPUGenDAGISel.inc -gen-dag-isel)
 tablegen(LLVM DPUGenCallingConv.inc -gen-callingconv)
+tablegen(LLVM DPUGenDAGISel.inc -gen-dag-isel)
+tablegen(LLVM DPUGenInstrInfo.inc -gen-instr-info)
 tablegen(LLVM DPUGenMCCodeEmitter.inc -gen-emitter)
+tablegen(LLVM DPUGenRegisterInfo.inc -gen-register-info)
+tablegen(LLVM DPUGenSubtargetInfo.inc -gen-subtarget)
 
 add_public_tablegen_target(DPUCommonTableGen)
 
 add_llvm_target(DPUCodeGen
-        DPUTargetMachine.cpp
-        DPURegisterInfo.cpp
-        DPUFrameLowering.cpp
-        DPUTargetLowering.cpp
-        DPUMachineFunctionInfo.cpp
-        DPUInstrInfo.cpp
-        DPUSubtarget.cpp
-        DPUISelDAGToDAG.cpp
         DPUAsmPrinter.cpp
-        DPUMCInstLower.cpp
-        DPUMergeComboInstrPass.cpp
-        DPUResolveMacroInstrPass.cpp
+        DPUFrameLowering.cpp
+        DPUHelper.cpp
+        DPUInstrInfo.cpp
+        DPUISelDAGToDAG.cpp
+        DPUMachineFunctionInfo.cpp
         DPUMacroFusion.cpp
+        DPUMergeComboInstrPass.cpp
+        DPUMCInstLower.cpp
+        DPUPostRAFusion.cpp
+        DPURegisterInfo.cpp
+        DPUResolveMacroInstrPass.cpp
         DPUSelectionDAGInfo.cpp
+        DPUSubtarget.cpp
+        DPUTargetLowering.cpp
+        DPUTargetMachine.cpp
 
         DEPENDS
         intrinsics_gen
